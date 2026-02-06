@@ -8,7 +8,6 @@ const koreksiRoute = require('./routes/koreksi');
 
 const app = express();
 
-// Middleware dasar
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -22,6 +21,12 @@ app.use(session({
         secure: false 
     }
 }));
+
+// --- FIX CANNOT GET ---
+// Menambahkan route root (/) agar otomatis membuka halaman login
+app.get('/', (req, res) => {
+    res.redirect('/login.html');
+});
 
 // API Login & Set Session
 app.post('/auth/login', (req, res) => {
