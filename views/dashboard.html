@@ -8,79 +8,108 @@
     <script src="https://unpkg.com/docx@7.1.0/build/index.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <style>
-        body { background: #050505; color: white; font-family: sans-serif; }
-        .glass { background: rgba(20, 20, 20, 0.8); border: 1px solid #222; backdrop-filter: blur(10px); }
-        select { background: #111; color: #3b82f6; border: 1px solid #333; padding: 4px; border-radius: 6px; font-weight: bold; outline: none; }
-        textarea::placeholder { color: #444; }
+        body { 
+            background-color: #f3f4f6; 
+            /* Ornamen Sekolah: Pola Ikon Pendidikan Halus */
+            background-image: url("https://www.transparenttextures.com/patterns/cubes.png");
+            color: #1f2937;
+            font-family: 'Inter', sans-serif;
+        }
+        .school-card { 
+            background: white; 
+            border-radius: 2rem; 
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e5e7eb;
+        }
+        select { 
+            background: #f9fafb; 
+            border: 1px solid #d1d5db; 
+            padding: 4px 8px; 
+            border-radius: 8px; 
+            font-weight: 600; 
+            color: #2563eb;
+        }
+        .btn-primary {
+            background: #2563eb;
+            transition: all 0.3s;
+        }
+        .btn-primary:hover {
+            background: #1d4ed8;
+            transform: translateY(-2px);
+        }
     </style>
 </head>
-<body class="min-h-screen pb-20">
+<body class="min-h-screen pb-32">
 
-    <nav class="p-4 glass flex justify-between items-center sticky top-0 z-50 border-b border-gray-800">
-        <h1 class="text-xl font-black text-blue-500 tracking-tighter">AutoSoal AI</h1>
+    <nav class="bg-white/80 backdrop-blur-md p-4 flex justify-between items-center sticky top-0 z-50 border-b border-gray-200">
+        <h1 class="text-xl font-black text-blue-600 tracking-tighter">AutoSoal AI</h1>
         <div class="flex items-center gap-4">
-            <span id="userDisp" class="text-[10px] text-gray-500 font-bold uppercase"></span>
-            <a href="/auth/logout" class="text-red-500 text-xs font-bold border border-red-500/30 px-4 py-1 rounded-full hover:bg-red-500 hover:text-white transition">LOGOUT</a>
+            <span class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Panel Pengajar</span>
+            <a href="/auth/logout" class="text-red-500 text-xs font-bold border border-red-200 px-4 py-1 rounded-full hover:bg-red-50 transition">LOGOUT</a>
         </div>
     </nav>
 
     <main class="max-w-4xl mx-auto p-6 space-y-8">
+        
         <form id="koreksiForm" class="space-y-6">
-            <div class="glass p-6 rounded-3xl">
-                <h3 class="text-blue-500 font-black mb-4 flex items-center gap-2 uppercase text-sm tracking-widest">Kunci Jawaban PG (1-20)</h3>
-                <div id="pgGrid" class="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <div class="school-card p-8">
+                <h3 class="text-blue-600 font-black mb-6 flex items-center gap-2 uppercase text-sm tracking-widest border-b pb-2">
+                    Kunci Jawaban PG (1-20) 
+                    <span class="text-gray-300 ml-auto">▼</span>
+                </h3>
+                <div id="pgGrid" class="grid grid-cols-2 md:grid-cols-4 gap-4">
                     </div>
             </div>
 
-            <div class="glass p-6 rounded-3xl">
-                <h3 class="text-green-500 font-black mb-4 uppercase text-sm tracking-widest">Kriteria Jawaban Essay (1-10)</h3>
-                <div id="essayList" class="space-y-3">
+            <div class="school-card p-8">
+                <h3 class="text-green-600 font-black mb-6 uppercase text-sm tracking-widest border-b pb-2">Kriteria Jawaban Essay (1-10)</h3>
+                <div id="essayList" class="space-y-4">
                     </div>
             </div>
 
-            <div class="glass p-6 rounded-3xl space-y-6">
-                <div class="bg-blue-900/10 p-4 rounded-2xl border border-blue-500/20">
-                    <label class="text-[10px] text-blue-400 font-black uppercase block mb-2">Rumus Penilaian Akhir</label>
-                    <input type="text" name="rumus_nilai" class="w-full bg-transparent text-xl font-mono text-white outline-none" value="(PG+Essay)/13*100">
+            <div class="school-card p-8 space-y-8">
+                <div class="bg-gray-900 p-6 rounded-3xl">
+                    <label class="text-[10px] text-blue-400 font-black uppercase block mb-3">Rumus Penilaian Akhir</label>
+                    <input type="text" name="rumus_nilai" class="w-full bg-transparent text-2xl font-mono text-white outline-none text-center" value="(PG+Essay)/13*100">
                 </div>
 
-                <div class="grid grid-cols-2 gap-4">
-                    <label class="flex flex-col items-center justify-center p-8 border-2 border-dashed border-gray-800 rounded-3xl cursor-pointer hover:border-blue-500 transition group">
-                        <span class="text-3xl mb-2 group-hover:scale-110 transition">📁</span>
-                        <span class="text-[10px] font-black text-gray-500 uppercase">File Galeri</span>
+                <div class="grid grid-cols-2 gap-6">
+                    <label class="flex flex-col items-center justify-center p-10 border-2 border-dashed border-gray-200 rounded-3xl cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition group bg-gray-50/50">
+                        <span class="text-4xl mb-3">📁</span>
+                        <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest">File Galeri</span>
                         <input type="file" name="foto_tugas" multiple accept="image/*" class="hidden" id="fInp">
                     </label>
-                    <label class="flex flex-col items-center justify-center p-8 border-2 border-dashed border-gray-800 rounded-3xl cursor-pointer hover:border-blue-500 transition group">
-                        <span class="text-3xl mb-2 group-hover:scale-110 transition">📸</span>
-                        <span class="text-[10px] font-black text-gray-500 uppercase">Ambil Kamera</span>
+                    <label class="flex flex-col items-center justify-center p-10 border-2 border-dashed border-gray-200 rounded-3xl cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition group bg-gray-50/50">
+                        <span class="text-4xl mb-3">📸</span>
+                        <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Ambil Kamera</span>
                         <input type="file" name="foto_tugas" capture="environment" accept="image/*" class="hidden" id="cInp">
                     </label>
                 </div>
-                <p id="stts" class="text-center text-[10px] text-gray-600 font-bold italic"></p>
+                <p id="stts" class="text-center text-xs text-blue-600 font-bold animate-bounce"></p>
 
-                <button type="submit" id="btnGo" class="w-full bg-blue-600 p-5 rounded-2xl font-black text-white hover:bg-blue-500 shadow-2xl shadow-blue-900/40 transition transform active:scale-95">MULAI KOREKSI OTOMATIS</button>
+                <button type="submit" id="btnGo" class="w-full btn-primary p-6 rounded-2xl font-black text-white shadow-xl shadow-blue-200 text-lg">MULAI KOREKSI OTOMATIS</button>
             </div>
         </form>
 
-        <div id="resSection" class="hidden space-y-6 animate-pulse-once">
-            <div class="flex justify-between items-center border-b border-gray-800 pb-4">
-                <h2 class="text-xl font-black text-white uppercase tracking-tighter">Hasil Analisis AI</h2>
-                <button onclick="exportWord()" class="bg-white text-black text-[10px] font-black px-5 py-2 rounded-full uppercase hover:invert transition">Export to Word</button>
-            </div>
+        <div id="resSection" class="hidden space-y-6">
+            <h2 class="text-xl font-black text-gray-800 uppercase tracking-tighter border-l-4 border-blue-600 pl-4">Hasil Analisis Siswa</h2>
             <div id="resList" class="space-y-4"></div>
         </div>
     </main>
 
-    <script>
-        const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
-        document.getElementById('userDisp').innerText = userData.username || 'User';
+    <div id="floatingExport" class="hidden fixed bottom-8 left-0 right-0 flex justify-center z-50">
+        <button onclick="exportWord()" class="bg-gray-900 text-white font-black px-10 py-4 rounded-full shadow-2xl hover:scale-105 transition active:scale-95 flex items-center gap-3">
+            <span>📄</span> EXPORT TO WORD
+        </button>
+    </div>
 
-        // Buat Dropdown PG
+    <script>
+        // Setup Form PG
         const pgGrid = document.getElementById('pgGrid');
         for(let i=1; i<=20; i++) {
             pgGrid.innerHTML += `
-                <div class="flex items-center justify-between bg-black/50 p-2 rounded-xl border border-gray-900">
-                    <span class="text-[10px] font-bold text-gray-600">${i}</span>
+                <div class="flex items-center justify-between p-2 bg-gray-50 rounded-xl border border-gray-100">
+                    <span class="text-[10px] font-bold text-gray-400">${i}.</span>
                     <select name="pg_${i}">
                         <option value="A">A</option><option value="B">B</option>
                         <option value="C">C</option><option value="D">D</option>
@@ -88,26 +117,26 @@
                 </div>`;
         }
 
-        // Buat Kolom Essay (Ketik Sendiri)
+        // Setup Form Essay
         const essayList = document.getElementById('essayList');
         for(let i=1; i<=10; i++) {
             essayList.innerHTML += `
-                <div class="flex gap-3 items-start">
-                    <span class="text-[10px] font-bold text-gray-600 mt-3">${i}.</span>
+                <div class="flex gap-4 items-start bg-gray-50 p-4 rounded-2xl">
+                    <span class="text-[10px] font-bold text-gray-400 mt-2">${i}</span>
                     <textarea name="essay_${i}" placeholder="Ketik kunci jawaban/inti soal nomor ${i}..." 
-                    class="w-full p-3 bg-black/50 border border-gray-900 rounded-xl text-xs outline-none focus:border-green-500 transition" rows="2"></textarea>
+                    class="w-full bg-transparent text-sm outline-none border-none focus:ring-0" rows="1"></textarea>
                 </div>`;
         }
 
-        document.getElementById('fInp').onchange = e => document.getElementById('stts').innerText = e.target.files.length + " Gambar Siap";
-        document.getElementById('cInp').onchange = e => document.getElementById('stts').innerText = "Foto Kamera Siap";
+        document.getElementById('fInp').onchange = e => document.getElementById('stts').innerText = "✓ " + e.target.files.length + " Gambar Terpilih";
+        document.getElementById('cInp').onchange = e => document.getElementById('stts').innerText = "✓ Kamera Siap";
 
         let dataGlobal = [];
 
         document.getElementById('koreksiForm').onsubmit = async (e) => {
             e.preventDefault();
             const btn = document.getElementById('btnGo');
-            btn.innerText = "MENGECEK TANDA X & ESSAY...";
+            btn.innerText = "SEDANG MENGANALISIS...";
             btn.disabled = true;
 
             const formData = new FormData(e.target);
@@ -118,41 +147,49 @@
                 if(json.success) {
                     dataGlobal = json.data;
                     document.getElementById('resSection').classList.remove('hidden');
-                    let h = '';
+                    document.getElementById('floatingExport').classList.remove('hidden');
+                    let html = '';
                     dataGlobal.forEach(s => {
-                        h += `
-                        <div class="glass p-6 rounded-3xl border-l-4 border-blue-500">
-                            <p class="text-lg font-black uppercase mb-2">Nama : ${s.nama}</p>
-                            <div class="text-sm font-bold text-gray-400 space-y-1">
-                                <p>Pg betul : ${s.pg_betul} salah : ${s.pg_salah}</p>
-                                <p>Essay betul : ${s.essay_betul} salah : ${s.essay_salah}</p>
+                        html += `
+                        <div class="school-card p-6 border-l-8 border-blue-600">
+                            <p class="text-xl font-black text-gray-800 uppercase mb-3">Nama : ${s.nama}</p>
+                            <div class="flex flex-col gap-1 text-sm font-bold text-gray-500">
+                                <p>Pg betul : ${s.pg_betul} <span class="text-red-400 ml-2">salah : ${s.pg_salah}</span></p>
+                                <p>Essay betul : ${s.essay_betul} <span class="text-red-400 ml-2">salah : ${s.essay_salah}</span></p>
                             </div>
-                            <div class="mt-4 pt-4 border-t border-gray-800 flex justify-between items-end">
-                                <div><p class="text-[8px] text-gray-600 font-black uppercase">Skor Akhir</p><p class="text-4xl font-black text-blue-500">${s.nilai_akhir}</p></div>
-                                <span class="text-[9px] bg-blue-500/10 text-blue-500 px-3 py-1 rounded-full font-bold">TERVERIFIKASI AI</span>
+                            <div class="mt-4 pt-4 border-t border-gray-100 flex justify-between items-center">
+                                <span class="text-4xl font-black text-blue-600">${s.nilai_akhir}</span>
+                                <span class="text-[8px] bg-green-100 text-green-600 px-3 py-1 rounded-full font-black">AI VERIFIED</span>
                             </div>
                         </div>`;
                     });
-                    document.getElementById('resList').innerHTML = h;
+                    document.getElementById('resList').innerHTML = html;
                     window.scrollTo({ top: document.getElementById('resSection').offsetTop - 100, behavior: 'smooth' });
                 }
-            } catch (err) { alert("Server Sibuk / API Error."); }
+            } catch (err) { alert("Kesalahan server."); }
             btn.innerText = "MULAI KOREKSI OTOMATIS";
             btn.disabled = false;
         };
 
         function exportWord() {
-            const { Document, Packer, Paragraph, TextRun } = docx;
-            const content = dataGlobal.map(s => new Paragraph({
-                children: [
-                    new TextRun({ text: `Nama : ${s.nama}`, bold: true, size: 28 }),
-                    new TextRun({ text: `\nPg betul : ${s.pg_betul} salah : ${s.pg_salah}`, size: 24 }),
-                    new TextRun({ text: `\nEssay betul : ${s.essay_betul} salah : ${s.essay_salah}`, size: 24 }),
-                    new TextRun({ text: `\nSkor Akhir: ${s.nilai_akhir}\n\n`, bold: true, size: 24 }),
-                ],
-            }));
-            const doc = new Document({ sections: [{ children: content }] });
-            Packer.toBlob(doc).then(b => saveAs(b, "Hasil_Koreksi.docx"));
+            const { Document, Packer, Paragraph, TextRun, AlignmentType } = docx;
+            const paragraphs = [];
+            
+            dataGlobal.forEach(s => {
+                paragraphs.push(new Paragraph({
+                    children: [
+                        new TextRun({ text: `HASIL KOREKSI SISWA`, bold: true, size: 32 }),
+                        new TextRun({ text: `\nNama : ${s.nama}`, bold: true, size: 28, break: 1 }),
+                        new TextRun({ text: `\nPg betul : ${s.pg_betul} salah : ${s.pg_salah}`, size: 24, break: 1 }),
+                        new TextRun({ text: `\nEssay betul : ${s.essay_betul} salah : ${s.essay_salah}`, size: 24, break: 1 }),
+                        new TextRun({ text: `\nSkor Total: ${s.nilai_akhir}`, bold: true, size: 26, break: 1 }),
+                        new TextRun({ text: `\n-----------------------------------`, size: 24, break: 1 }),
+                    ],
+                }));
+            });
+
+            const doc = new Document({ sections: [{ children: paragraphs }] });
+            Packer.toBlob(doc).then(blob => saveAs(blob, "Laporan_Koreksi_TeAzHa.docx"));
         }
     </script>
 </body>
