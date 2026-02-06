@@ -3,170 +3,150 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AutoSoal AI - Penilaian Terpisah</title>
+    <title>AutoSoal AI - Maverick System</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/docx@7.1.0/build/index.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
-        body { background-color: #ffffff; font-family: 'Plus Jakarta Sans', sans-serif; color: #1e293b; }
-        .school-card { border-radius: 1rem; border: 1px solid #f1f5f9; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); background: white; }
-        .pg-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
-        @media (max-width: 640px) { .pg-grid { grid-template-columns: repeat(3, 1fr); } }
-        select { background: #f8fafc; border: 1px solid #e2e8f0; padding: 4px; border-radius: 6px; font-weight: 800; font-size: 12px; color: #2563eb; width: 100%; }
-        .label-rumus { font-size: 9px; font-weight: 900; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; display: block; }
+        body { background: #f8fafc; font-family: 'Plus Jakarta Sans', sans-serif; }
+        .glass-card { background: white; border: 1px solid #e2e8f0; border-radius: 20px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+        .pg-select { background: #f1f5f9; border: none; border-radius: 8px; font-weight: 800; color: #2563eb; width: 100%; padding: 6px; font-size: 13px; }
     </style>
 </head>
-<body class="min-h-screen pb-20">
+<body class="pb-20">
 
-    <nav class="bg-white sticky top-0 z-50 border-b border-gray-100 p-3">
-        <div class="max-w-4xl mx-auto flex justify-between items-center">
-            <h1 class="text-lg font-extrabold text-blue-600 italic">AutoSoal AI</h1>
-            <span class="text-[9px] bg-emerald-100 text-emerald-700 px-2 py-1 rounded font-black">RUMUS TERPISAH AKTIF</span>
+    <nav class="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b p-4">
+        <div class="max-w-3xl mx-auto flex justify-between items-center">
+            <h1 class="text-xl font-black text-blue-600 italic">MAVERICK AI</h1>
+            <span class="text-[10px] font-black bg-blue-100 text-blue-600 px-3 py-1 rounded-full uppercase tracking-widest">v4-17B Powered</span>
         </div>
     </nav>
 
-    <main class="max-w-3xl mx-auto p-4 space-y-6">
+    <main class="max-w-2xl mx-auto p-4 space-y-6">
         <form id="koreksiForm" class="space-y-4">
-            
-            <div class="school-card p-5">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-gray-800 font-extrabold uppercase text-[10px]">1. Kunci & Rumus PG</h3>
-                </div>
-                <div id="pgGrid" class="pg-grid mb-4"></div>
-                <div class="bg-blue-50 p-4 rounded-xl border border-blue-100">
-                    <label class="label-rumus text-blue-600">Rumus Khusus PG (Contoh: PG*2)</label>
-                    <input type="text" name="rumus_pg" class="w-full bg-white p-2 rounded-lg text-lg font-black text-blue-700 outline-none border border-blue-200" value="PG*2">
+            <div class="glass-card">
+                <h3 class="text-xs font-black uppercase text-gray-400 mb-4">Pilihan Ganda (Hanya isi yang akan dikoreksi)</h3>
+                <div id="pgGrid" class="grid grid-cols-3 sm:grid-cols-5 gap-3 mb-6"></div>
+                <div class="p-4 bg-blue-50 rounded-2xl">
+                    <label class="text-[9px] font-black text-blue-500 uppercase block mb-1">Rumus Skor PG</label>
+                    <input type="text" id="rumus_pg" class="w-full bg-white p-3 rounded-xl text-lg font-black text-blue-700 outline-none" value="PG*2">
                 </div>
             </div>
 
-            <div class="school-card p-5">
-                <h3 class="text-gray-800 font-extrabold uppercase text-[10px] mb-4">2. Kriteria & Rumus Essay</h3>
-                <div id="essayList" class="space-y-2 mb-4"></div>
-                <div class="bg-emerald-50 p-4 rounded-xl border border-emerald-100">
-                    <label class="label-rumus text-emerald-600">Rumus Khusus Essay (Contoh: Essay*10)</label>
-                    <input type="text" name="rumus_essay" class="w-full bg-white p-2 rounded-lg text-lg font-black text-emerald-700 outline-none border border-emerald-200" value="Essay*5">
+            <div class="glass-card">
+                <h3 class="text-xs font-black uppercase text-gray-400 mb-4">Essay (Kosongkan jika tidak dipakai)</h3>
+                <div id="essayList" class="space-y-2 mb-6"></div>
+                <div class="p-4 bg-emerald-50 rounded-2xl">
+                    <label class="text-[9px] font-black text-emerald-500 uppercase block mb-1">Rumus Skor Essay</label>
+                    <input type="text" id="rumus_essay" class="w-full bg-white p-3 rounded-xl text-lg font-black text-emerald-700 outline-none" value="Essay*10">
                 </div>
             </div>
 
-            <div class="school-card p-6 bg-slate-50 space-y-4">
-                <div class="grid grid-cols-2 gap-3">
-                    <label class="flex flex-col items-center justify-center p-6 bg-white border border-dashed rounded-xl cursor-pointer hover:border-blue-400 transition">
-                        <span class="text-2xl mb-1">📂</span>
-                        <span class="text-[9px] font-black uppercase">Galeri</span>
-                        <input type="file" id="fInp" multiple accept="image/*" class="hidden">
+            <div class="glass-card bg-slate-900 border-none shadow-2xl">
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <label class="flex flex-col items-center p-6 border-2 border-dashed border-slate-700 rounded-2xl cursor-pointer hover:bg-slate-800 transition">
+                        <span class="text-3xl mb-2">🖼️</span>
+                        <span class="text-[10px] font-bold text-slate-500 uppercase">Gallery</span>
+                        <input type="file" id="fileInp" multiple accept="image/*" class="hidden">
                     </label>
-                    <label class="flex flex-col items-center justify-center p-6 bg-white border border-dashed rounded-xl cursor-pointer hover:border-blue-400 transition">
-                        <span class="text-2xl mb-1">📸</span>
-                        <span class="text-[9px] font-black uppercase">Kamera</span>
-                        <input type="file" id="cInp" capture="environment" accept="image/*" class="hidden">
+                    <label class="flex flex-col items-center p-6 border-2 border-dashed border-slate-700 rounded-2xl cursor-pointer hover:bg-slate-800 transition">
+                        <span class="text-3xl mb-2">📸</span>
+                        <span class="text-[10px] font-bold text-slate-500 uppercase">Camera</span>
+                        <input type="file" id="camInp" capture="environment" accept="image/*" class="hidden">
                     </label>
                 </div>
-                <p id="stts" class="text-center text-[10px] font-bold text-blue-600 italic"></p>
-                <button type="submit" id="btnGo" class="w-full bg-blue-600 p-4 rounded-xl font-black text-white text-sm uppercase shadow-lg shadow-blue-200 hover:bg-blue-700 transition">Mulai Proses Pemeriksaan</button>
+                <button type="submit" id="submitBtn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-black p-5 rounded-2xl shadow-xl transition-all uppercase text-sm tracking-widest">Mulai Koreksi Gambar</button>
             </div>
         </form>
 
-        <div id="resSection" class="space-y-4">
-            <h2 class="text-xs font-black text-gray-400 uppercase text-center tracking-widest">Laporan Pemeriksaan Siswa</h2>
-            <div id="resList" class="space-y-4"></div>
-            <div class="flex justify-center pt-4">
-                <button onclick="exportWord()" class="bg-slate-900 text-white font-black px-10 py-4 rounded-xl text-xs flex items-center gap-3">
-                    📄 EXPORT KE WORD
-                </button>
+        <div id="resultArea" class="space-y-4 pt-10 border-t border-gray-200">
+            <h2 class="text-center text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-6">Laporan Pemeriksaan</h2>
+            <div id="resList" class="space-y-4">
+                <p class="text-center text-xs text-gray-400 italic">Belum ada data yang diproses.</p>
             </div>
+            <button onclick="exportToWord()" id="exportBtn" class="hidden w-full bg-slate-900 text-white p-4 rounded-2xl font-black text-xs uppercase tracking-widest mt-6 shadow-lg shadow-slate-300">
+                📄 Unduh Laporan (.docx)
+            </button>
         </div>
     </main>
 
     <script>
-        // Generate PG Inputs
+        // Init PG & Essay Fields
         const pgGrid = document.getElementById('pgGrid');
-        for(let i=1; i<=20; i++) {
-            pgGrid.innerHTML += `<div class="flex items-center gap-1 p-1 bg-white border rounded"><span class="text-[8px] font-bold text-gray-400">${i}</span><select name="pg_${i}"><option value="">-</option><option>A</option><option>B</option><option>C</option><option>D</option></select></div>`;
-        }
+        for(let i=1; i<=20; i++) pgGrid.innerHTML += `<div class="bg-white p-2 border rounded-xl flex items-center gap-2"><span class="text-[9px] font-black text-gray-300">${i}</span><select id="pg_${i}" class="pg-select"><option value="">-</option><option>A</option><option>B</option><option>C</option><option>D</option></select></div>`;
 
-        // Generate Essay Inputs
-        const essayList = document.getElementById('essayList');
-        for(let i=1; i<=10; i++) {
-            essayList.innerHTML += `<div class="flex gap-2 items-center bg-white p-2 border rounded-lg"><span class="text-emerald-400 font-bold text-[9px]">${i}</span><input type="text" name="essay_${i}" placeholder="Kunci/Kata kunci..." class="w-full bg-transparent outline-none text-[11px] font-semibold"></div>`;
-        }
+        const esList = document.getElementById('essayList');
+        for(let i=1; i<=10; i++) esList.innerHTML += `<div class="bg-white p-3 border rounded-xl flex items-center gap-3"><span class="text-[10px] font-black text-emerald-300">${i}</span><input type="text" id="es_${i}" placeholder="Kunci..." class="w-full bg-transparent outline-none text-sm font-bold"></div>`;
 
-        document.getElementById('fInp').onchange = e => document.getElementById('stts').innerText = `✓ ${e.target.files.length} Gambar Dimasukkan`;
-        document.getElementById('cInp').onchange = e => document.getElementById('stts').innerText = `✓ Foto Kamera Siap`;
-
-        let dataGlobal = [];
+        let store = [];
 
         document.getElementById('koreksiForm').onsubmit = async (e) => {
             e.preventDefault();
-            const btn = document.getElementById('btnGo');
-            btn.innerText = "SEDANG MENGHITUNG..."; btn.disabled = true;
+            const btn = document.getElementById('submitBtn');
+            btn.innerText = "MAVERICK SEDANG BEKERJA..."; btn.disabled = true;
 
-            const formData = new FormData(e.target);
-            const dataKirim = {
-                kunci_pg: {},
-                kunci_essay: {},
-                rumus_pg: formData.get('rumus_pg'),
-                rumus_essay: formData.get('rumus_essay')
+            const config = {
+                kunci_pg: {}, kunci_essay: {},
+                rumus_pg: document.getElementById('rumus_pg').value,
+                rumus_essay: document.getElementById('rumus_essay').value
             };
 
-            // Ambil hanya yang diisi
-            for(let i=1; i<=20; i++) { if(formData.get(`pg_${i}`)) dataKirim.kunci_pg[i] = formData.get(`pg_${i}`); }
-            for(let i=1; i<=10; i++) { if(formData.get(`essay_${i}`).trim() !== "") dataKirim.kunci_essay[i] = formData.get(`essay_${i}`); }
+            // Hanya kumpulkan data yang diisi (Instruksi: abaikan jika kosong)
+            for(let i=1; i<=20; i++) { let v = document.getElementById(`pg_${i}`).value; if(v) config.kunci_pg[i] = v; }
+            for(let i=1; i<=10; i++) { let v = document.getElementById(`es_${i}`).value; if(v.trim()) config.kunci_essay[i] = v; }
 
-            const finalFormData = new FormData();
-            finalFormData.append('data', JSON.stringify(dataKirim));
-            
-            const files = document.getElementById('fInp').files.length > 0 ? document.getElementById('fInp').files : document.getElementById('cInp').files;
-            for(let file of files) { finalFormData.append('foto_tugas', file); }
+            const fd = new FormData();
+            fd.append('data', JSON.stringify(config));
+            const files = document.getElementById('fileInp').files.length > 0 ? document.getElementById('fileInp').files : document.getElementById('camInp').files;
+            for(let f of files) fd.append('foto_tugas', f);
 
             try {
-                const res = await fetch('/ai/proses-koreksi', { method: 'POST', body: finalFormData });
+                const res = await fetch('/ai/proses-koreksi', { method: 'POST', body: fd });
                 const json = await res.json();
-                
                 if(json.success) {
-                    dataGlobal = json.data;
-                    let html = '';
-                    dataGlobal.forEach((s) => {
-                        html += `
-                        <div class="school-card p-6 border-t-4 border-blue-600">
-                            <h4 class="text-xl font-black text-slate-800 mb-4">Nama: ${s.nama}</h4>
-                            <div class="grid grid-cols-2 gap-3 mb-4">
-                                <div class="p-3 bg-blue-50 rounded-lg">
-                                    <p class="text-[9px] font-black text-blue-500 uppercase">PG (B:${s.pg_betul} S:${s.pg_salah})</p>
-                                    <p class="text-lg font-bold text-blue-800">Skor: ${s.skor_pg_hasil}</p>
-                                </div>
-                                <div class="p-3 bg-emerald-50 rounded-lg">
-                                    <p class="text-[9px] font-black text-emerald-500 uppercase">Essay (B:${s.essay_betul} S:${s.essay_salah})</p>
-                                    <p class="text-lg font-bold text-emerald-800">Skor: ${s.skor_essay_hasil}</p>
-                                </div>
-                            </div>
-                            <div class="flex justify-between items-center bg-slate-900 p-4 rounded-xl text-white">
-                                <div>
-                                    <p class="text-[8px] font-bold text-slate-400 uppercase">Total Nilai Akhir</p>
-                                    <p class="text-[10px] text-slate-300 font-medium italic">${s.skor_pg_hasil} + ${s.skor_essay_hasil}</p>
-                                </div>
-                                <p class="text-4xl font-black text-yellow-400">${s.nilai_akhir}</p>
-                            </div>
-                        </div>`;
-                    });
-                    document.getElementById('resList').innerHTML = html;
+                    store = json.data;
+                    render();
+                    document.getElementById('exportBtn').classList.remove('hidden');
                 }
-            } catch (err) { alert("Error sistem."); }
-            btn.innerText = "Mulai Proses Pemeriksaan"; btn.disabled = false;
+            } catch (err) { alert("Server Maverick Error"); }
+            btn.innerText = "Mulai Koreksi Gambar"; btn.disabled = false;
         };
 
-        function exportWord() {
-            if(dataGlobal.length === 0) return alert("Data kosong");
-            const { Document, Packer, Paragraph, TextRun } = docx;
-            const content = dataGlobal.map(s => [
-                new Paragraph({ children: [new TextRun({ text: `NAMA: ${s.nama}`, bold: true, size: 28 })] }),
-                new Paragraph({ text: `PG: Betul ${s.pg_betul}, Salah ${s.pg_salah} (Skor: ${s.skor_pg_hasil})` }),
-                new Paragraph({ text: `Essay: Betul ${s.essay_betul}, Salah ${s.essay_salah} (Skor: ${s.skor_essay_hasil})` }),
-                new Paragraph({ children: [new TextRun({ text: `TOTAL NILAI: ${s.nilai_akhir}`, bold: true, color: "FF0000" })] }),
-                new Paragraph({ text: "------------------------------------------" })
+        function render() {
+            const list = document.getElementById('resList');
+            list.innerHTML = "";
+            store.forEach(s => {
+                list.innerHTML += `
+                <div class="glass-card border-l-8 border-l-blue-600">
+                    <div class="flex justify-between mb-4">
+                        <h4 class="text-xl font-black">${s.nama}</h4>
+                        <span class="text-[9px] font-black bg-blue-600 text-white px-3 py-1 rounded-full uppercase">Hasil AI</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div class="p-4 bg-blue-50 rounded-2xl"><p class="text-[9px] font-black text-blue-400 uppercase">PG (B:${s.pg_betul} S:${s.pg_salah})</p><p class="text-xl font-black">Skor: ${s.skor_pg_hasil}</p></div>
+                        <div class="p-4 bg-emerald-50 rounded-2xl"><p class="text-[9px] font-black text-emerald-400 uppercase">Essay (B:${s.essay_betul} S:${s.essay_salah})</p><p class="text-xl font-black">Skor: ${s.skor_essay_hasil}</p></div>
+                    </div>
+                    <div class="flex justify-between items-center bg-slate-900 p-5 rounded-2xl text-white">
+                        <p class="text-[10px] font-black text-slate-500 tracking-widest uppercase">Nilai Akhir</p>
+                        <p class="text-4xl font-black text-blue-400">${s.nilai_akhir}</p>
+                    </div>
+                </div>`;
+            });
+            window.scrollTo({ top: document.getElementById('resultArea').offsetTop, behavior: 'smooth' });
+        }
+
+        function exportToWord() {
+            const { Document, Packer, Paragraph, TextRun, AlignmentType } = docx;
+            const content = store.map(s => [
+                new Paragraph({ children: [new TextRun({ text: `NAMA: ${s.nama}`, bold: true, size: 28 })], spacing: { before: 400 } }),
+                new Paragraph({ text: `Rincian PG: Betul ${s.pg_betul}, Salah ${s.pg_salah} -> Skor: ${s.skor_pg_hasil}` }),
+                new Paragraph({ text: `Rincian Essay: Betul ${s.essay_betul}, Salah ${s.essay_salah} -> Skor: ${s.skor_essay_hasil}` }),
+                new Paragraph({ children: [new TextRun({ text: `TOTAL NILAI: ${s.nilai_akhir}`, bold: true, size: 32, color: "0000FF" })] }),
+                new Paragraph({ text: "------------------------------------------------" })
             ]).flat();
             const doc = new Document({ sections: [{ children: content }] });
-            Packer.toBlob(doc).then(blob => saveAs(blob, "Laporan_Koreksi.docx"));
+            Packer.toBlob(doc).then(b => saveAs(b, "Laporan_Koreksi_Maverick.docx"));
         }
     </script>
 </body>
