@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CekTugas AI - Te Az Ha</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white min-h-screen p-5">
+    <div class="max-w-2xl mx-auto bg-gray-800 p-8 rounded-xl shadow-2xl">
+        <h1 class="text-3xl font-bold text-blue-400 mb-6">CekTugas AI</h1>
+        
+        <form id="koreksiForm" class="space-y-4">
+            <div>
+                <label class="block mb-2 font-semibold">Kunci Jawaban PG (Misal: 1.a 2.b):</label>
+                <textarea name="kunci_pg" class="w-full p-3 bg-gray-700 rounded border border-gray-600 focus:border-blue-500 outline-none" rows="3" placeholder="Contoh: 1.A, 2.B, 3.D"></textarea>
+            </div>
+
+            <div>
+                <label class="block mb-2 font-semibold">Kriteria Jawaban Essay (Poin Inti):</label>
+                <textarea name="kriteria_essay" class="w-full p-3 bg-gray-700 rounded border border-gray-600 focus:border-blue-500 outline-none" rows="3" placeholder="Contoh: Soal 1: apel beracun cinderella"></textarea>
+            </div>
+
+            <div>
+                <label class="block mb-2 font-semibold">Upload Foto Jawaban Siswa:</label>
+                <input type="file" name="foto_tugas" multiple class="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700">
+            </div>
+
+            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition duration-300">MULAI KOREKSI</button>
+        </form>
+
+        <div id="hasil" class="mt-8 p-5 bg-gray-700 rounded-lg hidden">
+            <h2 class="text-xl font-bold text-green-400 mb-2">Hasil Koreksi:</h2>
+            <div id="kontenHasil" class="text-gray-200 space-y-2"></div>
+            <div class="mt-4 text-3xl font-black text-center text-blue-400" id="skorDisplay"></div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('koreksiForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const btn = e.target.querySelector('button');
+            btn.innerText = "SEDANG MEMBACA TULISAN...";
+            btn.disabled = true;
+
+            const formData = new FormData(e.target);
+            const res = await fetch('/ai/proses-koreksi', { method: 'POST', body: formData });
+            const data = await res.json();
+
+            btn.innerText = "MULAI KOREKSI";
+            btn.disabled = false;
+
+            if(data.success) {
+                document.getElementById('hasil').classList.remove('hidden');
+                document.getElementById('kontenHasil').innerHTML = `
+                    <p><b>PG:</b> ${data.hasil_pg}</p>
+                    <p><b>Essay:</b> ${data.hasil_essay}</p>
+                    <p><b>Feedback:</b> ${data.feedback}</p>
+                `;
+                document.getElementById('skorDisplay').innerText = `SKOR: ${data.skor_total}`;
+            } else {
+                alert("Gagal: " + data.error);
+            }
+        };
+    </script>
+</body>
+</html>
