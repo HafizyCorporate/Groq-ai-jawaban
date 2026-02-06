@@ -1,92 +1,70 @@
 const express = require("express");
 const multer = require("multer");
-const path = require("path");
 const fs = require("fs");
+const path = require("path");
 const db = require("../db");
 const Groq = require("groq-sdk");
 
 const router = express.Router();
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-
-// Setup Folder Upload
-const uploadDir = path.join(__dirname, "../uploads/");
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
-const upload = multer({ dest: uploadDir });
+const upload = multer({ dest: "uploads/" });
 
 router.post("/proses-koreksi", upload.array("foto_tugas", 5), async (req, res) => {
   try {
-    // 1. Cek Login
-    if (!req.session.user) return res.status(401).json({ error: "Silakan login." });
+    if (!req.session.user) return res.status(401).json({ error: "Login dulu!" });
 
-    const userId = req.session.user.id;
-    const { kunci_pg, kriteria_essay } = req.body;
+    const { kunci_pg, kriteria_essay, rumus_nilai } = req.body;
+    const files = req.files;
 
-    // 2. Cek File
-    if (!req.files || req.files.length === 0) {
-      return res.status(400).json({ error: "Mohon upload foto tugas siswa." });
-    }
+    if (!files || files.length === 0) return res.status(400).json({ error: "Upload minimal 1 foto!" });
 
-    // 3. Payload Multimodal untuk Llama-4-Scout
-    const contentPayload = [
-      { 
-        type: "text", 
-        text: `Tugas: Koreksi jawaban siswa berdasarkan referensi berikut.
-               KUNCI PG: ${kunci_pg}
-               KRITERIA ESSAY: ${kriteria_essay}
-               
-               INSTRUKSI:
-               - Baca tulisan tangan siswa pada foto (meskipun tulisannya buruk sekali).
-               - PG: Cocokkan jawaban siswa dengan kunci.
-               - Essay: Jika jawaban siswa merangkum poin atau mengarah ke kriteria, nyatakan BETUL.
-               
-               OUTPUT WAJIB JSON:
-               {
-                 "hasil_pg": "Hasil koreksi PG",
-                 "hasil_essay": "Hasil koreksi Essay",
-                 "skor_total": 0-100,
-                 "feedback": "Saran singkat"
-               }` 
-      }
-    ];
+    // Payload Multimodal
+    const contentPayload = [{
+      type: "text",
+      text: `Tugas: Koreksi foto tugas siswa secara individu.
+      KUNCI PG: ${kunci_pg}
+      KRITERIA ESSAY: ${kriteria_essay}
+      RUMUS PENILAIAN: ${rumus_nilai}
 
-    // Konversi foto ke Base64
-    req.files.forEach(file => {
-      const base64Image = fs.readFileSync(file.path, { encoding: 'base64' });
-      contentPayload.push({
-        type: "image_url",
-        image_url: { url: `data:image/jpeg;base64,${base64Image}` }
-      });
+      INSTRUKSI:
+      1. Identifikasi NAMA SISWA di setiap foto.
+      2. Koreksi PG dan Essay (Gunakan logika: jika inti essay benar = betul).
+      3. Hitung nilai akhir per siswa sesuai RUMUS yang diberikan.
+      4. Jika nama tidak ada, beri nama "Siswa Tanpa Nama".
+
+      OUTPUT JSON (Daftar Siswa):
+      {
+        "hasil": [
+          { "nama": "Alesa", "pg_betul": 10, "essay_betul": 3, "nilai_akhir": 70, "catatan": "..." },
+          { "nama": "Alex", "pg_betul": 12, "essay_betul": 5, "nilai_akhir": 85, "catatan": "..." }
+        ]
+      }`
+    }];
+
+    files.forEach(file => {
+      const base64 = fs.readFileSync(file.path, { encoding: 'base64' });
+      contentPayload.push({ type: "image_url", image_url: { url: `data:image/jpeg;base64,${base64}` } });
     });
 
-    // 4. Proses API Groq
     const completion = await groq.chat.completions.create({
-      messages: [
-        { role: "system", content: "Kamu adalah asisten guru cerdas buatan Te Az Ha." },
-        { role: "user", content: contentPayload }
-      ],
-      model: "meta-llama/llama-4-scout-17b-16e-instruct", 
-      temperature: 0.2, // Rendah agar tidak halusinasi saat membaca tulisan buruk
+      messages: [{ role: "user", content: contentPayload }],
+      model: "meta-llama/llama-4-scout-17b-16e-instruct",
+      temperature: 0.1,
       response_format: { type: "json_object" }
     });
 
-    const hasilRaw = completion.choices[0]?.message?.content || "{}";
-    const hasil = JSON.parse(hasilRaw);
+    const hasil = JSON.parse(completion.choices[0].message.content);
 
-    // 5. Simpan ke Database & Bersihkan File
-    db.run(
-      "INSERT INTO history_koreksi (user_id, kunci_pg, kriteria_essay, hasil_koreksi, skor_total) VALUES (?,?,?,?,?)",
-      [userId, kunci_pg, kriteria_essay, hasilRaw, hasil.skor_total],
-      function (err) {
-        req.files.forEach(file => { if (fs.existsSync(file.path)) fs.unlinkSync(file.path); });
-        if (err) return res.status(500).json({ error: "Gagal simpan ke database." });
-        
-        res.json({ success: true, data: hasil });
-      }
-    );
+    // Simpan ke DB
+    db.run("INSERT INTO history_koreksi (user_id, hasil_koreksi) VALUES (?,?)", 
+    [req.session.user.id, JSON.stringify(hasil.hasil)]);
 
+    // Hapus File
+    files.forEach(f => fs.unlinkSync(f.path));
+
+    res.json({ success: true, data: hasil.hasil });
   } catch (err) {
-    console.error("Error:", err);
-    res.status(500).json({ error: "Terjadi kesalahan pada sistem AI." });
+    res.status(500).json({ error: "Gagal memproses AI." });
   }
 });
 
