@@ -3,239 +3,160 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard AutoSoal AI - Te Az Ha</title>
+    <title>AutoSoal AI - Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/docx@7.1.0/build/index.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
-        
         body { 
             background-color: #ffffff; 
-            /* Ornamen Sekolah: Pola Ikon Pendidikan Halus */
-            background-image: radial-gradient(#cbd5e1 0.8px, transparent 0.8px);
-            background-size: 24px 24px;
+            background-image: radial-gradient(#cbd5e1 0.5px, transparent 0.5px);
+            background-size: 15px 15px;
             font-family: 'Plus Jakarta Sans', sans-serif;
             color: #1e293b;
         }
-
         .school-card { 
             background: #ffffff; 
-            border-radius: 1.5rem; 
-            border: 2px solid #f1f5f9;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.04);
+            border-radius: 1rem; 
+            border: 1px solid #f1f5f9;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
         }
-
-        /* Grid PG Rapih dengan Spasi Pas */
-        .pg-grid-container {
+        /* Grid PG Lebih Ringkas */
+        .pg-grid {
             display: grid;
             grid-template-columns: repeat(5, 1fr);
-            gap: 12px;
+            gap: 8px;
         }
-        @media (max-width: 640px) {
-            .pg-grid-container { grid-template-columns: repeat(2, 1fr); }
-        }
-
+        @media (max-width: 640px) { .pg-grid { grid-template-columns: repeat(3, 1fr); } }
+        
         select { 
             background: #f8fafc; 
             border: 1px solid #e2e8f0; 
-            padding: 8px; 
-            border-radius: 10px; 
+            padding: 4px; 
+            border-radius: 6px; 
             font-weight: 800; 
+            font-size: 12px;
             color: #2563eb;
-            outline: none;
-            cursor: pointer;
             width: 100%;
         }
-
-        .btn-gradient {
-            background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
-            transition: all 0.3s ease;
-        }
-        .btn-gradient:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px -5px rgba(37, 99, 235, 0.4);
-        }
-
-        .input-essay {
-            border-bottom: 2px solid #f1f5f9;
-            transition: border-color 0.3s;
-        }
-        .input-essay:focus {
-            border-color: #2563eb;
-        }
+        .btn-blue { background: #2563eb; transition: all 0.2s; }
+        .btn-blue:hover { background: #1d4ed8; transform: translateY(-1px); }
     </style>
 </head>
 <body class="min-h-screen pb-20">
 
-    <nav class="bg-white/90 backdrop-blur-md sticky top-0 z-50 border-b border-gray-100 p-4">
-        <div class="max-w-5xl mx-auto flex justify-between items-center">
-            <div class="flex items-center gap-2">
-                <span class="text-2xl">🎓</span>
-                <h1 class="text-2xl font-extrabold text-blue-600 tracking-tighter italic">AutoSoal AI</h1>
-            </div>
-            <a href="/auth/logout" class="bg-red-50 text-red-600 text-[10px] font-black px-5 py-2 rounded-full border border-red-100 hover:bg-red-600 hover:text-white transition-all uppercase">Logout</a>
+    <nav class="bg-white/90 backdrop-blur-md sticky top-0 z-50 border-b border-gray-100 p-3">
+        <div class="max-w-4xl mx-auto flex justify-between items-center">
+            <h1 class="text-lg font-extrabold text-blue-600 tracking-tighter italic">AutoSoal AI</h1>
+            <a href="/auth/logout" class="text-red-500 text-[10px] font-black px-3 py-1 border border-red-100 rounded-full hover:bg-red-50 transition uppercase">Logout</a>
         </div>
     </nav>
 
-    <main class="max-w-5xl mx-auto p-6 space-y-8">
-        
-        <form id="koreksiForm" class="space-y-6">
-            
-            <div class="school-card p-8">
-                <div class="flex justify-between items-center mb-6">
-                    <h3 class="text-gray-800 font-extrabold uppercase text-xs tracking-widest flex items-center gap-2">
-                        <span class="w-2 h-6 bg-blue-600 rounded-full"></span> Kunci Jawaban PG (1-20)
-                    </h3>
-                    <span class="text-[10px] font-bold text-gray-400">Pilih A/B/C/D</span>
-                </div>
-                <div id="pgGrid" class="pg-grid-container">
-                    </div>
-            </div>
-
-            <div class="school-card p-8">
-                <h3 class="text-gray-800 font-extrabold uppercase text-xs tracking-widest mb-6 flex items-center gap-2">
-                    <span class="w-2 h-6 bg-emerald-500 rounded-full"></span> Kriteria Jawaban Essay (1-10)
+    <main class="max-w-3xl mx-auto p-4 space-y-6">
+        <form id="koreksiForm" class="space-y-4">
+            <div class="school-card p-5">
+                <h3 class="text-gray-800 font-extrabold uppercase text-[10px] tracking-widest mb-4 flex items-center gap-2">
+                    <span class="w-1.5 h-4 bg-blue-600 rounded-full"></span> Kunci PG (1-20)
                 </h3>
-                <div id="essayList" class="space-y-4">
-                    </div>
+                <div id="pgGrid" class="pg-grid"></div>
             </div>
 
-            <div class="school-card p-8 space-y-8 bg-slate-50/50">
-                <div class="bg-white p-8 rounded-3xl border-2 border-blue-100 shadow-sm">
-                    <label class="text-[10px] text-blue-500 font-extrabold uppercase block mb-4 text-center tracking-[0.2em]">Pengaturan Rumus Nilai Akhir</label>
-                    <div class="flex items-center justify-center gap-4">
-                        <input type="text" name="rumus_nilai" class="w-full max-w-md bg-gray-50 p-4 rounded-2xl text-2xl font-black text-center text-blue-700 outline-none border-2 border-transparent focus:border-blue-400" value="(PG+Essay)/25*100">
-                    </div>
-                    <p class="text-[10px] text-gray-400 text-center mt-4 font-bold italic">Variabel: PG (Benar PG) | Essay (Benar Essay)</p>
+            <div class="school-card p-5">
+                <h3 class="text-gray-800 font-extrabold uppercase text-[10px] tracking-widest mb-4 flex items-center gap-2">
+                    <span class="w-1.5 h-4 bg-emerald-500 rounded-full"></span> Kriteria Essay (1-10)
+                </h3>
+                <div id="essayList" class="space-y-2"></div>
+            </div>
+
+            <div class="school-card p-6 bg-slate-50/50 space-y-4">
+                <div class="bg-white p-4 rounded-xl border border-blue-100 text-center">
+                    <label class="text-[9px] text-blue-400 font-black uppercase tracking-widest block mb-2">Rumus Nilai Akhir</label>
+                    <input type="text" name="rumus_nilai" class="bg-transparent text-xl font-black text-blue-700 outline-none w-full text-center" value="(PG+Essay)/25*100">
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <label class="flex flex-col items-center justify-center p-12 bg-white border-2 border-dashed border-gray-200 rounded-3xl cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-all group">
-                        <span class="text-5xl mb-4 transition group-hover:scale-110">📁</span>
-                        <span class="text-xs font-black text-gray-500 uppercase">Ambil dari Galeri</span>
+                <div class="grid grid-cols-2 gap-3">
+                    <label class="flex flex-col items-center justify-center p-6 bg-white border border-dashed border-gray-200 rounded-xl cursor-pointer hover:bg-blue-50 transition">
+                        <span class="text-2xl mb-1">📁</span>
+                        <span class="text-[9px] font-black text-gray-400 uppercase">GALERI</span>
                         <input type="file" name="foto_tugas" multiple accept="image/*" class="hidden" id="fInp">
                     </label>
-                    <label class="flex flex-col items-center justify-center p-12 bg-white border-2 border-dashed border-gray-200 rounded-3xl cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-all group">
-                        <span class="text-5xl mb-4 transition group-hover:scale-110">📸</span>
-                        <span class="text-xs font-black text-gray-500 uppercase">Gunakan Kamera</span>
+                    <label class="flex flex-col items-center justify-center p-6 bg-white border border-dashed border-gray-200 rounded-xl cursor-pointer hover:bg-blue-50 transition">
+                        <span class="text-2xl mb-1">📸</span>
+                        <span class="text-[9px] font-black text-gray-400 uppercase">KAMERA</span>
                         <input type="file" name="foto_tugas" capture="environment" accept="image/*" class="hidden" id="cInp">
                     </label>
                 </div>
                 
-                <p id="stts" class="text-center text-sm font-extrabold text-blue-600 animate-pulse"></p>
-
-                <button type="submit" id="btnGo" class="w-full btn-gradient p-6 rounded-2xl font-black text-white text-lg uppercase tracking-widest shadow-lg shadow-blue-200">
-                    Mulai Proses Koreksi AI
-                </button>
+                <p id="stts" class="text-center text-[10px] font-bold text-blue-600 italic"></p>
+                <button type="submit" id="btnGo" class="w-full btn-blue p-4 rounded-xl font-black text-white text-sm uppercase tracking-widest shadow-md shadow-blue-100">Mulai Koreksi</button>
             </div>
         </form>
 
-        <div id="resSection" class="hidden space-y-8 pb-10">
-            <div class="flex items-center gap-4">
-                <div class="h-[1px] flex-grow bg-gray-200"></div>
-                <h2 class="text-2xl font-black text-gray-800 uppercase tracking-tighter italic">Hasil Pemeriksaan</h2>
-                <div class="h-[1px] flex-grow bg-gray-200"></div>
-            </div>
-            
-            <div id="resList" class="space-y-6">
-                </div>
+        <div id="resSection" class="hidden space-y-4">
+            <h2 class="text-sm font-black text-gray-800 uppercase text-center tracking-tighter">Hasil Pemeriksaan</h2>
+            <div id="resList" class="space-y-4"></div>
 
-            <div id="exportArea" class="flex justify-center pt-10">
-                <button onclick="exportWord()" class="bg-gray-900 text-white font-black px-12 py-5 rounded-2xl shadow-2xl hover:bg-black transition-all flex items-center gap-4 active:scale-95">
-                    <span class="text-2xl">📄</span> EXPORT KE WORD (.DOCX)
+            <div class="flex justify-center pt-4">
+                <button onclick="exportWord()" class="bg-gray-900 text-white font-black px-8 py-3 rounded-lg shadow-lg hover:bg-black transition text-xs flex items-center gap-2">
+                    <span>📄</span> EXPORT KE WORD (.DOCX)
                 </button>
             </div>
         </div>
-
     </main>
 
     <script>
-        // Generate PG Grid (1-20)
         const pgGrid = document.getElementById('pgGrid');
         for(let i=1; i<=20; i++) {
             pgGrid.innerHTML += `
-                <div class="flex items-center gap-3 p-2 bg-white rounded-xl border border-gray-100 shadow-sm">
-                    <span class="text-[10px] font-black text-gray-300 w-4">${i}</span>
-                    <select name="pg_${i}">
-                        <option>A</option><option>B</option><option>C</option><option>D</option>
-                    </select>
+                <div class="flex items-center gap-2 p-1.5 bg-white rounded border border-gray-100 shadow-sm">
+                    <span class="text-[9px] font-black text-gray-300">${i}</span>
+                    <select name="pg_${i}"><option>A</option><option>B</option><option>C</option><option>D</option></select>
                 </div>`;
         }
 
-        // Generate Essay List (1-10)
         const essayList = document.getElementById('essayList');
         for(let i=1; i<=10; i++) {
             essayList.innerHTML += `
-                <div class="flex gap-4 items-center bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
-                    <span class="text-xs font-black text-blue-400 w-6">${i}.</span>
-                    <input type="text" name="essay_${i}" placeholder="Ketik kata kunci jawaban siswa yang benar..." 
-                    class="w-full bg-transparent text-sm font-semibold outline-none input-essay p-1">
+                <div class="flex gap-2 items-center bg-white p-2 rounded-lg border border-gray-100 shadow-sm text-[11px]">
+                    <span class="text-blue-400 font-black w-4">${i}.</span>
+                    <input type="text" name="essay_${i}" placeholder="Kunci jawaban nomor ${i}..." class="w-full bg-transparent outline-none font-semibold">
                 </div>`;
         }
 
-        document.getElementById('fInp').onchange = e => document.getElementById('stts').innerText = "✓ " + e.target.files.length + " Gambar Siap Diperiksa";
-        document.getElementById('cInp').onchange = e => document.getElementById('stts').innerText = "✓ Foto Kamera Berhasil";
+        document.getElementById('fInp').onchange = e => document.getElementById('stts').innerText = "✓ " + e.target.files.length + " Gambar Masuk";
+        document.getElementById('cInp').onchange = e => document.getElementById('stts').innerText = "✓ Kamera Aktif";
 
         let dataGlobal = [];
 
         document.getElementById('koreksiForm').onsubmit = async (e) => {
             e.preventDefault();
             const btn = document.getElementById('btnGo');
-            btn.innerText = "SEDANG MENGANALISIS GAMBAR...";
-            btn.disabled = true;
+            btn.innerText = "MENGANALISIS..."; btn.disabled = true;
 
             const formData = new FormData(e.target);
             try {
                 const res = await fetch('/ai/proses-koreksi', { method: 'POST', body: formData });
                 const json = await res.json();
-                
                 if(json.success) {
                     dataGlobal = json.data;
                     document.getElementById('resSection').classList.remove('hidden');
-                    
                     let html = '';
                     dataGlobal.forEach((s, index) => {
-                        const skorPG = s.pg_betul;
-                        const skorEssay = s.essay_betul;
-                        const totalMentah = skorPG + skorEssay;
-
+                        const totalMentah = s.pg_betul + s.essay_betul;
                         html += `
-                        <div class="school-card overflow-hidden animate-in slide-in-from-bottom-5 duration-500">
-                            <div class="p-4 bg-slate-800 text-white flex justify-between items-center">
-                                <span class="text-[10px] font-black uppercase tracking-[0.2em]">Lembar Jawaban ${index + 1}</span>
-                                <div class="flex gap-1">
-                                    <div class="w-2 h-2 rounded-full bg-red-400"></div>
-                                    <div class="w-2 h-2 rounded-full bg-yellow-400"></div>
-                                    <div class="w-2 h-2 rounded-full bg-green-400"></div>
+                        <div class="school-card overflow-hidden">
+                            <div class="p-2 bg-slate-800 text-[9px] text-white font-black px-4">LEMBAR JAWABAN ${index + 1}</div>
+                            <div class="p-5 space-y-4">
+                                <p class="text-xl font-extrabold text-gray-900">Nama: <span class="text-blue-600">${s.nama}</span></p>
+                                <div class="grid grid-cols-3 gap-2 border-y py-3 text-center">
+                                    <div><p class="text-[8px] font-black text-gray-400 uppercase">PG</p><p class="text-sm font-bold">${s.pg_betul}</p></div>
+                                    <div><p class="text-[8px] font-black text-gray-400 uppercase">ESSAY</p><p class="text-sm font-bold">${s.essay_betul}</p></div>
+                                    <div><p class="text-[8px] font-black text-gray-400 uppercase">PENILAIAN AKHIR</p><p class="text-[11px] font-bold">${s.pg_betul} + ${s.essay_betul} = ${totalMentah}</p></div>
                                 </div>
-                            </div>
-                            <div class="p-8 space-y-8">
-                                <h4 class="text-4xl font-black text-slate-800">Nama: <span class="text-blue-600">${s.nama}</span></h4>
-                                
-                                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 py-6 border-y-2 border-slate-50">
-                                    <div class="text-center">
-                                        <p class="text-[10px] font-black text-gray-400 uppercase mb-2">Penilaian PG</p>
-                                        <p class="text-3xl font-extrabold text-blue-600">${skorPG}</p>
-                                    </div>
-                                    <div class="text-center md:border-x-2 md:border-slate-50">
-                                        <p class="text-[10px] font-black text-gray-400 uppercase mb-2">Penilaian Essay</p>
-                                        <p class="text-3xl font-extrabold text-emerald-600">${skorEssay}</p>
-                                    </div>
-                                    <div class="text-center">
-                                        <p class="text-[10px] font-black text-gray-400 uppercase mb-2">Penilaian Akhir</p>
-                                        <p class="text-3xl font-extrabold text-slate-700">${skorPG} + ${skorEssay} = ${totalMentah}</p>
-                                    </div>
-                                </div>
-
-                                <div class="flex items-end justify-between">
-                                    <div>
-                                        <p class="text-[10px] font-black text-blue-400 uppercase tracking-widest">Skor Hasil Rumus</p>
-                                        <p class="text-7xl font-black text-blue-700 tracking-tighter">${s.nilai_akhir}</p>
-                                    </div>
-                                    <div class="text-right pb-2">
-                                        <span class="bg-blue-50 text-blue-600 text-[10px] font-black px-4 py-2 rounded-full border border-blue-100 italic">VERIFIED BY TE AZ HA AI</span>
-                                    </div>
+                                <div class="flex justify-between items-end">
+                                    <div><p class="text-[9px] font-black text-blue-400 uppercase">HASIL RUMUS</p><p class="text-4xl font-black text-blue-700">${s.nilai_akhir}</p></div>
+                                    <span class="text-[8px] font-black bg-blue-50 text-blue-600 px-3 py-1 rounded-full border border-blue-100 italic">VERIFIED BY AI</span>
                                 </div>
                             </div>
                         </div>`;
@@ -243,29 +164,24 @@
                     document.getElementById('resList').innerHTML = html;
                     window.scrollTo({ top: document.getElementById('resSection').offsetTop - 20, behavior: 'smooth' });
                 }
-            } catch (err) { alert("Terjadi kesalahan pada server AI."); }
-            btn.innerText = "Mulai Proses Koreksi AI";
-            btn.disabled = false;
+            } catch (err) { alert("Error Server"); }
+            btn.innerText = "Mulai Koreksi"; btn.disabled = false;
         };
 
         function exportWord() {
-            const { Document, Packer, Paragraph, TextRun, AlignmentType, HeadingLevel } = docx;
-            const docContent = [];
-
+            const { Document, Packer, Paragraph, TextRun, AlignmentType } = docx;
+            const content = [];
             dataGlobal.forEach((s, i) => {
-                docContent.push(
-                    new Paragraph({ text: `DATA HASIL KOREKSI - LEMBAR ${i+1}`, heading: HeadingLevel.HEADING_1, alignment: AlignmentType.CENTER, spacing: { after: 300 } }),
-                    new Paragraph({ children: [new TextRun({ text: `Nama Siswa : ${s.nama}`, bold: true, size: 32 })], spacing: { after: 200 } }),
-                    new Paragraph({ children: [new TextRun({ text: `Penilaian PG   : ${s.pg_betul}`, size: 24 })] }),
-                    new Paragraph({ children: [new TextRun({ text: `Penilaian Essay: ${s.essay_betul}`, size: 24 })] }),
-                    new Paragraph({ children: [new TextRun({ text: `Penilaian Akhir: ${s.pg_betul} + ${s.essay_betul} = ${s.pg_betul + s.essay_betul}`, size: 24 })] }),
-                    new Paragraph({ children: [new TextRun({ text: `SKOR HASIL RUMUS: ${s.nilai_akhir}`, bold: true, size: 40, color: "2563eb" })], spacing: { before: 200, after: 800 } }),
-                    new Paragraph({ text: "-------------------------------------------------------------------------------------------------" })
+                content.push(
+                    new Paragraph({ text: `HASIL LEMBAR ${i+1}`, alignment: AlignmentType.CENTER }),
+                    new Paragraph({ children: [new TextRun({ text: `Nama : ${s.nama}`, bold: true, size: 28 })], spacing: { before: 200 } }),
+                    new Paragraph({ text: `PG: ${s.pg_betul} | Essay: ${s.essay_betul} | Penilaian Akhir: ${s.pg_betul + s.essay_betul}` }),
+                    new Paragraph({ children: [new TextRun({ text: `HASIL RUMUS: ${s.nilai_akhir}`, bold: true, size: 32, color: "2563eb" })], spacing: { after: 400 } }),
+                    new Paragraph({ text: "----------------------------------------------------" })
                 );
             });
-
-            const doc = new Document({ sections: [{ children: docContent }] });
-            Packer.toBlob(doc).then(blob => saveAs(blob, "Laporan_Koreksi_TeAzHa_AI.docx"));
+            const doc = new Document({ sections: [{ children: content }] });
+            Packer.toBlob(doc).then(blob => saveAs(blob, "Hasil_Koreksi_AutoSoal.docx"));
         }
     </script>
 </body>
