@@ -14,7 +14,8 @@
     "groq-sdk": "^0.3.3",
     "multer": "^1.4.5-lts.1",
     "sqlite3": "^5.1.7"
-  },
+     },"connect-sqlite3": "^0.9.15"
+
   "engines": {
     "node": ">=18.0.0"
   }
