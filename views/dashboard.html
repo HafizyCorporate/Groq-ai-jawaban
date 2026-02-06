@@ -63,7 +63,7 @@
             <div class="school-card p-6 bg-slate-50/50 space-y-4">
                 <div class="bg-white p-4 rounded-xl border border-blue-100 text-center">
                     <label class="text-[9px] text-blue-400 font-black uppercase block mb-2">Rumus Nilai Akhir</label>
-                    <input type="text" name="rumus_nilai" id="rumusInput" class="bg-transparent text-xl font-black text-blue-700 outline-none w-full text-center" value="(PG+Essay)/25*100">
+                    <input type="text" name="rumus_nilai" class="bg-transparent text-xl font-black text-blue-700 outline-none w-full text-center" value="(PG+Essay)/25*100">
                 </div>
 
                 <div class="grid grid-cols-2 gap-3">
@@ -80,11 +80,11 @@
                 </div>
                 
                 <p id="stts" class="text-center text-[10px] font-bold text-blue-600 italic"></p>
-                <button type="submit" id="btnGo" class="w-full bg-blue-600 p-4 rounded-xl font-black text-white text-sm uppercase shadow-md shadow-blue-100 hover:bg-blue-700 transition">Mulai Koreksi</button>
+                <button type="submit" id="btnGo" class="w-full bg-blue-600 p-4 rounded-xl font-black text-white text-sm uppercase shadow-md shadow-blue-100">Mulai Koreksi</button>
             </div>
         </form>
 
-        <div id="resSection" class="hidden space-y-4">
+        <div id="resSection" class="space-y-4">
             <div class="flex items-center gap-4 py-4">
                 <div class="h-[1px] flex-grow bg-gray-200"></div>
                 <h2 class="text-sm font-black text-gray-800 uppercase italic">Hasil Pemeriksaan</h2>
@@ -92,7 +92,8 @@
             </div>
 
             <div id="resList" class="space-y-4">
-                </div>
+                <p class="text-center text-[10px] text-gray-400 font-bold italic">Hasil akan muncul di sini setelah Anda menekan tombol "Mulai Koreksi".</p>
+            </div>
 
             <div class="flex justify-center pt-6 pb-10">
                 <button onclick="exportWord()" class="bg-gray-900 text-white font-black px-10 py-4 rounded-xl shadow-xl hover:bg-black transition text-xs flex items-center gap-3">
@@ -103,7 +104,6 @@
     </main>
 
     <script>
-        // Inisialisasi Form
         const pgGrid = document.getElementById('pgGrid');
         for(let i=1; i<=20; i++) {
             pgGrid.innerHTML += `
@@ -118,7 +118,7 @@
             essayList.innerHTML += `
                 <div class="flex gap-2 items-center bg-white p-2 rounded-lg border border-gray-100 shadow-sm text-[11px]">
                     <span class="text-blue-400 font-black w-4">${i}.</span>
-                    <input type="text" name="essay_${i}" placeholder="Kata kunci jawaban nomor ${i}..." class="w-full bg-transparent outline-none font-semibold">
+                    <input type="text" name="essay_${i}" placeholder="Kunci jawaban nomor ${i}..." class="w-full bg-transparent outline-none font-semibold">
                 </div>`;
         }
 
@@ -127,7 +127,6 @@
 
         let dataGlobal = [];
 
-        // Logika Pengiriman Form & Menampilkan Jendela Hasil
         document.getElementById('koreksiForm').onsubmit = async (e) => {
             e.preventDefault();
             const btn = document.getElementById('btnGo');
@@ -140,8 +139,6 @@
                 
                 if(json.success) {
                     dataGlobal = json.data;
-                    document.getElementById('resSection').classList.remove('hidden'); // Menampilkan Jendela Hasil
-                    
                     let html = '';
                     dataGlobal.forEach((s, index) => {
                         const totalMentah = s.pg_betul + s.essay_betul;
@@ -151,43 +148,32 @@
                             <div class="p-6 space-y-4">
                                 <p class="text-2xl font-extrabold text-gray-900">Nama: <span class="text-blue-600">${s.nama}</span></p>
                                 <div class="grid grid-cols-3 gap-2 border-y py-4 text-center">
-                                    <div><p class="text-[8px] font-black text-gray-400 uppercase mb-1">Penilaian PG</p><p class="text-lg font-bold text-blue-600">${s.pg_betul}</p></div>
-                                    <div><p class="text-[8px] font-black text-gray-400 uppercase mb-1">Penilaian Essay</p><p class="text-lg font-bold text-emerald-600">${s.essay_betul}</p></div>
-                                    <div><p class="text-[8px] font-black text-gray-400 uppercase mb-1">Total Benar</p><p class="text-[10px] font-bold text-slate-700">${s.pg_betul} + ${s.essay_betul} = ${totalMentah}</p></div>
+                                    <div><p class="text-[8px] font-black text-gray-400 uppercase mb-1">PG</p><p class="text-lg font-bold text-blue-600">${s.pg_betul}</p></div>
+                                    <div><p class="text-[8px] font-black text-gray-400 uppercase mb-1">Essay</p><p class="text-lg font-bold text-emerald-600">${s.essay_betul}</p></div>
+                                    <div><p class="text-[8px] font-black text-gray-400 uppercase mb-1">Total</p><p class="text-[10px] font-bold text-slate-700">${s.pg_betul} + ${s.essay_betul} = ${totalMentah}</p></div>
                                 </div>
-                                <div class="flex justify-between items-end">
-                                    <div><p class="text-[9px] font-black text-blue-400 uppercase">Skor Hasil Rumus</p><p class="text-5xl font-black text-blue-700">${s.nilai_akhir}</p></div>
-                                    <span class="text-[8px] font-black bg-blue-50 text-blue-600 px-3 py-1 rounded-full border border-blue-100 italic">VERIFIED BY AI</span>
-                                </div>
+                                <div><p class="text-[9px] font-black text-blue-400 uppercase">Skor Hasil Rumus</p><p class="text-5xl font-black text-blue-700">${s.nilai_akhir}</p></div>
                             </div>
                         </div>`;
                     });
                     document.getElementById('resList').innerHTML = html;
-                    window.scrollTo({ top: document.getElementById('resSection').offsetTop - 20, behavior: 'smooth' });
                 }
-            } catch (err) { alert("Terjadi kesalahan pada sistem."); }
+            } catch (err) { alert("Error Server"); }
             btn.innerText = "Mulai Koreksi"; btn.disabled = false;
         };
 
-        // Fungsi Tombol Export Word
         function exportWord() {
+            if(dataGlobal.length === 0) { alert("Belum ada data untuk di-export!"); return; }
             const { Document, Packer, Paragraph, TextRun, AlignmentType } = docx;
-            const content = [];
-            
-            dataGlobal.forEach((s, i) => {
-                content.push(
-                    new Paragraph({ text: `LEMBAR JAWABAN ${i+1}`, alignment: AlignmentType.CENTER }),
-                    new Paragraph({ children: [new TextRun({ text: `Nama : ${s.nama}`, bold: true, size: 28 })], spacing: { before: 200 } }),
-                    new Paragraph({ text: `Penilaian PG   : ${s.pg_betul}` }),
-                    new Paragraph({ text: `Penilaian Essay: ${s.essay_betul}` }),
-                    new Paragraph({ text: `Total Benar    : ${s.pg_betul + s.essay_betul}` }),
-                    new Paragraph({ children: [new TextRun({ text: `SKOR AKHIR (RUMUS): ${s.nilai_akhir}`, bold: true, size: 32, color: "2563eb" })], spacing: { after: 400 } }),
-                    new Paragraph({ text: "----------------------------------------------------" })
-                );
-            });
+            const content = dataGlobal.map((s, i) => [
+                new Paragraph({ text: `LEMBAR ${i+1}`, alignment: AlignmentType.CENTER }),
+                new Paragraph({ children: [new TextRun({ text: `Nama: ${s.nama}`, bold: true })] }),
+                new Paragraph({ text: `Skor Akhir: ${s.nilai_akhir}` }),
+                new Paragraph({ text: "----------------------------" })
+            ]).flat();
 
             const doc = new Document({ sections: [{ children: content }] });
-            Packer.toBlob(doc).then(blob => saveAs(blob, "Hasil_Koreksi_AutoSoal_AI.docx"));
+            Packer.toBlob(doc).then(blob => saveAs(blob, "Hasil_Koreksi.docx"));
         }
     </script>
 </body>
