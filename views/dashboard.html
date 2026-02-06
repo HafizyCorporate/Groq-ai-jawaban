@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard CekTugas AI</title>
+    <title>CekTugas AI - Te Az Ha</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/docx@7.1.0/build/index.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
@@ -22,73 +22,139 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="bg-gray-900 p-6 rounded-2xl border border-gray-800">
                 <form id="koreksiForm" class="space-y-4">
-                    <textarea name="kunci_pg" class="w-full p-3 bg-black rounded-lg border border-gray-700" placeholder="Kunci PG (1.A, 2.B...)"></textarea>
-                    <textarea name="kriteria_essay" class="w-full p-3 bg-black rounded-lg border border-gray-700" placeholder="Kriteria Essay (Poin penting...)"></textarea>
-                    <input type="text" name="rumus_nilai" class="w-full p-3 bg-gray-800 rounded-lg text-blue-400" value="(PG+Essay)/13*100">
+                    <textarea name="kunci_pg" class="w-full p-3 bg-black rounded-lg border border-gray-700 outline-none focus:border-blue-500" rows="3" placeholder="Kunci PG (1.A, 2.B, 3.C)"></textarea>
+                    <textarea name="kriteria_essay" class="w-full p-3 bg-black rounded-lg border border-gray-700 outline-none focus:border-blue-500" rows="3" placeholder="Kriteria Essay (Poin penting jawaban)"></textarea>
                     
+                    <div class="p-3 bg-blue-900/10 border border-blue-800/50 rounded-lg">
+                        <label class="text-[10px] text-blue-400 font-bold uppercase">Rumus Penilaian Kustom</label>
+                        <input type="text" name="rumus_nilai" class="w-full bg-transparent outline-none text-white font-mono" value="(PG+Essay)/13*100">
+                    </div>
+
                     <div class="grid grid-cols-2 gap-2">
-                        <label class="bg-gray-800 p-4 rounded-xl text-center cursor-pointer border border-gray-700">
-                            📁 Files <input type="file" name="foto_tugas" multiple accept="image/*" class="hidden" id="fileInp">
+                        <label class="bg-gray-800 p-4 rounded-xl text-center cursor-pointer border border-gray-700 hover:bg-gray-700 transition">
+                            <span class="block text-2xl mb-1">📁</span>
+                            <span class="text-xs font-bold text-gray-400">BUKA FILES</span>
+                            <input type="file" name="foto_tugas" multiple accept="image/*" class="hidden" id="fileInp">
                         </label>
-                        <label class="bg-gray-800 p-4 rounded-xl text-center cursor-pointer border border-gray-700">
-                            📷 Kamera <input type="file" name="foto_tugas" capture="environment" accept="image/*" class="hidden" id="camInp">
+                        <label class="bg-gray-800 p-4 rounded-xl text-center cursor-pointer border border-gray-700 hover:bg-gray-700 transition">
+                            <span class="block text-2xl mb-1">📷</span>
+                            <span class="text-xs font-bold text-gray-400">KAMERA</span>
+                            <input type="file" name="foto_tugas" capture="environment" accept="image/*" class="hidden" id="camInp">
                         </label>
                     </div>
-                    <button type="submit" id="btnProses" class="w-full bg-blue-600 p-4 rounded-xl font-black">PROSES KOREKSI</button>
+                    <p id="fileCount" class="text-center text-[10px] text-gray-500 italic"></p>
+
+                    <button type="submit" id="btnProses" class="w-full bg-blue-600 p-4 rounded-xl font-black hover:bg-blue-500 transition shadow-lg shadow-blue-900/20">MULAI KOREKSI OTOMATIS</button>
                 </form>
             </div>
 
             <div id="hasilSection" class="bg-gray-900 p-6 rounded-2xl border border-gray-800 hidden">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="font-bold text-green-500">HASIL PENILAIAN</h3>
-                    <button onclick="exportToWord()" class="text-xs bg-white text-black px-3 py-1 rounded">EXPORT WORD</button>
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="font-black text-green-500 tracking-widest">HASIL AI</h3>
+                    <button onclick="exportToWord()" class="text-[10px] bg-white text-black px-4 py-2 rounded-full font-bold uppercase hover:bg-gray-200">Export Word</button>
                 </div>
                 <div id="listHasil" class="space-y-4"></div>
             </div>
         </div>
 
-        <div id="adminPanel" class="mt-10 hidden">
-            <h2 class="text-2xl font-black text-red-500 mb-4 italic">ADMIN CONTROL: SEMUA LOG USER</h2>
-            <div class="bg-gray-900 overflow-hidden rounded-xl border border-red-900/50">
-                <table class="w-full text-left text-sm">
-                    <thead class="bg-red-900/20">
+        <div id="adminPanel" class="mt-10 hidden border-t border-gray-800 pt-10">
+            <h2 class="text-xl font-black text-red-600 mb-6 flex items-center gap-2">
+                <span class="bg-red-600 text-white p-1 rounded">🛡️</span> ADMIN SYSTEM LOG
+            </h2>
+            <div class="bg-gray-900 rounded-2xl border border-red-900/30 overflow-hidden">
+                <table class="w-full text-left">
+                    <thead class="bg-red-900/10 border-b border-red-900/20 text-red-400 text-xs uppercase">
                         <tr>
-                            <th class="p-4">User</th>
-                            <th class="p-4">Skor Terakhir</th>
-                            <th class="p-4">Waktu</th>
+                            <th class="p-4">Username</th>
+                            <th class="p-4 text-center">Skor Terakhir</th>
+                            <th class="p-4 text-right">Waktu Proses</th>
                         </tr>
                     </thead>
-                    <tbody id="adminLogTable"></tbody>
+                    <tbody id="adminLogTable" class="divide-y divide-gray-800"></tbody>
                 </table>
             </div>
         </div>
     </main>
 
     <script>
-        // Cek identitas saat masuk
-        const user = JSON.parse(localStorage.getItem('user_data') || '{}');
-        if (user.role === 'admin') {
+        let dataHasil = [];
+        const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
+        
+        // Cek Role Admin
+        if (userData.role === 'admin') {
             document.getElementById('adminBadge').classList.remove('hidden');
             document.getElementById('adminPanel').classList.remove('hidden');
             loadAdminLogs();
         }
-        document.getElementById('userNameDisplay').innerText = "Halo, " + user.username;
+        document.getElementById('userNameDisplay').innerText = userData.username || "User";
+
+        // Notifikasi Limit
+        async function checkFreeLimit() {
+            const res = await fetch('/api/cek-limit');
+            const data = await res.json();
+            if (data.total >= 1 && userData.role !== 'admin') {
+                alert("Peringatan: Kamu sudah menggunakan limit gratis. Untuk proses lebih dari 1x silakan hubungi Admin (Versacy) untuk berlangganan.");
+            }
+        }
+        checkFreeLimit();
+
+        // Handle file/camera
+        document.getElementById('fileInp').onchange = e => document.getElementById('fileCount').innerText = e.target.files.length + " File dipilih";
+        document.getElementById('camInp').onchange = e => document.getElementById('fileCount').innerText = "Foto Kamera dipilih";
+
+        // Proses AI
+        document.getElementById('koreksiForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('btnProses');
+            btn.innerText = "SEDANG MENGANALISIS...";
+            btn.disabled = true;
+
+            const formData = new FormData(e.target);
+            try {
+                const res = await fetch('/ai/proses-koreksi', { method: 'POST', body: formData });
+                const data = await res.json();
+                if (data.success) {
+                    dataHasil = data.data;
+                    document.getElementById('hasilSection').classList.remove('hidden');
+                    let html = '';
+                    dataHasil.forEach(s => {
+                        html += `<div class="p-4 bg-black rounded-xl border-l-4 border-blue-600 shadow-inner">
+                            <p class="font-black text-blue-400 uppercase tracking-tighter text-lg">${s.nama}</p>
+                            <p class="text-[10px] text-gray-500 mb-2">PG: ${s.pg_betul} | Essay: ${s.essay_betul}</p>
+                            <div class="flex justify-between items-end">
+                                <span class="text-3xl font-black text-white">${s.nilai_akhir}</span>
+                                <span class="text-[10px] text-green-500 font-bold italic">Terverifikasi AI</span>
+                            </div>
+                        </div>`;
+                    });
+                    document.getElementById('listHasil').innerHTML = html;
+                    window.scrollTo({ top: document.getElementById('hasilSection').offsetTop, behavior: 'smooth' });
+                }
+            } catch (err) { alert("Sistem Sibuk, Coba Lagi."); }
+            btn.innerText = "MULAI KOREKSI OTOMATIS";
+            btn.disabled = false;
+        };
+
+        // Export Word
+        function exportToWord() {
+            const { Document, Packer, Paragraph, TextRun } = docx;
+            const children = dataHasil.map(s => new Paragraph({
+                children: [
+                    new TextRun({ text: `Nama Siswa: ${s.nama}`, bold: true, size: 28 }),
+                    new TextRun({ text: `\nSkor Akhir: ${s.nilai_akhir}`, color: "0000FF", bold: true, size: 24 }),
+                    new TextRun({ text: `\nDetail: PG ${s.pg_betul}, Essay ${s.essay_betul}`, size: 18 }),
+                    new TextRun({ text: `\nCatatan: ${s.catatan}\n\n`, size: 18 }),
+                ],
+            }));
+            const doc = new Document({ sections: [{ children }] });
+            Packer.toBlob(doc).then(blob => saveAs(blob, `Nilai_Siswa_TeAzHa.docx`));
+        }
 
         async function loadAdminLogs() {
             const res = await fetch('/api/admin/all-logs');
             const logs = await res.json();
-            let html = '';
-            logs.forEach(l => {
-                html += `<tr class="border-b border-gray-800">
-                    <td class="p-4 font-bold text-blue-400">${l.username}</td>
-                    <td class="p-4">${l.skor_total}</td>
-                    <td class="p-4 text-gray-500">${new Date(l.created_at).toLocaleString('id-ID')}</td>
-                </tr>`;
-            });
-            document.getElementById('adminLogTable').innerHTML = html;
-        }
-
-        // Script form proses koreksi tetap sama seperti sebelumnya...
-    </script>
-</body>
-</html>
+            document.getElementById('adminLogTable').innerHTML = logs.map(l => `
+                <tr class="border-b border-gray-800 hover:bg-gray-800/30 transition">
+                    <td class="p-4 text-blue-400 font-bold">${l.username}</td>
+                    <td class="p-4 text-center font-mono">${l.skor_total}</td>
+                    <td
