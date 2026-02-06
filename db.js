@@ -3,23 +3,23 @@ const path = require('path');
 const fs = require('fs');
 const bcrypt = require('bcrypt');
 
-/**
- * DATABASE CONFIGURATION - TE AZ HA
- * File ini mengelola koneksi SQLite, pembuatan tabel, dan admin otomatis.
- */
-
+// Pastikan folder 'db' ada dengan izin akses tulis
 const dbDir = path.join(__dirname, 'db');
 if (!fs.existsSync(dbDir)) {
-    fs.mkdirSync(dbDir);
+    fs.mkdirSync(dbDir, { recursive: true, mode: 0o777 });
 }
 
-const db = new sqlite3.Database(path.join(dbDir, 'database.sqlite'), (err) => {
-    if (err) console.error("Database Error:", err.message);
-    else console.log("Koneksi Database Berhasil di Port 8080.");
-});
+// Pastikan folder 'uploads' ada (untuk foto tugas)
+const uploadDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true, mode: 0o777 });
+}
+
+const dbPath = path.join(dbDir, 'database.sqlite');
+const db = new sqlite3.Database(dbPath);
 
 db.serialize(async () => {
-    // Membuat tabel Users
+    // Tabel User
     db.run(`CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT UNIQUE,
@@ -27,7 +27,7 @@ db.serialize(async () => {
         role TEXT DEFAULT 'user'
     )`);
 
-    // Membuat tabel History Koreksi
+    // Tabel History
     db.run(`CREATE TABLE IF NOT EXISTS history_koreksi (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER,
@@ -38,7 +38,7 @@ db.serialize(async () => {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
 
-    // Pendaftaran Otomatis Akun Admin Versacy
+    // Registrasi Admin Versacy
     const adminUser = 'Versacy';
     const adminPass = '08556545';
     const hashedAdminPass = await bcrypt.hash(adminPass, 10);
@@ -46,9 +46,7 @@ db.serialize(async () => {
     db.get("SELECT * FROM users WHERE username = ?", [adminUser], (err, row) => {
         if (!row) {
             db.run("INSERT INTO users (username, password, role) VALUES (?, ?, ?)", 
-            [adminUser, hashedAdminPass, 'admin'], (err) => {
-                if (!err) console.log("Admin Versacy Siap Digunakan.");
-            });
+            [adminUser, hashedAdminPass, 'admin']);
         }
     });
 });
