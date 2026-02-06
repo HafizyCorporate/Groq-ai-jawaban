@@ -1,51 +1,71 @@
-const sqlite3 = require('sqlite3').verbose();
+require('dotenv').config();
+const express = require('express');
+const session = require('express-session');
 const path = require('path');
-const fs = require('fs');
 const bcrypt = require('bcrypt');
+const db = require('./db');
+const koreksiRoute = require('./routes/koreksi');
 
-// Pastikan folder 'db' ada dengan izin akses penuh
-const dbDir = path.join(__dirname, 'db');
-if (!fs.existsSync(dbDir)) {
-    fs.mkdirSync(dbDir, { recursive: true, mode: 0o777 });
-}
+// Tambahkan Store untuk Session
+const SQLiteStore = require('connect-sqlite3')(session);
 
-// Pastikan folder 'uploads' juga dibuat secara otomatis
-const uploadDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true, mode: 0o777 });
-}
+const app = express();
 
-const dbPath = path.join(dbDir, 'database.sqlite');
-const db = new sqlite3.Database(dbPath);
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-db.serialize(async () => {
-    db.run(`CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE,
-        password TEXT,
-        role TEXT DEFAULT 'user'
-    )`);
+// Pengaturan Session menggunakan SQLite (Agar tidak leak memory)
+app.use(session({
+    store: new SQLiteStore({
+        db: 'database.sqlite', 
+        dir: './db'
+    }),
+    secret: 'te-az-ha-secret-key',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { 
+        maxAge: 24 * 60 * 60 * 1000, // 1 Hari
+        secure: false 
+    }
+}));
 
-    db.run(`CREATE TABLE IF NOT EXISTS history_koreksi (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER,
-        kunci_pg TEXT,
-        kriteria_essay TEXT,
-        hasil_koreksi TEXT,
-        skor_total INTEGER,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )`);
+// Route Root
+app.get('/', (req, res) => {
+    res.redirect('/login.html');
+});
 
-    const adminUser = 'Versacy';
-    const adminPass = '08556545';
-    const hashedAdminPass = await bcrypt.hash(adminPass, 10);
-
-    db.get("SELECT * FROM users WHERE username = ?", [adminUser], (err, row) => {
-        if (!row) {
-            db.run("INSERT INTO users (username, password, role) VALUES (?, ?, ?)", 
-            [adminUser, hashedAdminPass, 'admin']);
-        }
+// API Login
+app.post('/auth/login', (req, res) => {
+    const { username, password } = req.body;
+    db.get("SELECT * FROM users WHERE username = ?", [username], async (err, user) => {
+        if (err || !user) return res.status(401).json({ error: "User tidak ditemukan!" });
+        const match = await bcrypt.compare(password, user.password);
+        if (!match) return res.status(401).json({ error: "Password salah!" });
+        
+        req.session.user = { id: user.id, username: user.username, role: user.role };
+        res.json({ success: true, user: { username: user.username, role: user.role } });
     });
 });
 
-module.exports = db;
+// API Register
+app.post('/auth/register', async (req, res) => {
+    const { username, password } = req.body;
+    try {
+        const hashedPassword = await bcrypt.hash(password, 10);
+        db.run("INSERT INTO users (username, password) VALUES (?, ?)", [username, hashedPassword], (err) => {
+            if (err) return res.status(400).json({ error: "Username sudah ada!" });
+            res.json({ success: true });
+        });
+    } catch (err) {
+        res.status(500).json({ error: "Gagal mendaftar" });
+    }
+});
+
+// Route lainnya tetap sama
+app.use('/ai', koreksiRoute);
+app.use(express.static(path.join(__dirname, 'views')));
+
+const PORT = 8080; 
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server Te Az Ha Online di port ${PORT}`);
+});
