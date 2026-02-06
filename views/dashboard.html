@@ -3,70 +3,126 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AutoSoal AI - Maverick</title>
+    <title>Jawaban AI - Aplikasi Koreksi Sekolah</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/docx@7.1.0/build/index.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        .school-card { background: white; border-radius: 12px; border: 1px solid #e5e7eb; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    </style>
 </head>
-<body class="bg-slate-50 min-h-screen pb-10 font-sans">
-    <nav class="bg-white border-b p-4 sticky top-0 z-50">
-        <div class="max-w-4xl mx-auto flex justify-between items-center">
-            <h1 class="text-xl font-black text-blue-600">MAVERICK AI</h1>
+<body class="min-h-screen">
+
+    <div id="authOverlay" class="fixed inset-0 bg-slate-900 z-[100] flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-sm rounded-2xl p-8 shadow-2xl">
+            <h2 id="authTitle" class="text-2xl font-extrabold text-slate-800 mb-2">Selamat Datang</h2>
+            <p id="authSub" class="text-sm text-slate-500 mb-6">Silakan login untuk mulai mengoreksi.</p>
+            
+            <div class="space-y-4">
+                <input type="email" placeholder="Email Sekolah" class="w-full p-3 border rounded-xl outline-blue-500">
+                <input type="password" placeholder="Password" class="w-full p-3 border rounded-xl outline-blue-500">
+                <button onclick="handleAuth()" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition">Masuk Sekarang</button>
+            </div>
+            
+            <div class="mt-6 text-center text-sm">
+                <button id="toggleAuth" onclick="toggleAuthMode()" class="text-blue-600 font-semibold">Belum punya akun? Daftar Sekolah</button>
+            </div>
+        </div>
+    </div>
+
+    <nav class="bg-white border-b sticky top-0 z-50">
+        <div class="max-w-4xl mx-auto px-4 h-16 flex justify-between items-center">
+            <h1 class="text-xl font-extrabold text-slate-800 tracking-tight">JAWABAN <span class="text-blue-600">AI</span></h1>
+            <button onclick="location.reload()" class="text-xs font-bold text-red-500 uppercase">Keluar</button>
         </div>
     </nav>
 
-    <main class="max-w-2xl mx-auto p-4 space-y-6">
-        <form id="koreksiForm" class="space-y-4">
-            <div class="bg-white p-6 rounded-2xl shadow-sm border">
-                <h3 class="text-xs font-black uppercase text-gray-400 mb-4">Kunci Pilihan Ganda</h3>
-                <div id="pgGrid" class="grid grid-cols-5 gap-2 mb-4"></div>
-                <div class="bg-blue-50 p-3 rounded-lg">
-                    <label class="text-[10px] font-bold text-blue-500 uppercase">Rumus PG (ex: PG*2)</label>
-                    <input type="text" id="r_pg" class="w-full bg-white p-2 rounded border-none font-black text-blue-700" value="PG*2">
+    <main class="max-w-2xl mx-auto p-4 py-8 space-y-8">
+        
+        <form id="appForm" class="space-y-6">
+            <section class="school-card p-6">
+                <div class="flex items-center gap-2 mb-4">
+                    <div class="w-1.5 h-5 bg-blue-600 rounded-full"></div>
+                    <h2 class="font-bold text-slate-700">Kunci Jawaban PG</h2>
                 </div>
-            </div>
+                <div id="pgArea" class="grid grid-cols-5 gap-3 mb-6"></div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase">Rumus Skor PG</label>
+                        <input type="text" id="r_pg" value="PG*2" class="w-full p-2 bg-slate-50 border rounded-lg font-bold text-blue-600">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase">Rumus Skor Essay</label>
+                        <input type="text" id="r_es" value="Essay*10" class="w-full p-2 bg-slate-50 border rounded-lg font-bold text-emerald-600">
+                    </div>
+                </div>
+            </section>
 
-            <div class="bg-white p-6 rounded-2xl shadow-sm border">
-                <h3 class="text-xs font-black uppercase text-gray-400 mb-4">Kunci Essay</h3>
-                <div id="essayList" class="space-y-2 mb-4"></div>
-                <div class="bg-emerald-50 p-3 rounded-lg">
-                    <label class="text-[10px] font-bold text-emerald-500 uppercase">Rumus Essay (ex: Essay*10)</label>
-                    <input type="text" id="r_es" class="w-full bg-white p-2 rounded border-none font-black text-emerald-700" value="Essay*10">
+            <section class="school-card p-6">
+                <div class="flex items-center gap-2 mb-4">
+                    <div class="w-1.5 h-5 bg-emerald-500 rounded-full"></div>
+                    <h2 class="font-bold text-slate-700">Kunci Jawaban Essay</h2>
                 </div>
-            </div>
+                <div id="esArea" class="space-y-3"></div>
+            </section>
 
-            <div class="bg-slate-900 p-6 rounded-2xl shadow-xl text-white">
-                <div class="grid grid-cols-2 gap-4 mb-4">
-                    <label class="flex flex-col items-center p-4 border-2 border-dashed border-slate-700 rounded-xl cursor-pointer hover:bg-slate-800">
-                        <span class="text-2xl">🖼️</span>
-                        <input type="file" id="fileInp" multiple class="hidden">
-                    </label>
-                    <label class="flex flex-col items-center p-4 border-2 border-dashed border-slate-700 rounded-xl cursor-pointer hover:bg-slate-800">
-                        <span class="text-2xl">📸</span>
-                        <input type="file" id="camInp" capture="environment" class="hidden">
-                    </label>
-                </div>
-                <button type="submit" id="btn" class="w-full bg-blue-600 p-4 rounded-xl font-black uppercase">Mulai Koreksi</button>
+            <div class="grid grid-cols-1 gap-4">
+                <label class="school-card p-8 border-dashed border-2 flex flex-col items-center justify-center cursor-pointer hover:bg-white transition">
+                    <span class="text-3xl mb-2">📸</span>
+                    <span class="text-sm font-bold text-slate-600">Ambil Foto atau Upload Lembar Jawaban</span>
+                    <input type="file" id="mediaInp" multiple accept="image/*" class="hidden">
+                </label>
+                <button type="submit" id="goBtn" class="w-full bg-slate-800 text-white font-extrabold py-4 rounded-xl shadow-lg hover:bg-slate-900 transition uppercase tracking-widest text-sm">Proses Koreksi AI</button>
             </div>
         </form>
 
-        <div id="resArea" class="space-y-4 pt-10">
-            <div id="resList" class="space-y-4"></div>
-            <button onclick="saveDoc()" id="exBtn" class="hidden w-full bg-black text-white p-4 rounded-xl font-black uppercase">Export Word</button>
+        <hr class="border-slate-300">
+
+        <div id="resultWindow" class="space-y-6">
+            <h3 class="text-center font-bold text-slate-400 uppercase text-[10px] tracking-[0.3em]">Laporan Hasil Pemeriksaan</h3>
+            <div id="resList" class="space-y-4 text-center text-slate-400 italic text-sm">
+                Belum ada data yang diproses.
+            </div>
+            
+            <button onclick="exportWord()" id="wordBtn" class="hidden w-full bg-white border-2 border-slate-800 text-slate-800 font-bold py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-slate-50 transition">
+                <span>📄</span> Export Hasil ke Word (.docx)
+            </button>
         </div>
+
     </main>
 
     <script>
-        // Init PG & Essay
-        for(let i=1; i<=20; i++) document.getElementById('pgGrid').innerHTML += `<select id="p${i}" class="bg-slate-100 p-2 rounded text-xs font-bold text-blue-600"><option value="">${i}</option><option>A</option><option>B</option><option>C</option><option>D</option></select>`;
-        for(let i=1; i<=5; i++) document.getElementById('essayList').innerHTML += `<input type="text" id="e${i}" placeholder="Kunci Essay ${i}" class="w-full bg-slate-50 p-2 rounded border text-sm font-bold">`;
+        // Auth Logic
+        let isLogin = true;
+        function toggleAuthMode() {
+            isLogin = !isLogin;
+            document.getElementById('authTitle').innerText = isLogin ? "Selamat Datang" : "Daftar Sekolah";
+            document.getElementById('authSub').innerText = isLogin ? "Silakan login untuk mulai mengoreksi." : "Daftarkan instansi sekolah anda.";
+            document.getElementById('toggleAuth').innerText = isLogin ? "Belum punya akun? Daftar Sekolah" : "Sudah punya akun? Login";
+        }
+        function handleAuth() {
+            document.getElementById('authOverlay').style.display = 'none';
+        }
 
-        let dataGlobal = [];
+        // Init Form
+        const pgArea = document.getElementById('pgArea');
+        for(let i=1; i<=20; i++) {
+            pgArea.innerHTML += `<select id="p${i}" class="p-2 text-xs font-bold border rounded-lg bg-slate-50"><option value="">${i}</option><option>A</option><option>B</option><option>C</option><option>D</option></select>`;
+        }
+        const esArea = document.getElementById('esArea');
+        for(let i=1; i<=5; i++) {
+            esArea.innerHTML += `<input type="text" id="e${i}" placeholder="Kunci Jawaban Essay No ${i}" class="w-full p-3 text-sm border rounded-xl bg-slate-50">`;
+        }
 
-        document.getElementById('koreksiForm').onsubmit = async (e) => {
+        let store = [];
+
+        document.getElementById('appForm').onsubmit = async (e) => {
             e.preventDefault();
-            const b = document.getElementById('btn');
-            b.innerText = "SEDANG DIPROSES..."; b.disabled = true;
+            const btn = document.getElementById('goBtn');
+            btn.innerText = "SEDANG MENGANALISIS..."; btn.disabled = true;
 
             const config = {
                 kunci_pg: {}, kunci_essay: {},
@@ -79,50 +135,63 @@
 
             const fd = new FormData();
             fd.append('data', JSON.stringify(config));
-            const files = document.getElementById('fileInp').files.length > 0 ? document.getElementById('fileInp').files : document.getElementById('camInp').files;
+            const files = document.getElementById('mediaInp').files;
             for(let f of files) fd.append('foto_tugas', f);
 
             try {
                 const res = await fetch('/ai/proses-koreksi', { method: 'POST', body: fd });
                 const json = await res.json();
                 if(json.success) {
-                    dataGlobal = json.data;
+                    store = json.data;
                     render();
+                    document.getElementById('wordBtn').classList.remove('hidden');
                 }
-            } catch (err) { alert("Error"); }
-            b.innerText = "Mulai Koreksi"; b.disabled = false;
+            } catch (err) { alert("Terjadi kesalahan sistem."); }
+            btn.innerText = "Proses Koreksi AI"; btn.disabled = false;
         };
 
         function render() {
             const list = document.getElementById('resList');
             list.innerHTML = "";
-            dataGlobal.forEach(s => {
-                list.innerHTML += `<div class="bg-white p-6 rounded-2xl border-l-8 border-blue-600 shadow-sm">
-                    <h4 class="text-xl font-black mb-4">Nama: ${s.nama}</h4>
-                    <div class="grid grid-cols-2 gap-2 mb-4 text-xs font-bold">
-                        <div class="bg-blue-50 p-2 rounded">PG: B:${s.pg_betul} S:${s.pg_salah} (Skor: ${s.skor_pg_hasil})</div>
-                        <div class="bg-emerald-50 p-2 rounded">Essay: B:${s.essay_betul} S:${s.essay_salah} (Skor: ${s.skor_essay_hasil})</div>
+            list.classList.remove('italic', 'text-center');
+            
+            store.forEach(s => {
+                list.innerHTML += `
+                <div class="school-card p-6 border-t-4 border-t-blue-600">
+                    <div class="flex justify-between items-center mb-4">
+                        <h4 class="font-extrabold text-slate-800 text-lg">${s.nama}</h4>
+                        <span class="text-[10px] font-bold px-2 py-1 bg-slate-100 rounded text-slate-500">TERVERIFIKASI AI</span>
                     </div>
-                    <div class="bg-slate-900 p-4 rounded-xl text-white flex justify-between items-center">
-                        <span class="text-[10px] font-bold opacity-50 uppercase">Nilai Akhir</span>
-                        <span class="text-3xl font-black text-blue-400">${s.nilai_akhir}</span>
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div class="p-3 bg-slate-50 rounded-lg">
+                            <p class="text-[9px] font-bold text-slate-400 uppercase">Detail PG</p>
+                            <p class="text-sm font-bold text-slate-700">Benar: ${s.pg_betul} | Skor: ${s.skor_pg_hasil}</p>
+                        </div>
+                        <div class="p-3 bg-slate-50 rounded-lg">
+                            <p class="text-[9px] font-bold text-slate-400 uppercase">Detail Essay</p>
+                            <p class="text-sm font-bold text-slate-700">Benar: ${s.essay_betul} | Skor: ${s.skor_essay_hasil}</p>
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="font-bold text-slate-400 text-sm">TOTAL NILAI AKHIR:</span>
+                        <span class="text-3xl font-black text-blue-600">${s.nilai_akhir}</span>
                     </div>
                 </div>`;
             });
-            document.getElementById('exBtn').classList.remove('hidden');
+            window.scrollTo({ top: document.getElementById('resultWindow').offsetTop, behavior: 'smooth' });
         }
 
-        function saveDoc() {
+        function exportWord() {
             const { Document, Packer, Paragraph, TextRun } = docx;
-            const content = dataGlobal.map(s => [
-                new Paragraph({ children: [new TextRun({ text: `Nama: ${s.nama}`, bold: true, size: 24 })] }),
-                new Paragraph({ text: `PG: ${s.pg_betul} Betul | Skor: ${s.skor_pg_hasil}` }),
-                new Paragraph({ text: `Essay: ${s.essay_betul} Betul | Skor: ${s.skor_essay_hasil}` }),
-                new Paragraph({ children: [new TextRun({ text: `TOTAL: ${s.nilai_akhir}`, bold: true, color: "0000FF" })] }),
-                new Paragraph({ text: "--------------------------------" })
+            const content = store.map(s => [
+                new Paragraph({ children: [new TextRun({ text: `Nama Siswa: ${s.nama}`, bold: true, size: 28 })] }),
+                new Paragraph({ text: `Pilihan Ganda: ${s.pg_betul} Benar, Skor: ${s.skor_pg_hasil}` }),
+                new Paragraph({ text: `Essay: ${s.essay_betul} Benar, Skor: ${s.skor_essay_hasil}` }),
+                new Paragraph({ children: [new TextRun({ text: `NILAI AKHIR: ${s.nilai_akhir}`, bold: true, color: "0000FF", size: 32 })] }),
+                new Paragraph({ text: "----------------------------------------------------" })
             ]).flat();
             const doc = new Document({ sections: [{ children: content }] });
-            Packer.toBlob(doc).then(b => saveAs(b, "Laporan.docx"));
+            Packer.toBlob(doc).then(b => saveAs(b, "Laporan_Jawaban_AI.docx"));
         }
     </script>
 </body>
