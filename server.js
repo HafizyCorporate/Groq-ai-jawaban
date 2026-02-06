@@ -4,53 +4,31 @@ const path = require('path');
 
 const app = express();
 
-// 1. Import Controller
-// Pastikan letak file ada di: controllers/koreksi.js
-const koreksiController = require('./controllers/koreksi');
-
-// 2. Setup Multer (Memory Storage)
+// Konfigurasi Multer (Memory)
 const storage = multer.memoryStorage();
-const upload = multer({ 
-    storage: storage,
-    limits: { fileSize: 15 * 1024 * 1024 } // Limit 15MB
-});
+const upload = multer({ storage: storage });
 
-// 3. Middleware Dasar
+// Middleware Dasar
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Sajikan file statis dari folder 'public' atau 'views'
-app.use(express.static(path.join(__dirname, 'public')));
+// Folder Views & Public
 app.use(express.static(path.join(__dirname, 'views')));
+app.use(express.static(path.join(__dirname, 'public')));
 
-// Rute Dashboard Utama
+// IMPORT ROUTER DARI FOLDER routes/
+const koreksiRoute = require('./routes/koreksi');
+
+// PASANG ROUTER (Pastikan upload.array ada di sini)
+app.use('/ai', upload.array('foto_tugas'), koreksiRoute);
+
+// Route Dashboard
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'views', 'dashboard.html'));
 });
 
-/**
- * 4. ROUTE PROSES (Sesuai instruksi koreksi)
- */
-app.post('/ai/proses-koreksi', upload.array('foto_tugas'), (req, res) => {
-    try {
-        koreksiController.prosesKoreksi(req, res);
-    } catch (err) {
-        console.error("Route Error:", err);
-        res.status(500).json({ success: false, message: "Terjadi kesalahan pada server." });
-    }
-});
-
-/**
- * 5. KONFIGURASI PORT (Railway Friendly)
- * Menggunakan 8080 sebagai default jika process.env.PORT kosong
- */
+// Port 8080 khusus Railway
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`
-    =========================================
-    ✅ SERVER MAVERICK BERHASIL JALAN
-    🌐 URL: http://localhost:${PORT}
-    📡 Port Production: ${PORT}
-    =========================================
-    `);
+    console.log(`🚀 Maverick Server Active on Port ${PORT}`);
 });
