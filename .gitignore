@@ -1,0 +1,16 @@
+# Folder library (tidak perlu diupload karena diinstall otomatis oleh Railway)
+node_modules/
+
+# File Rahasia (Jangan sampai bocor ke GitHub!)
+.env
+
+# Database Lokal (Agar database di Railway tidak tertimpa data lokal kamu)
+db/database.sqlite
+
+# Folder sampah foto
+uploads/*
+!uploads/.gitkeep
+
+# File sistem lainnya
+.DS_Store
+npm-debug.log*
