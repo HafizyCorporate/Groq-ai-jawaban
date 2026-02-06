@@ -14,20 +14,23 @@ router.post('/proses-koreksi', async (req, res) => {
                 "messages": [
                     {
                         "role": "system",
-                        "content": "Anda adalah mesin koreksi bernama Jawaban AI. Fokus pada Nama, PG (abaikan bekas hapusan), dan Essay."
+                        "content": "Anda adalah mesin Jawaban AI. Fokus pada Nama, PG (abaikan bekas hapusan pudar), dan Essay sesuai kunci yang diberikan saja."
                     },
                     {
                         "role": "user",
                         "content": [
                             {
                                 "type": "text",
-                                "text": `Koreksi lembar ini:
-                                1. Nama Siswa.
-                                2. PG Kunci: ${JSON.stringify(settings.kunci_pg)}. Pilih silang tertebal.
-                                3. Essay Kunci: ${JSON.stringify(settings.kunci_essay)}.
-                                4. Rumus PG: ${settings.rumus_pg}.
-                                5. Rumus Essay: ${settings.rumus_essay}.
-                                Hitung total akhir. Balas JSON format saja.`
+                                "text": `INSTRUKSI KERJA JAWABAN AI:
+                                1. Ekstrak Nama Murid.
+                                2. Periksa PG dengan Kunci: ${JSON.stringify(settings.kunci_pg)}. 
+                                   - Teliti bekas penghapus! Hanya hitung silang yang paling HITAM dan TEBAL.
+                                   - Abaikan nomor soal yang tidak ada di kunci ini.
+                                3. Periksa Essay dengan Kunci: ${JSON.stringify(settings.kunci_essay)}.
+                                4. Hitung PG_BETUL, PG_SALAH, ESSAY_BETUL, ESSAY_SALAH.
+                                5. Gunakan Rumus PG: ${settings.rumus_pg} & Rumus Essay: ${settings.rumus_essay}.
+                                6. Nilai_Akhir = Hasil Skor PG + Hasil Skor Essay.
+                                BALAS HANYA JSON.`
                             },
                             {
                                 "type": "image_url",
@@ -43,6 +46,7 @@ router.post('/proses-koreksi', async (req, res) => {
         }));
         res.json({ success: true, data: results });
     } catch (error) {
+        console.error("Maverick Error:", error);
         res.status(500).json({ success: false });
     }
 });
