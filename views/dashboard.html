@@ -3,158 +3,157 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CekTugas AI - Te Az Ha</title>
+    <title>Dashboard AutoSoal AI</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/docx@7.1.0/build/index.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <style>
+        body { background: #050505; color: white; font-family: sans-serif; }
+        .glass { background: rgba(20, 20, 20, 0.8); border: 1px solid #222; backdrop-filter: blur(10px); }
+        select { background: #111; color: #3b82f6; border: 1px solid #333; padding: 4px; border-radius: 6px; font-weight: bold; outline: none; }
+        textarea::placeholder { color: #444; }
+    </style>
 </head>
-<body class="bg-black text-white min-h-screen">
+<body class="min-h-screen pb-20">
 
-    <nav class="p-4 bg-gray-900 flex justify-between border-b border-gray-800">
-        <h1 class="text-xl font-black text-blue-500">AutoSoal AI <span id="adminBadge" class="hidden text-xs bg-red-600 text-white px-2 py-1 rounded ml-2">ADMIN</span></h1>
+    <nav class="p-4 glass flex justify-between items-center sticky top-0 z-50 border-b border-gray-800">
+        <h1 class="text-xl font-black text-blue-500 tracking-tighter">AutoSoal AI</h1>
         <div class="flex items-center gap-4">
-            <span id="userNameDisplay" class="text-sm text-gray-400"></span>
-            <a href="/auth/logout" class="text-red-500 font-bold text-sm">LOGOUT</a>
+            <span id="userDisp" class="text-[10px] text-gray-500 font-bold uppercase"></span>
+            <a href="/auth/logout" class="text-red-500 text-xs font-bold border border-red-500/30 px-4 py-1 rounded-full hover:bg-red-500 hover:text-white transition">LOGOUT</a>
         </div>
     </nav>
 
-    <main class="max-w-6xl mx-auto p-6">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="bg-gray-900 p-6 rounded-2xl border border-gray-800">
-                <form id="koreksiForm" class="space-y-4">
-                    <textarea name="kunci_pg" class="w-full p-3 bg-black rounded-lg border border-gray-700 outline-none focus:border-blue-500" rows="3" placeholder="Kunci PG (1.A, 2.B, 3.C)"></textarea>
-                    <textarea name="kriteria_essay" class="w-full p-3 bg-black rounded-lg border border-gray-700 outline-none focus:border-blue-500" rows="3" placeholder="Kriteria Essay (Poin penting jawaban)"></textarea>
-                    
-                    <div class="p-3 bg-blue-900/10 border border-blue-800/50 rounded-lg">
-                        <label class="text-[10px] text-blue-400 font-bold uppercase">Rumus Penilaian Kustom</label>
-                        <input type="text" name="rumus_nilai" class="w-full bg-transparent outline-none text-white font-mono" value="(PG+Essay)/13*100">
+    <main class="max-w-4xl mx-auto p-6 space-y-8">
+        <form id="koreksiForm" class="space-y-6">
+            <div class="glass p-6 rounded-3xl">
+                <h3 class="text-blue-500 font-black mb-4 flex items-center gap-2 uppercase text-sm tracking-widest">Kunci Jawaban PG (1-20)</h3>
+                <div id="pgGrid" class="grid grid-cols-2 md:grid-cols-5 gap-3">
                     </div>
-
-                    <div class="grid grid-cols-2 gap-2">
-                        <label class="bg-gray-800 p-4 rounded-xl text-center cursor-pointer border border-gray-700 hover:bg-gray-700 transition">
-                            <span class="block text-2xl mb-1">📁</span>
-                            <span class="text-xs font-bold text-gray-400">BUKA FILES</span>
-                            <input type="file" name="foto_tugas" multiple accept="image/*" class="hidden" id="fileInp">
-                        </label>
-                        <label class="bg-gray-800 p-4 rounded-xl text-center cursor-pointer border border-gray-700 hover:bg-gray-700 transition">
-                            <span class="block text-2xl mb-1">📷</span>
-                            <span class="text-xs font-bold text-gray-400">KAMERA</span>
-                            <input type="file" name="foto_tugas" capture="environment" accept="image/*" class="hidden" id="camInp">
-                        </label>
-                    </div>
-                    <p id="fileCount" class="text-center text-[10px] text-gray-500 italic"></p>
-
-                    <button type="submit" id="btnProses" class="w-full bg-blue-600 p-4 rounded-xl font-black hover:bg-blue-500 transition shadow-lg shadow-blue-900/20">MULAI KOREKSI OTOMATIS</button>
-                </form>
             </div>
 
-            <div id="hasilSection" class="bg-gray-900 p-6 rounded-2xl border border-gray-800 hidden">
-                <div class="flex justify-between items-center mb-6">
-                    <h3 class="font-black text-green-500 tracking-widest">HASIL AI</h3>
-                    <button onclick="exportToWord()" class="text-[10px] bg-white text-black px-4 py-2 rounded-full font-bold uppercase hover:bg-gray-200">Export Word</button>
+            <div class="glass p-6 rounded-3xl">
+                <h3 class="text-green-500 font-black mb-4 uppercase text-sm tracking-widest">Kriteria Jawaban Essay (1-10)</h3>
+                <div id="essayList" class="space-y-3">
+                    </div>
+            </div>
+
+            <div class="glass p-6 rounded-3xl space-y-6">
+                <div class="bg-blue-900/10 p-4 rounded-2xl border border-blue-500/20">
+                    <label class="text-[10px] text-blue-400 font-black uppercase block mb-2">Rumus Penilaian Akhir</label>
+                    <input type="text" name="rumus_nilai" class="w-full bg-transparent text-xl font-mono text-white outline-none" value="(PG+Essay)/13*100">
                 </div>
-                <div id="listHasil" class="space-y-4"></div>
-            </div>
-        </div>
 
-        <div id="adminPanel" class="mt-10 hidden border-t border-gray-800 pt-10">
-            <h2 class="text-xl font-black text-red-600 mb-6 flex items-center gap-2">
-                <span class="bg-red-600 text-white p-1 rounded">🛡️</span> ADMIN SYSTEM LOG
-            </h2>
-            <div class="bg-gray-900 rounded-2xl border border-red-900/30 overflow-hidden">
-                <table class="w-full text-left">
-                    <thead class="bg-red-900/10 border-b border-red-900/20 text-red-400 text-xs uppercase">
-                        <tr>
-                            <th class="p-4">Username</th>
-                            <th class="p-4 text-center">Skor Terakhir</th>
-                            <th class="p-4 text-right">Waktu Proses</th>
-                        </tr>
-                    </thead>
-                    <tbody id="adminLogTable" class="divide-y divide-gray-800"></tbody>
-                </table>
+                <div class="grid grid-cols-2 gap-4">
+                    <label class="flex flex-col items-center justify-center p-8 border-2 border-dashed border-gray-800 rounded-3xl cursor-pointer hover:border-blue-500 transition group">
+                        <span class="text-3xl mb-2 group-hover:scale-110 transition">📁</span>
+                        <span class="text-[10px] font-black text-gray-500 uppercase">File Galeri</span>
+                        <input type="file" name="foto_tugas" multiple accept="image/*" class="hidden" id="fInp">
+                    </label>
+                    <label class="flex flex-col items-center justify-center p-8 border-2 border-dashed border-gray-800 rounded-3xl cursor-pointer hover:border-blue-500 transition group">
+                        <span class="text-3xl mb-2 group-hover:scale-110 transition">📸</span>
+                        <span class="text-[10px] font-black text-gray-500 uppercase">Ambil Kamera</span>
+                        <input type="file" name="foto_tugas" capture="environment" accept="image/*" class="hidden" id="cInp">
+                    </label>
+                </div>
+                <p id="stts" class="text-center text-[10px] text-gray-600 font-bold italic"></p>
+
+                <button type="submit" id="btnGo" class="w-full bg-blue-600 p-5 rounded-2xl font-black text-white hover:bg-blue-500 shadow-2xl shadow-blue-900/40 transition transform active:scale-95">MULAI KOREKSI OTOMATIS</button>
             </div>
+        </form>
+
+        <div id="resSection" class="hidden space-y-6 animate-pulse-once">
+            <div class="flex justify-between items-center border-b border-gray-800 pb-4">
+                <h2 class="text-xl font-black text-white uppercase tracking-tighter">Hasil Analisis AI</h2>
+                <button onclick="exportWord()" class="bg-white text-black text-[10px] font-black px-5 py-2 rounded-full uppercase hover:invert transition">Export to Word</button>
+            </div>
+            <div id="resList" class="space-y-4"></div>
         </div>
     </main>
 
     <script>
-        let dataHasil = [];
         const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
-        
-        // Cek Role Admin
-        if (userData.role === 'admin') {
-            document.getElementById('adminBadge').classList.remove('hidden');
-            document.getElementById('adminPanel').classList.remove('hidden');
-            loadAdminLogs();
+        document.getElementById('userDisp').innerText = userData.username || 'User';
+
+        // Buat Dropdown PG
+        const pgGrid = document.getElementById('pgGrid');
+        for(let i=1; i<=20; i++) {
+            pgGrid.innerHTML += `
+                <div class="flex items-center justify-between bg-black/50 p-2 rounded-xl border border-gray-900">
+                    <span class="text-[10px] font-bold text-gray-600">${i}</span>
+                    <select name="pg_${i}">
+                        <option value="A">A</option><option value="B">B</option>
+                        <option value="C">C</option><option value="D">D</option>
+                    </select>
+                </div>`;
         }
-        document.getElementById('userNameDisplay').innerText = userData.username || "User";
 
-        // Notifikasi Limit
-        async function checkFreeLimit() {
-            const res = await fetch('/api/cek-limit');
-            const data = await res.json();
-            if (data.total >= 1 && userData.role !== 'admin') {
-                alert("Peringatan: Kamu sudah menggunakan limit gratis. Untuk proses lebih dari 1x silakan hubungi Admin (Versacy) untuk berlangganan.");
-            }
+        // Buat Kolom Essay (Ketik Sendiri)
+        const essayList = document.getElementById('essayList');
+        for(let i=1; i<=10; i++) {
+            essayList.innerHTML += `
+                <div class="flex gap-3 items-start">
+                    <span class="text-[10px] font-bold text-gray-600 mt-3">${i}.</span>
+                    <textarea name="essay_${i}" placeholder="Ketik kunci jawaban/inti soal nomor ${i}..." 
+                    class="w-full p-3 bg-black/50 border border-gray-900 rounded-xl text-xs outline-none focus:border-green-500 transition" rows="2"></textarea>
+                </div>`;
         }
-        checkFreeLimit();
 
-        // Handle file/camera
-        document.getElementById('fileInp').onchange = e => document.getElementById('fileCount').innerText = e.target.files.length + " File dipilih";
-        document.getElementById('camInp').onchange = e => document.getElementById('fileCount').innerText = "Foto Kamera dipilih";
+        document.getElementById('fInp').onchange = e => document.getElementById('stts').innerText = e.target.files.length + " Gambar Siap";
+        document.getElementById('cInp').onchange = e => document.getElementById('stts').innerText = "Foto Kamera Siap";
 
-        // Proses AI
+        let dataGlobal = [];
+
         document.getElementById('koreksiForm').onsubmit = async (e) => {
             e.preventDefault();
-            const btn = document.getElementById('btnProses');
-            btn.innerText = "SEDANG MENGANALISIS...";
+            const btn = document.getElementById('btnGo');
+            btn.innerText = "MENGECEK TANDA X & ESSAY...";
             btn.disabled = true;
 
             const formData = new FormData(e.target);
             try {
                 const res = await fetch('/ai/proses-koreksi', { method: 'POST', body: formData });
-                const data = await res.json();
-                if (data.success) {
-                    dataHasil = data.data;
-                    document.getElementById('hasilSection').classList.remove('hidden');
-                    let html = '';
-                    dataHasil.forEach(s => {
-                        html += `<div class="p-4 bg-black rounded-xl border-l-4 border-blue-600 shadow-inner">
-                            <p class="font-black text-blue-400 uppercase tracking-tighter text-lg">${s.nama}</p>
-                            <p class="text-[10px] text-gray-500 mb-2">PG: ${s.pg_betul} | Essay: ${s.essay_betul}</p>
-                            <div class="flex justify-between items-end">
-                                <span class="text-3xl font-black text-white">${s.nilai_akhir}</span>
-                                <span class="text-[10px] text-green-500 font-bold italic">Terverifikasi AI</span>
+                const json = await res.json();
+                
+                if(json.success) {
+                    dataGlobal = json.data;
+                    document.getElementById('resSection').classList.remove('hidden');
+                    let h = '';
+                    dataGlobal.forEach(s => {
+                        h += `
+                        <div class="glass p-6 rounded-3xl border-l-4 border-blue-500">
+                            <p class="text-lg font-black uppercase mb-2">Nama : ${s.nama}</p>
+                            <div class="text-sm font-bold text-gray-400 space-y-1">
+                                <p>Pg betul : ${s.pg_betul} salah : ${s.pg_salah}</p>
+                                <p>Essay betul : ${s.essay_betul} salah : ${s.essay_salah}</p>
+                            </div>
+                            <div class="mt-4 pt-4 border-t border-gray-800 flex justify-between items-end">
+                                <div><p class="text-[8px] text-gray-600 font-black uppercase">Skor Akhir</p><p class="text-4xl font-black text-blue-500">${s.nilai_akhir}</p></div>
+                                <span class="text-[9px] bg-blue-500/10 text-blue-500 px-3 py-1 rounded-full font-bold">TERVERIFIKASI AI</span>
                             </div>
                         </div>`;
                     });
-                    document.getElementById('listHasil').innerHTML = html;
-                    window.scrollTo({ top: document.getElementById('hasilSection').offsetTop, behavior: 'smooth' });
+                    document.getElementById('resList').innerHTML = h;
+                    window.scrollTo({ top: document.getElementById('resSection').offsetTop - 100, behavior: 'smooth' });
                 }
-            } catch (err) { alert("Sistem Sibuk, Coba Lagi."); }
+            } catch (err) { alert("Server Sibuk / API Error."); }
             btn.innerText = "MULAI KOREKSI OTOMATIS";
             btn.disabled = false;
         };
 
-        // Export Word
-        function exportToWord() {
+        function exportWord() {
             const { Document, Packer, Paragraph, TextRun } = docx;
-            const children = dataHasil.map(s => new Paragraph({
+            const content = dataGlobal.map(s => new Paragraph({
                 children: [
-                    new TextRun({ text: `Nama Siswa: ${s.nama}`, bold: true, size: 28 }),
-                    new TextRun({ text: `\nSkor Akhir: ${s.nilai_akhir}`, color: "0000FF", bold: true, size: 24 }),
-                    new TextRun({ text: `\nDetail: PG ${s.pg_betul}, Essay ${s.essay_betul}`, size: 18 }),
-                    new TextRun({ text: `\nCatatan: ${s.catatan}\n\n`, size: 18 }),
+                    new TextRun({ text: `Nama : ${s.nama}`, bold: true, size: 28 }),
+                    new TextRun({ text: `\nPg betul : ${s.pg_betul} salah : ${s.pg_salah}`, size: 24 }),
+                    new TextRun({ text: `\nEssay betul : ${s.essay_betul} salah : ${s.essay_salah}`, size: 24 }),
+                    new TextRun({ text: `\nSkor Akhir: ${s.nilai_akhir}\n\n`, bold: true, size: 24 }),
                 ],
             }));
-            const doc = new Document({ sections: [{ children }] });
-            Packer.toBlob(doc).then(blob => saveAs(blob, `Nilai_Siswa_TeAzHa.docx`));
+            const doc = new Document({ sections: [{ children: content }] });
+            Packer.toBlob(doc).then(b => saveAs(b, "Hasil_Koreksi.docx"));
         }
-
-        async function loadAdminLogs() {
-            const res = await fetch('/api/admin/all-logs');
-            const logs = await res.json();
-            document.getElementById('adminLogTable').innerHTML = logs.map(l => `
-                <tr class="border-b border-gray-800 hover:bg-gray-800/30 transition">
-                    <td class="p-4 text-blue-400 font-bold">${l.username}</td>
-                    <td class="p-4 text-center font-mono">${l.skor_total}</td>
-                    <td
+    </script>
+</body>
+</html>
