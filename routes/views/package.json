@@ -1,0 +1,17 @@
+{
+  "name": "cektugas-ai",
+  "version": "1.0.0",
+  "description": "Sistem Koreksi AI Te Az Ha",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.0.0",
+    "express": "^4.18.0",
+    "express-session": "^1.17.0",
+    "groq-sdk": "^0.5.0",
+    "multer": "^1.4.5-lts.1",
+    "sqlite3": "^5.1.0"
+  }
+}
