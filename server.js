@@ -5,30 +5,46 @@ const path = require('path');
 const bcrypt = require('bcrypt');
 const db = require('./db');
 const koreksiRoute = require('./routes/koreksi');
+const SQLiteStore = require('connect-sqlite3')(session);
 
 const app = express();
 
+// Middleware wajib agar server bisa baca data dari form HTML
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Pengaturan Session
 app.use(session({
+    store: new SQLiteStore({ db: 'sessions.sqlite', dir: './db' }),
     secret: 'te-az-ha-secret-key',
     resave: false,
     saveUninitialized: false,
-    cookie: { 
-        maxAge: 24 * 60 * 60 * 1000,
-        secure: false 
-    }
+    cookie: { maxAge: 24 * 60 * 60 * 1000 }
 }));
 
-// --- FIX CANNOT GET ---
-// Menambahkan route root (/) agar otomatis membuka halaman login
-app.get('/', (req, res) => {
-    res.redirect('/login.html');
+// Route Utama
+app.get('/', (req, res) => res.redirect('/login.html'));
+
+// API REGISTER (PASTIKAN INI ADA)
+app.post('/auth/register', async (req, res) => {
+    const { username, password } = req.body;
+    if (!username || !password) return res.status(400).json({ error: "Data tidak lengkap" });
+
+    try {
+        const hashedPassword = await bcrypt.hash(password, 10);
+        db.run("INSERT INTO users (username, password) VALUES (?, ?)", [username, hashedPassword], function(err) {
+            if (err) {
+                console.error("DB Register Error:", err.message);
+                return res.status(400).json({ error: "Username sudah digunakan atau masalah database." });
+            }
+            res.json({ success: true });
+        });
+    } catch (err) {
+        console.error("Server Register Error:", err);
+        res.status(500).json({ error: "Terjadi kesalahan pada sistem server." });
+    }
 });
 
-// API Login & Set Session
+// API LOGIN
 app.post('/auth/login', (req, res) => {
     const { username, password } = req.body;
     db.get("SELECT * FROM users WHERE username = ?", [username], async (err, user) => {
@@ -41,31 +57,15 @@ app.post('/auth/login', (req, res) => {
     });
 });
 
-// API Admin All Logs
-app.get('/api/admin/all-logs', (req, res) => {
-    if (!req.session.user || req.session.user.role !== 'admin') {
-        return res.status(403).json({ error: "Akses ditolak!" });
-    }
-    db.all(`SELECT history_koreksi.*, users.username 
-            FROM history_koreksi 
-            JOIN users ON history_koreksi.user_id = users.id 
-            ORDER BY created_at DESC`, (err, rows) => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json(rows);
-    });
-});
-
 app.get('/auth/logout', (req, res) => {
     req.session.destroy();
     res.redirect('/login.html');
 });
 
-// Route AI dan Static Files
+// Koneksi ke route AI dan file statis
 app.use('/ai', koreksiRoute);
 app.use(express.static(path.join(__dirname, 'views')));
 
-// PENGATURAN PORT 8080
-const PORT = 8080; 
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`CekTugas AI Te Az Ha Online di port ${PORT}`);
-});
+// PORT 8080 sesuai permintaan
+const PORT = 8080;
+app.listen(PORT, '0.0.0.0', () => console.log(`Running on port ${PORT}`));
