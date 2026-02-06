@@ -6,60 +6,82 @@
     <title>CekTugas AI - Te Az Ha</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-900 text-white min-h-screen p-5">
-    <div class="max-w-2xl mx-auto bg-gray-800 p-8 rounded-xl shadow-2xl">
-        <h1 class="text-3xl font-bold text-blue-400 mb-6">CekTugas AI</h1>
-        
-        <form id="koreksiForm" class="space-y-4">
+<body class="bg-gray-900 text-white min-h-screen">
+
+    <nav class="bg-gray-800 p-4 border-b border-gray-700 flex justify-between items-center">
+        <h1 class="text-xl font-bold text-blue-500">AutoSoal AI <span class="text-white">Koreksi</span></h1>
+        <a href="/auth/logout" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg text-sm font-bold transition">LOGOUT</a>
+    </nav>
+
+    <main class="max-w-3xl mx-auto mt-10 p-6 bg-gray-800 rounded-2xl shadow-xl">
+        <h2 class="text-2xl font-bold mb-6 text-center">Panel Koreksi Tugas</h2>
+
+        <form id="koreksiForm" class="space-y-6">
             <div>
-                <label class="block mb-2 font-semibold">Kunci Jawaban PG (Misal: 1.a 2.b):</label>
-                <textarea name="kunci_pg" class="w-full p-3 bg-gray-700 rounded border border-gray-600 focus:border-blue-500 outline-none" rows="3" placeholder="Contoh: 1.A, 2.B, 3.D"></textarea>
+                <label class="block mb-2 text-sm font-medium text-gray-400">Kunci Jawaban Pilihan Ganda:</label>
+                <textarea name="kunci_pg" class="w-full p-4 bg-gray-700 rounded-xl border border-gray-600 focus:ring-2 focus:ring-blue-500 outline-none" rows="3" placeholder="Contoh: 1.A, 2.C, 3.B"></textarea>
             </div>
 
             <div>
-                <label class="block mb-2 font-semibold">Kriteria Jawaban Essay (Poin Inti):</label>
-                <textarea name="kriteria_essay" class="w-full p-3 bg-gray-700 rounded border border-gray-600 focus:border-blue-500 outline-none" rows="3" placeholder="Contoh: Soal 1: apel beracun cinderella"></textarea>
+                <label class="block mb-2 text-sm font-medium text-gray-400">Kriteria Jawaban Essay (Poin Inti):</label>
+                <textarea name="kriteria_essay" class="w-full p-4 bg-gray-700 rounded-xl border border-gray-600 focus:ring-2 focus:ring-blue-500 outline-none" rows="3" placeholder="Contoh: Soal 1: apel beracun cinderella dimakan"></textarea>
             </div>
 
-            <div>
-                <label class="block mb-2 font-semibold">Upload Foto Jawaban Siswa:</label>
-                <input type="file" name="foto_tugas" multiple class="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700">
+            <div class="border-2 border-dashed border-gray-600 p-6 rounded-xl text-center">
+                <input type="file" name="foto_tugas" multiple id="fileInput" class="hidden">
+                <label for="fileInput" class="cursor-pointer text-blue-400 hover:underline">Klik untuk upload foto tugas siswa</label>
+                <p id="fileName" class="text-xs text-gray-500 mt-2 italic"></p>
             </div>
 
-            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition duration-300">MULAI KOREKSI</button>
+            <button type="submit" id="btnSubmit" class="w-full bg-blue-600 hover:bg-blue-700 py-4 rounded-xl font-black text-lg transition duration-300">MULAI KOREKSI OTOMATIS</button>
         </form>
 
-        <div id="hasil" class="mt-8 p-5 bg-gray-700 rounded-lg hidden">
-            <h2 class="text-xl font-bold text-green-400 mb-2">Hasil Koreksi:</h2>
-            <div id="kontenHasil" class="text-gray-200 space-y-2"></div>
-            <div class="mt-4 text-3xl font-black text-center text-blue-400" id="skorDisplay"></div>
+        <div id="hasilSection" class="mt-10 hidden border-t border-gray-700 pt-6">
+            <div class="bg-gray-700 p-6 rounded-2xl">
+                <h3 class="text-lg font-bold text-green-400 mb-4">Analisis AI:</h3>
+                <div id="detailHasil" class="space-y-3 text-sm leading-relaxed"></div>
+                <div class="mt-6 text-center">
+                    <span class="text-5xl font-black text-blue-400" id="skorBesar">0</span>
+                    <p class="text-gray-400 text-xs mt-1 uppercase tracking-widest">Skor Akhir</p>
+                </div>
+            </div>
         </div>
-    </div>
+    </main>
 
     <script>
+        const fileInput = document.getElementById('fileInput');
+        fileInput.onchange = () => { document.getElementById('fileName').innerText = fileInput.files.length + " Foto dipilih"; };
+
         document.getElementById('koreksiForm').onsubmit = async (e) => {
             e.preventDefault();
-            const btn = e.target.querySelector('button');
+            const btn = document.getElementById('btnSubmit');
             btn.innerText = "SEDANG MEMBACA TULISAN...";
             btn.disabled = true;
 
             const formData = new FormData(e.target);
-            const res = await fetch('/ai/proses-koreksi', { method: 'POST', body: formData });
-            const data = await res.json();
-
-            btn.innerText = "MULAI KOREKSI";
-            btn.disabled = false;
-
-            if(data.success) {
-                document.getElementById('hasil').classList.remove('hidden');
-                document.getElementById('kontenHasil').innerHTML = `
-                    <p><b>PG:</b> ${data.hasil_pg}</p>
-                    <p><b>Essay:</b> ${data.hasil_essay}</p>
-                    <p><b>Feedback:</b> ${data.feedback}</p>
-                `;
-                document.getElementById('skorDisplay').innerText = `SKOR: ${data.skor_total}`;
-            } else {
-                alert("Gagal: " + data.error);
+            try {
+                const res = await fetch('/ai/proses-koreksi', { method: 'POST', body: formData });
+                const data = await res.json();
+                
+                if (data.success) {
+                    document.getElementById('hasilSection').classList.remove('hidden');
+                    document.getElementById('skorBesar').innerText = data.data.skor_total;
+                    document.getElementById('detailHasil').innerHTML = `
+                        <p><strong>Pilihan Ganda:</strong> ${data.data.hasil_pg}</p>
+                        <hr class="border-gray-600">
+                        <p><strong>Essay:</strong> ${data.data.hasil_essay}</p>
+                        <hr class="border-gray-600">
+                        <p><strong>Feedback:</strong> ${data.data.feedback}</p>
+                    `;
+                    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+                } else {
+                    alert(data.error);
+                }
+            } catch (err) {
+                alert("Terjadi kesalahan sistem.");
+            } finally {
+                btn.innerText = "MULAI KOREKSI OTOMATIS";
+                btn.disabled = false;
             }
         };
     </script>
