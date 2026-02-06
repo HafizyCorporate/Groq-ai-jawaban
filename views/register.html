@@ -3,40 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Daftar - CekTugas AI Te Az Ha</title>
+    <title>Daftar Akun - Te Az Ha AI</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #000; }
+        .glass { background: rgba(17, 24, 39, 0.8); backdrop-filter: blur(10px); border: 1px solid rgba(31, 41, 55, 1); }
+    </style>
 </head>
-<body class="bg-gray-900 text-white min-h-screen flex items-center justify-center p-5">
-    <div class="max-w-md w-full bg-gray-800 p-10 rounded-3xl shadow-2xl border border-gray-700">
+<body class="flex items-center justify-center min-h-screen p-4">
+
+    <div class="glass w-full max-w-md p-8 rounded-3xl shadow-2xl">
         <div class="text-center mb-8">
-            <h1 class="text-3xl font-black text-green-500">Daftar <span class="text-white">Akun</span></h1>
-            <p class="text-gray-400 mt-2">Buat akun untuk sistem koreksi Te Az Ha</p>
+            <h1 class="text-3xl font-black text-blue-500 tracking-tighter">DAFTAR <span class="text-white">AKUN</span></h1>
+            <p class="text-gray-500 text-sm mt-2">Buat akun untuk sistem koreksi Te Az Ha</p>
         </div>
 
-        <form id="registerForm" class="space-y-6">
+        <form id="registerForm" class="space-y-5">
             <div>
-                <label class="block text-sm font-medium text-gray-400 mb-2">Username Baru</label>
+                <label class="block text-xs font-bold text-gray-400 uppercase mb-2">Username</label>
                 <input type="text" name="username" required 
-                    class="w-full p-4 bg-gray-700 rounded-xl border border-gray-600 focus:ring-2 focus:ring-green-500 outline-none transition"
-                    placeholder="Pilih username">
+                    class="w-full p-4 bg-gray-900 border border-gray-800 rounded-2xl text-white focus:border-blue-500 outline-none transition"
+                    placeholder="Masukkan nama pengguna">
             </div>
 
             <div>
-                <label class="block text-sm font-medium text-gray-400 mb-2">Password</label>
+                <label class="block text-xs font-bold text-gray-400 uppercase mb-2">Password</label>
                 <input type="password" name="password" required 
-                    class="w-full p-4 bg-gray-700 rounded-xl border border-gray-600 focus:ring-2 focus:ring-green-500 outline-none transition"
-                    placeholder="Buat password kuat">
+                    class="w-full p-4 bg-gray-900 border border-gray-800 rounded-2xl text-white focus:border-blue-500 outline-none transition"
+                    placeholder="Minimal 6 karakter">
             </div>
 
             <button type="submit" id="btnRegister" 
-                class="w-full bg-green-600 hover:bg-green-700 py-4 rounded-xl font-bold text-lg transition duration-300 shadow-lg shadow-green-900/20">
-                DAFTAR SEKARANG
+                class="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-2xl transition shadow-lg shadow-blue-900/20 uppercase tracking-widest">
+                BUAT AKUN SEKARANG
             </button>
         </form>
 
-        <div class="mt-8 text-center border-t border-gray-700 pt-6">
-            <p class="text-gray-400 text-sm">Sudah punya akun? 
-                <a href="/login.html" class="text-green-400 font-bold hover:underline">Login Disini</a>
+        <div class="mt-8 text-center">
+            <p class="text-gray-500 text-sm">Sudah punya akun? 
+                <a href="/login.html" class="text-blue-500 font-bold hover:underline">Login Disini</a>
             </p>
         </div>
     </div>
@@ -48,27 +53,32 @@
             btn.innerText = "MEMPROSES...";
             btn.disabled = true;
 
-            const formData = new Object();
-            new FormData(e.target).forEach((value, key) => formData[key] = value);
+            // Mengambil data dari form
+            const formData = new FormData(e.target);
+            const dataObj = Object.fromEntries(formData.entries());
 
             try {
+                // Menembak endpoint /auth/register di server.js
                 const res = await fetch('/auth/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(formData)
+                    body: JSON.stringify(dataObj)
                 });
-                const data = await res.json();
 
-                if (data.success) {
+                const result = await res.json();
+
+                if (res.ok && result.success) {
                     alert("Pendaftaran Berhasil! Silakan Login.");
                     window.location.href = '/login.html';
                 } else {
-                    alert(data.error || "Pendaftaran Gagal");
-                    btn.innerText = "DAFTAR SEKARANG";
+                    alert(result.error || "Gagal mendaftar. Gunakan username lain.");
+                    btn.innerText = "BUAT AKUN SEKARANG";
                     btn.disabled = false;
                 }
             } catch (err) {
-                alert("Kesalahan Server");
+                console.error("Register Error:", err);
+                alert("Kesalahan Server: Pastikan koneksi internet stabil.");
+                btn.innerText = "BUAT AKUN SEKARANG";
                 btn.disabled = false;
             }
         };
