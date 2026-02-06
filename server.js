@@ -14,11 +14,11 @@ app.use(session({
     saveUninitialized: true
 }));
 
-// Menggunakan Route Koreksi
+// Route khusus untuk CekTugas AI
 app.use('/ai', koreksiRoute);
 
-// Statis Folder untuk Dashboard
+// Statis Folder untuk Dashboard HTML
 app.use(express.static(path.join(__dirname, 'views')));
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server CekTugas running on port ${PORT}`));
+app.listen(PORT, () => console.log(`CekTugas AI Te Az Ha running on port ${PORT}`));
