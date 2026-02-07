@@ -67,7 +67,7 @@ app.post('/auth/login', async (req, res) => {
     }
 });
 
-// LOGIKA FORGOT PASSWORD - OPTIMASI UNTUK RAILWAY
+// LOGIKA FORGOT PASSWORD - DIUBAH KE PORT 465 (SSL) UNTUK KEAMANAN RAILWAY
 app.post('/auth/forgot-password', async (req, res) => {
     const { email } = req.body;
     const userExists = users.find(u => u.email === email);
@@ -80,12 +80,17 @@ app.post('/auth/forgot-password', async (req, res) => {
     const cleanEmail = process.env.EMAIL_USER ? process.env.EMAIL_USER.trim() : "";
     const cleanPass = process.env.EMAIL_PASS ? process.env.EMAIL_PASS.replace(/\s+/g, '') : "";
 
-    // KONFIGURASI TRANSPORTER (GMAIL SMTP)
+    // KONFIGURASI TRANSPORTER MENGGUNAKAN PORT 465 (SSL)
     const transporter = nodemailer.createTransport({
-        service: 'gmail',
+        host: 'smtp.gmail.com',
+        port: 465,
+        secure: true, // Wajib true untuk port 465
         auth: { 
             user: cleanEmail, 
             pass: cleanPass 
+        },
+        tls: {
+            rejectUnauthorized: false
         }
     });
 
@@ -114,7 +119,7 @@ app.post('/auth/forgot-password', async (req, res) => {
             console.error("❌ ERROR NODEMAILER:", err.message);
             return res.status(500).json({ 
                 success: false, 
-                message: "Gagal kirim email. Pastikan password di Railway sudah RAPAT tanpa spasi!" 
+                message: "Error Server / Koneksi Gagal!" 
             });
         }
         console.log("✅ EMAIL TERKIRIM:", info.response);
