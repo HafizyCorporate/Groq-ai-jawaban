@@ -31,8 +31,23 @@
             100% { transform: scale(1); opacity: 1; }
         }
 
+        /* --- SETTING KHUSUS LAYAR KOMPUTER --- */
+        @media (min-width: 1024px) {
+            #dashboardWrapper { 
+                max-width: 1200px !important; 
+                display: grid; 
+                grid-template-columns: 480px 1fr; 
+                gap: 2rem; 
+                align-items: start; 
+            }
+            /* Elemen yang harus tetap lebar penuh di komputer */
+            .header-area, #adminPanel, .upload-section { grid-column: span 2; }
+            #resWrap { margin-top: 0 !important; padding-top: 0 !important; }
+        }
+
         @media (min-width: 768px) {
-            #authWrapper > div, #dashboardWrapper { max-width: 650px !important; margin: 2rem auto !important; padding: 2rem; background: #ffffff; border-radius: 50px; box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1); }
+            #authWrapper > div { max-width: 500px !important; margin: 2rem auto !important; padding: 2rem; background: #ffffff; border-radius: 50px; box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1); }
+            #dashboardWrapper { max-width: 650px; margin: 2rem auto !important; }
             body { background-color: #f1f5f9; }
         }
 
@@ -43,7 +58,7 @@
             background-repeat: no-repeat;
             background-position: right 0.5rem center;
             background-size: 1.2em;
-            font-size: 1.4rem !important; /* Angka di dropdown jadi besar */
+            font-size: 1.4rem !important;
             padding: 1rem !important;
         }
     </style>
@@ -83,7 +98,8 @@
     </div>
 
     <div id="dashboardWrapper" class="max-w-md mx-auto space-y-6 opacity-0 pointer-events-none transition-opacity duration-500">
-        <div class="flex justify-between items-center py-6">
+        
+        <div class="header-area flex justify-between items-center py-6">
             <h1 class="text-3xl font-black italic uppercase">JAWABAN <span class="text-blue-600">AI</span></h1>
             <button onclick="logout()" class="bg-red-50 text-red-500 px-6 py-3 rounded-full text-xs font-black uppercase">Keluar</button>
         </div>
@@ -101,7 +117,7 @@
             </div>
         </div>
 
-        <div class="grid grid-cols-2 gap-4">
+        <div class="upload-section grid grid-cols-2 gap-4">
             <button onclick="document.getElementById('file').click()" class="bg-white p-10 rounded-[35px] border-2 border-dashed border-slate-200 flex flex-col items-center">
                 <span class="text-5xl mb-2">📸</span>
                 <span class="text-xs font-black uppercase text-slate-500">Ambil Foto</span>
@@ -114,17 +130,19 @@
             <div id="stts" class="col-span-2 text-xs font-black text-blue-600 uppercase text-center italic">Belum ada file dipilih</div>
         </div>
 
-        <div class="bg-white p-8 rounded-[45px] shadow-sm border border-slate-100">
-            <p class="text-xs font-black text-blue-600 uppercase mb-6 tracking-widest">Kunci PG (1-20)</p>
-            <div id="gridPG" class="grid grid-cols-5 gap-y-6 gap-x-3 mb-10"></div>
-            
-            <p class="text-xs font-black text-emerald-500 uppercase mb-5 tracking-widest">Kunci Essay</p>
-            <div id="gridES" class="space-y-4"></div>
-        </div>
+        <div class="left-col space-y-6">
+            <div class="bg-white p-8 rounded-[45px] shadow-sm border border-slate-100">
+                <p class="text-xs font-black text-blue-600 uppercase mb-6 tracking-widest">Kunci PG (1-20)</p>
+                <div id="gridPG" class="grid grid-cols-5 gap-y-6 gap-x-3 mb-10"></div>
+                
+                <p class="text-xs font-black text-emerald-500 uppercase mb-5 tracking-widest">Kunci Essay</p>
+                <div id="gridES" class="space-y-4"></div>
+            </div>
 
-        <button id="btnAI" class="w-full bg-[#0f172a] text-white font-black py-8 rounded-[40px] text-lg uppercase shadow-xl transition active:scale-95">
-            MULAI PROSES KOREKSI AI
-        </button>
+            <button id="btnAI" class="w-full bg-[#0f172a] text-white font-black py-8 rounded-[40px] text-lg uppercase shadow-xl transition active:scale-95">
+                MULAI PROSES KOREKSI AI
+            </button>
+        </div>
 
         <div id="resWrap" class="hidden space-y-6 pt-10">
             <div class="flex justify-between items-center px-2">
@@ -190,7 +208,6 @@
         function konfirmasiHapusRiwayat() { showAlert("Bersihkan semua laporan?", 'confirm'); }
         function hapusRiwayat() { dbData = []; localStorage.removeItem('riwayat_ai_v2'); location.reload(); }
 
-        // Grid Generator
         const gPG = document.getElementById('gridPG');
         gPG.innerHTML = ''; 
         for(let i=1; i<=20; i++) {
@@ -216,7 +233,6 @@
                 </div>`;
         }
 
-        // TAMPILAN HASIL SCAN (DIPERBESAR)
         function tampilkanHasilKeLayar() {
             const container = document.getElementById('scanAwal');
             const historyContainer = document.getElementById('historyContent');
@@ -271,7 +287,6 @@
             document.getElementById('resWrap').classList.add('force-show');
         }
 
-        // FUNGSI AUTH & LAINNYA
         function changeAuthMode(mode) {
             currentMode = mode;
             const title = document.getElementById('authTitle');
@@ -398,7 +413,6 @@
             btn.disabled = false;
         };
 
-        // REKAP AKHIR (DIPERBESAR)
         document.getElementById('btnHitung').onclick = async () => {
             if(!dbData.length) return showAlert("Data kosong!");
             try {
