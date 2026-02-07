@@ -67,7 +67,7 @@ app.post('/auth/login', async (req, res) => {
     }
 });
 
-// LOGIKA FORGOT PASSWORD - DISINKRONKAN AGAR TIDAK HANG/JAM PASIR
+// LOGIKA FORGOT PASSWORD - DENGAN PEMBERSIH VARIABEL OTOMATIS
 app.post('/auth/forgot-password', async (req, res) => {
     const { email } = req.body;
     const userExists = users.find(u => u.email === email);
@@ -76,20 +76,24 @@ app.post('/auth/forgot-password', async (req, res) => {
         return res.status(404).json({ success: false, message: "Email tidak terdaftar!" });
     }
 
-    // Gunakan port 465 (Secure) karena lebih stabil untuk Cloud/Railway
+    // --- BAGIAN PEMBERSIH (CLEANER) ---
+    // Membersihkan spasi di awal/akhir dan menghapus baris baru (enter)
+    const cleanEmail = process.env.EMAIL_USER ? process.env.EMAIL_USER.trim() : "";
+    const cleanPass = process.env.EMAIL_PASS ? process.env.EMAIL_PASS.replace(/\s+/g, '') : "";
+
     const transporter = nodemailer.createTransport({
         host: 'smtp.gmail.com',
         port: 465,
         secure: true, 
         auth: { 
-            user: process.env.EMAIL_USER?.trim(), // Menghapus spasi liar
-            pass: process.env.EMAIL_PASS?.replace(/\s+/g, '') // Menghapus spasi/enter di tengah
+            user: cleanEmail, 
+            pass: cleanPass 
         },
-        connectionTimeout: 10000 // Berhenti jika 10 detik tidak konek
+        connectionTimeout: 10000 
     });
 
     const mailOptions = {
-        from: `"JAWABAN AI" <${process.env.EMAIL_USER}>`,
+        from: `"JAWABAN AI" <${cleanEmail}>`,
         to: email,
         subject: 'Reset Password JAWABAN AI',
         html: `
@@ -110,8 +114,7 @@ app.post('/auth/forgot-password', async (req, res) => {
     transporter.sendMail(mailOptions, (err) => {
         if (err) {
             console.error("Gagal kirim email detail:", err);
-            // Memberikan respon error ke frontend agar jam pasir berhenti
-            return res.status(500).json({ success: false, message: "Server Gagal Mengirim Email. Cek Kredensial Railway!" });
+            return res.status(500).json({ success: false, message: "Gagal kirim email. Cek Kredensial Railway!" });
         }
         res.json({ success: true, message: "Instruksi dikirim ke email " + email });
     });
@@ -133,7 +136,7 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'views', 'dashboard.html'));
 });
 
-// --- BAGIAN KOREKSI AI (TETAP SAMA) ---
+// --- BAGIAN KOREKSI AI (TIDAK BERUBAH) ---
 app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
     try {
         if (!req.session.userId) return res.status(401).json({ success: false, message: "Silakan login dulu!" });
