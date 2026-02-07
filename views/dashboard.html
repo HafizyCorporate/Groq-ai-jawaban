@@ -157,14 +157,53 @@
 
         let dbData = [];
 
+        // FUNGSI UNTUK MERENDER LAPORAN KE LAYAR (BESAR & TEGAS)
+        function tampilkanHasilKeLayar() {
+            document.getElementById('scanAwal').innerHTML = dbData.map((s, index) => `
+                <div class="p-8 bg-white rounded-[40px] border-l-[16px] border-slate-900 shadow-lg space-y-6 mb-8 text-left">
+                    <div class="border-b-2 border-dashed border-slate-200 pb-4">
+                        <p class="text-[12px] font-black text-blue-600 uppercase tracking-widest">Laporan/Lembar Ke-${index + 1}</p>
+                        <p class="text-3xl font-black uppercase text-slate-900 mt-1">${s.nama}</p>
+                    </div>
+                    
+                    <div class="space-y-2">
+                        <p class="text-xl font-black text-blue-700 uppercase italic">PG Benar: ${s.pg_betul}</p>
+                        <div class="bg-blue-50 p-4 rounded-2xl">
+                            <p class="text-sm font-bold text-slate-700 leading-relaxed">
+                                <span class="text-blue-600 font-black uppercase">Nomor Betul:</span><br>
+                                ${s.pg_list_nomor || 'Tidak ada nomor yang benar'}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3">
+                        <p class="text-xl font-black text-emerald-600 uppercase italic">Essay Benar: ${s.es_betul}</p>
+                        <div class="space-y-3">
+                            ${s.es_detail.map(e => `
+                                <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                                    <p class="text-sm leading-relaxed">
+                                        <span class="font-black ${e.betul ? 'text-emerald-600' : 'text-red-500'} uppercase text-base">
+                                            No ${e.no} ${e.betul ? '✓' : '✗'}
+                                        </span> 
+                                        <br>
+                                        <span class="text-slate-600 font-semibold italic">"${e.alasan}"</span>
+                                    </p>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
         document.getElementById('btnAI').onclick = async () => {
             const btn = document.getElementById('btnAI');
             const files = document.getElementById('file').files;
             
             if(files.length === 0) return alert("Pilih foto terlebih dahulu!");
 
-            btn.innerText = "⏳ SEDANG MEMPROSES...";
             btn.disabled = true;
+            dbData = []; // Reset data lama
 
             const conf = { kunci_pg: {}, kunci_essay: {} };
             for(let i=1; i<=20; i++) { 
@@ -176,58 +215,29 @@
                 if(v) conf.kunci_essay[i] = v; 
             }
 
-            const fd = new FormData();
-            fd.append('data', JSON.stringify(conf));
-            [...files].forEach(f => fd.append('foto', f));
-
-            try {
-                const req = await fetch('/ai/proses-koreksi', { method: 'POST', body: fd });
-                const res = await req.json();
-                
-                if(res.success) {
-                    dbData = res.data;
-                    document.getElementById('resWrap').classList.remove('hidden');
-                    
-                    // Render laporan per siswa dengan teks diperbesar
-                    document.getElementById('scanAwal').innerHTML = dbData.map((s, index) => `
-                        <div class="p-8 bg-white rounded-[40px] border-l-[16px] border-slate-900 shadow-lg space-y-6 mb-8 text-left">
-                            <div class="border-b-2 border-dashed border-slate-200 pb-4">
-                                <p class="text-[12px] font-black text-blue-600 uppercase tracking-widest">Laporan Siswa Ke-${index + 1}</p>
-                                <p class="text-3xl font-black uppercase text-slate-900 mt-1">${s.nama}</p>
-                            </div>
-                            
-                            <div class="space-y-2">
-                                <p class="text-xl font-black text-blue-700 uppercase italic">PG Benar: ${s.pg_betul}</p>
-                                <div class="bg-blue-50 p-4 rounded-2xl">
-                                    <p class="text-sm font-bold text-slate-700 leading-relaxed">
-                                        <span class="text-blue-600 font-black uppercase">Nomor Betul:</span><br>
-                                        ${s.pg_list_nomor || 'Tidak ada nomor yang benar'}
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div class="space-y-3">
-                                <p class="text-xl font-black text-emerald-600 uppercase italic">Essay Benar: ${s.es_betul}</p>
-                                <div class="space-y-3">
-                                    ${s.es_detail.map(e => `
-                                        <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                                            <p class="text-sm leading-relaxed">
-                                                <span class="font-black ${e.betul ? 'text-emerald-600' : 'text-red-500'} uppercase text-base">
-                                                    No ${e.no} ${e.betul ? '✓' : '✗'}
-                                                </span> 
-                                                <br>
-                                                <span class="text-slate-600 font-semibold italic">"${e.alasan}"</span>
-                                            </p>
-                                        </div>
-                                    `).join('')}
-                                </div>
-                            </div>
-                        </div>
-                    `).join('');
-                }
-            } catch(e) { alert("Server Error!"); }
+            const batchSize = 2; // SOLUSI: Kirim 2 foto per jalan agar tidak kena limit Groq
             
-            btn.innerText = "PROSES JAWABAN AI";
+            try {
+                for (let i = 0; i < files.length; i += batchSize) {
+                    const chunk = Array.from(files).slice(i, i + batchSize);
+                    const fd = new FormData();
+                    fd.append('data', JSON.stringify(conf));
+                    chunk.forEach(f => fd.append('foto', f));
+
+                    btn.innerText = `⏳ MEMPROSES ${i + 1}-${Math.min(i + batchSize, files.length)} DARI ${files.length}...`;
+
+                    const req = await fetch('/ai/proses-koreksi', { method: 'POST', body: fd });
+                    const res = await req.json();
+                    
+                    if(res.success) {
+                        dbData = [...dbData, ...res.data];
+                        document.getElementById('resWrap').classList.remove('hidden');
+                        tampilkanHasilKeLayar(); // Update tampilan setiap batch selesai
+                    }
+                }
+            } catch(e) { alert("Terjadi kesalahan saat memproses batch!"); }
+            
+            btn.innerText = "PROSES JAWABAN AI SELESAI";
             btn.disabled = false;
         };
 
