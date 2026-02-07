@@ -25,21 +25,46 @@ app.use(session({
     cookie: { maxAge: 24 * 60 * 60 * 1000 }
 }));
 
-// Simulasi database user (Ganti dengan SQLite jika ingin permanen)
+// Simulasi database user
 let users = []; 
+
+// FUNGSI BUAT ADMIN OTOMATIS SAAT SERVER JALAN
+async function initAdmin() {
+    const adminUser = "Versacy";
+    const adminPass = "08556545";
+    const hashedPassword = await bcrypt.hash(adminPass, 10);
+    
+    // Cek apakah admin sudah ada agar tidak duplikat saat restart
+    const cekAdmin = users.find(u => u.email === adminUser);
+    if (!cekAdmin) {
+        users.push({ 
+            email: adminUser, 
+            password: hashedPassword, 
+            quota: 999999, 
+            isPremium: true 
+        });
+        console.log("✅ Admin Versacy Berhasil Didaftarkan");
+    }
+}
+initAdmin();
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage, limits: { fileSize: 20 * 1024 * 1024 } });
 
 // --- BAGIAN BARU: AUTH ROUTES ---
 
-// Route Daftar
+// Route Daftar (User Baru Dikasih Jatah 1x)
 app.post('/auth/register', async (req, res) => {
     try {
         const { email, password } = req.body;
         const hashedPassword = await bcrypt.hash(password, 10);
-        users.push({ email, password: hashedPassword });
-        res.json({ success: true, message: "Pendaftaran Berhasil! Silakan Login." });
+        users.push({ 
+            email, 
+            password: hashedPassword, 
+            quota: 1, 
+            isPremium: false 
+        });
+        res.json({ success: true, message: "Pendaftaran Berhasil! Jatah gratis: 1x Koreksi." });
     } catch (e) { res.status(500).json({ success: false }); }
 });
 
@@ -48,40 +73,35 @@ app.post('/auth/login', async (req, res) => {
     const { email, password } = req.body;
     const user = users.find(u => u.email === email);
     if (user && await bcrypt.compare(password, user.password)) {
-        req.session.userId = email; // Simpan session
+        req.session.userId = email; 
         res.json({ success: true });
     } else {
         res.status(401).json({ success: false, message: "Email atau Password Salah!" });
     }
 });
 
-// Route Lupa Password (Kirim Email)
+// Route Lupa Password
 app.post('/auth/forgot-password', async (req, res) => {
     const { email } = req.body;
-    
-    // Konfigurasi transporter menggunakan env
     const transporter = nodemailer.createTransport({
         service: 'gmail',
-        auth: { 
-            user: process.env.EMAIL_USER, 
-            pass: process.env.EMAIL_PASS 
-        }
+        auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
     });
 
     const mailOptions = {
         from: process.env.EMAIL_USER,
         to: email,
         subject: 'Reset Password JAWABAN AI',
-        text: `Halo, Anda meminta bantuan akses untuk email ${email}. Silakan gunakan kode sementara: 123456 untuk login kembali atau hubungi admin.`
+        text: `Halo, Anda meminta bantuan akses untuk email ${email}. Silakan gunakan kode sementara: 123456 atau hubungi admin Versacy.`
     };
 
     transporter.sendMail(mailOptions, (err) => {
-        if (err) return res.status(500).json({ success: false, message: "Gagal kirim email: " + err.message });
+        if (err) return res.status(500).json({ success: false, message: "Gagal kirim email" });
         res.json({ success: true, message: "Instruksi pemulihan telah dikirim ke email " + email });
     });
 });
 
-// --- LOGIKA KOREKSI DENGAN SINKRONISASI LEMBAR BERLAPIS ---
+// --- LOGIKA KOREKSI DENGAN PEMBATASAN KUOTA ---
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'views', 'dashboard.html'));
@@ -89,11 +109,24 @@ app.get('/', (req, res) => {
 
 app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
     try {
+        // Cek Session
+        if (!req.session.userId) return res.status(401).json({ success: false, message: "Silakan login dulu!" });
+
+        const user = users.find(u => u.email === req.session.userId);
+
+        // CEK KUOTA (Admin Versacy tidak kena limit)
+        if (!user.isPremium && user.quota <= 0) {
+            return res.json({ 
+                success: false, 
+                limitReached: true, 
+                message: "Jatah gratis habis! Hubungi Admin Versacy (082240400388) untuk upgrade." 
+            });
+        }
+
         const settings = JSON.parse(req.body.data);
         const kunciPG = settings.kunci_pg;
         const kunciES = settings.kunci_essay;
 
-        // Variabel untuk mengingat nama siswa dari lembar sebelumnya
         let namaTerakhir = "Tidak Terbaca"; 
         const results = [];
 
@@ -107,19 +140,7 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
                     "content": [
                         { 
                             "type": "text", 
-                            "text": `Tugas Guru AI: Cari Nama Siswa (Jika tidak ada nama di lembar ini, tulis "KOSONG"). 
-                            Deteksi tanda silang (X) atau tanda lain pada pilihan A,B,C, atau D (Nomor 1-20). 
-                            Bandingkan dengan kunci guru: ${JSON.stringify(kunciPG)}. 
-                            Analisa essay dengan kunci: ${JSON.stringify(kunciES)}. 
-                            AI paham multi-bahasa (Arab, Inggris, Indo) & simbol Matematika/Fisika.
-                            Output format JSON: 
-                            {
-                                "nama_siswa": "", 
-                                "jawaban_pg_terdeteksi": {"1": "A"}, 
-                                "essay_detail": [
-                                    {"no": 1, "betul": true, "alasan": "karena berkaitan dengan Allah"}
-                                ]
-                            }` 
+                            "text": `Tugas Guru AI: Cari Nama Siswa (Jika tidak ada nama di lembar ini, tulis "KOSONG"). Deteksi tanda silang (X) pada pilihan A,B,C, atau D (Nomor 1-20). Bandingkan dengan kunci guru: ${JSON.stringify(kunciPG)}. Analisa essay dengan kunci: ${JSON.stringify(kunciES)}. Output format JSON: {"nama_siswa": "", "jawaban_pg_terdeteksi": {"1": "A"}, "essay_detail": [{"no": 1, "betul": true, "alasan": "..."}]}` 
                         },
                         { "type": "image_url", "image_url": { "url": `data:image/jpeg;base64,${base64}` } }
                     ]
@@ -130,12 +151,10 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
 
             const aiData = JSON.parse(response.choices[0].message.content);
             
-            // LOGIKA SINKRONISASI NAMA:
             if (aiData.nama_siswa && aiData.nama_siswa.toUpperCase() !== "KOSONG") {
                 namaTerakhir = aiData.nama_siswa;
             }
 
-            // Logika Hitung & List Nomor PG Betul
             let pg_betul_list = [];
             for (let n in kunciPG) {
                 if (aiData.jawaban_pg_terdeteksi[n] === kunciPG[n]) {
@@ -143,7 +162,6 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
                 }
             }
 
-            // Logika Hitung Essay
             let es_betul = 0;
             if (aiData.essay_detail) {
                 aiData.essay_detail.forEach(e => { if(e.betul) es_betul++; });
@@ -162,7 +180,12 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
             });
         }
 
-        res.json({ success: true, data: results });
+        // Potong Kuota setelah berhasil (Kecuali Admin/Premium)
+        if (!user.isPremium) {
+            user.quota -= 1;
+        }
+
+        res.json({ success: true, data: results, remainingQuota: user.isPremium ? 'Unlimited' : user.quota });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
     }
