@@ -187,27 +187,38 @@
                 if(res.success) {
                     dbData = res.data;
                     document.getElementById('resWrap').classList.remove('hidden');
-                    // UPDATE: Jendela Review Tegas & Jelas
-                    document.getElementById('scanAwal').innerHTML = dbData.map(s => `
-                        <div class="p-6 bg-white rounded-[32px] border-l-[12px] border-slate-900 shadow-sm space-y-4">
-                            <div class="border-b border-dashed pb-2">
-                                <p class="text-[9px] font-black text-slate-400 uppercase">Nama Siswa :</p>
-                                <p class="text-lg font-black uppercase text-slate-900">${s.nama}</p>
+                    
+                    // Render laporan per siswa dengan teks diperbesar
+                    document.getElementById('scanAwal').innerHTML = dbData.map((s, index) => `
+                        <div class="p-8 bg-white rounded-[40px] border-l-[16px] border-slate-900 shadow-lg space-y-6 mb-8 text-left">
+                            <div class="border-b-2 border-dashed border-slate-200 pb-4">
+                                <p class="text-[12px] font-black text-blue-600 uppercase tracking-widest">Laporan Siswa Ke-${index + 1}</p>
+                                <p class="text-3xl font-black uppercase text-slate-900 mt-1">${s.nama}</p>
                             </div>
                             
-                            <div>
-                                <p class="text-[10px] font-black text-blue-600 uppercase italic">PG Betul ${s.pg_betul}</p>
-                                <p class="text-[10px] font-bold text-slate-600">No ${s.pg_list_nomor || '-'}</p>
+                            <div class="space-y-2">
+                                <p class="text-xl font-black text-blue-700 uppercase italic">PG Benar: ${s.pg_betul}</p>
+                                <div class="bg-blue-50 p-4 rounded-2xl">
+                                    <p class="text-sm font-bold text-slate-700 leading-relaxed">
+                                        <span class="text-blue-600 font-black uppercase">Nomor Betul:</span><br>
+                                        ${s.pg_list_nomor || 'Tidak ada nomor yang benar'}
+                                    </p>
+                                </div>
                             </div>
 
-                            <div class="space-y-1">
-                                <p class="text-[10px] font-black text-emerald-600 uppercase italic">Essay Betul ${s.es_betul}</p>
-                                <div class="space-y-1 text-[10px]">
+                            <div class="space-y-3">
+                                <p class="text-xl font-black text-emerald-600 uppercase italic">Essay Benar: ${s.es_betul}</p>
+                                <div class="space-y-3">
                                     ${s.es_detail.map(e => `
-                                        <p class="leading-tight">
-                                            <span class="font-black ${e.betul ? 'text-emerald-600' : 'text-red-500'}">No ${e.no}.</span> 
-                                            <span class="text-slate-500 italic">${e.alasan}</span>
-                                        </p>
+                                        <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                                            <p class="text-sm leading-relaxed">
+                                                <span class="font-black ${e.betul ? 'text-emerald-600' : 'text-red-500'} uppercase text-base">
+                                                    No ${e.no} ${e.betul ? '✓' : '✗'}
+                                                </span> 
+                                                <br>
+                                                <span class="text-slate-600 font-semibold italic">"${e.alasan}"</span>
+                                            </p>
+                                        </div>
                                     `).join('')}
                                 </div>
                             </div>
@@ -234,20 +245,20 @@
             const box = document.getElementById('laporanFinal');
             box.innerHTML = json.hasil.map(s => `
                 <div class="p-8 bg-white rounded-[40px] border-l-[12px] border-blue-600 shadow-xl">
-                    <p class="font-black text-xs uppercase mb-6 text-slate-800 italic">"Nama siswa : ${s.nama}"</p>
+                    <p class="font-black text-xl uppercase mb-6 text-slate-800 italic">"Nama siswa : ${s.nama}"</p>
                     <div class="space-y-2 mb-6 border-b border-dashed border-slate-200 pb-4">
-                        <p class="text-[11px] font-bold text-slate-400">JUMLAH SOAL PG: ${s.pg_total}</p>
-                        <p class="text-[11px] font-black text-emerald-600">Jawaban Pg betul: ${s.pg_betul}</p>
-                        <p class="text-[11px] font-black text-red-500">PG salah: ${s.pg_salah}</p>
+                        <p class="text-[14px] font-bold text-slate-400 uppercase">JUMLAH SOAL PG: ${s.pg_total}</p>
+                        <p class="text-[16px] font-black text-emerald-600 uppercase">Jawaban Pg betul: ${s.pg_betul}</p>
+                        <p class="text-[16px] font-black text-red-500 uppercase">PG salah: ${s.pg_salah}</p>
                     </div>
-                    <div class="space-y-2 mb-8 text-[11px] font-bold uppercase">
+                    <div class="space-y-2 mb-8 text-[14px] font-bold uppercase">
                         <p class="text-slate-400">SOAL ESSAY: ${s.es_total}</p>
-                        <p class="text-emerald-600 font-black">Essay betul: ${s.es_betul}</p>
-                        <p class="text-red-500 font-black">Salah: ${s.es_salah}</p>
+                        <p class="text-emerald-600 font-black text-[16px]">Essay betul: ${s.es_betul}</p>
+                        <p class="text-red-500 font-black text-[16px]">Salah: ${s.es_salah}</p>
                     </div>
                     <div class="flex justify-between items-end pt-6 border-t-2 border-slate-900">
-                        <span class="text-[10px] font-black text-blue-600 uppercase">Nilai Akhir :</span>
-                        <span class="text-6xl font-black text-slate-900 tracking-tighter">${s.nilai_akhir}</span>
+                        <span class="text-[14px] font-black text-blue-600 uppercase">Nilai Akhir :</span>
+                        <span class="text-7xl font-black text-slate-900 tracking-tighter">${s.nilai_akhir}</span>
                     </div>
                 </div>
             `).join('');
