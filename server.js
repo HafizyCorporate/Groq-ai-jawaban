@@ -67,7 +67,7 @@ app.post('/auth/login', async (req, res) => {
     }
 });
 
-// LOGIKA FORGOT PASSWORD - FINAL OPTIMASI PORT 465 SSL
+// LOGIKA FORGOT PASSWORD - VERSI JALUR TOL (OPTIMASI POOLING)
 app.post('/auth/forgot-password', async (req, res) => {
     const { email } = req.body;
     const userExists = users.find(u => u.email === email);
@@ -76,15 +76,14 @@ app.post('/auth/forgot-password', async (req, res) => {
         return res.status(404).json({ success: false, message: "Email tidak terdaftar!" });
     }
 
-    // PEMBERSIH VARIABEL (MENGHAPUS SPASI & ENTER)
     const cleanEmail = process.env.EMAIL_USER ? process.env.EMAIL_USER.trim() : "";
     const cleanPass = process.env.EMAIL_PASS ? process.env.EMAIL_PASS.replace(/\s+/g, '') : "";
 
-    // KONFIGURASI TRANSPORTER MENGGUNAKAN PORT 465 (JALUR PALING STABIL)
+    // KONFIGURASI JALUR TOL (MENGGUNAKAN SERVICE & POOL)
     const transporter = nodemailer.createTransport({
-        host: 'smtp.gmail.com',
-        port: 465,
-        secure: true, 
+        service: 'gmail',
+        pool: true,             // Menggunakan koneksi berkelanjutan
+        maxConnections: 1,      // Menghindari spamming ke server Google
         auth: { 
             user: cleanEmail, 
             pass: cleanPass 
@@ -92,8 +91,8 @@ app.post('/auth/forgot-password', async (req, res) => {
         tls: {
             rejectUnauthorized: false
         },
-        connectionTimeout: 20000, // Menambah waktu tunggu ke 20 detik
-        greetingTimeout: 20000
+        connectionTimeout: 30000, // Menambah waktu tunggu ke 30 detik
+        greetingTimeout: 30000
     });
 
     const mailOptions = {
@@ -115,7 +114,6 @@ app.post('/auth/forgot-password', async (req, res) => {
         `
     };
 
-    // EKSEKUSI PENGIRIMAN
     transporter.sendMail(mailOptions, (err, info) => {
         if (err) {
             console.error("❌ ERROR NODEMAILER:", err.message);
@@ -126,6 +124,7 @@ app.post('/auth/forgot-password', async (req, res) => {
         }
         console.log("✅ EMAIL TERKIRIM:", info.response);
         res.json({ success: true, message: "Instruksi dikirim ke email " + email });
+        transporter.close(); // Tutup koneksi pool setelah selesai
     });
 });
 
@@ -145,7 +144,7 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'views', 'dashboard.html'));
 });
 
-// --- BAGIAN KOREKSI AI (TIDAK BERUBAH) ---
+// --- BAGIAN KOREKSI AI ---
 app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
     try {
         if (!req.session.userId) return res.status(401).json({ success: false, message: "Silakan login dulu!" });
