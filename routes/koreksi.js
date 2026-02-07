@@ -8,28 +8,28 @@ router.post('/proses-koreksi', async (req, res) => {
         const settings = JSON.parse(req.body.data);
         const kunciPG = Object.fromEntries(Object.entries(settings.kunci_pg).filter(([_, v]) => v !== ""));
         
-        // Cek jika tidak ada file yang diunggah
         if (!req.files || req.files.length === 0) {
-            return res.status(400).json({ success: false, message: "Tidak ada foto" });
+            return res.status(400).json({ success: false, message: "Foto belum dipilih!" });
         }
 
         const results = await Promise.all(req.files.map(async (file) => {
             const base64 = file.buffer.toString("base64");
 
             const response = await groq.chat.completions.create({
-                "model": "meta-llama/llama-3.2-11b-vision-preview",
+                // MENGGUNAKAN MODEL LLAMA 4 MAVERICK SESUAI PERMINTAAN
+                "model": "meta-llama/llama-4-maverick-17b-128e-instruct",
                 "messages": [{
                     "role": "user",
                     "content": [
                         {
                             "type": "text",
-                            "text": `Tugas: Koreksi lembar soal ini.
-                            1. Identifikasi Nama Siswa di bagian atas.
-                            2. Cari tanda silang (X) berwarna MERAH. Jika ada coretan merah pada opsi (A, B, atau C), itulah jawaban siswa.
-                            3. Bandingkan dengan Kunci Jawaban ini: ${JSON.stringify(kunciPG)}.
-                            4. Hitung berapa yang cocok (betul).
+                            "text": `TUGAS KOREKSI: 
+                            1. Cari Nama Siswa di bagian atas kertas.
+                            2. Deteksi tanda silang (X) atau coretan berwarna MERAH pada pilihan jawaban.
+                            3. Bandingkan dengan Kunci PG: ${JSON.stringify(kunciPG)}.
+                            4. Bandingkan dengan Kunci Essay: ${JSON.stringify(settings.kunci_essay)}.
                             
-                            Output harus JSON murni:
+                            WAJIB BERIKAN OUTPUT JSON:
                             {
                                 "nama": "Nama Siswa",
                                 "pg_betul": 0,
@@ -50,8 +50,8 @@ router.post('/proses-koreksi', async (req, res) => {
 
         res.json({ success: true, data: results });
     } catch (err) {
-        console.error("Error AI:", err);
-        res.status(500).json({ success: false, message: err.message });
+        console.error("Gagal pake Llama 4:", err);
+        res.status(500).json({ success: false, message: "Model Llama 4 gagal merespon." });
     }
 });
 
@@ -73,6 +73,7 @@ router.post('/hitung-rumus', async (req, res) => {
 
             const nPG = hitung(rumus_pg, s.pg_betul, s.pg_total);
             const nES = hitung(rumus_es, s.es_betul, s.es_total);
+            // Pembulatan 1 angka di belakang koma
             return { ...s, nilai_akhir: Math.round((nPG + nES) * 10) / 10 };
         });
         res.json({ success: true, hasil: hasilFinal });
