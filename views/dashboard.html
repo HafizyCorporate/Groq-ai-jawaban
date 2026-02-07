@@ -116,7 +116,6 @@
             const password = document.getElementById('authPass').value;
             
             if(!email) return alert("Email wajib diisi!");
-            // Validasi password hanya jika bukan mode 'forgot'
             if(currentMode !== 'forgot' && !password) return alert("Password wajib diisi!");
 
             let endpoint = `/auth/${currentMode === 'reg' ? 'register' : (currentMode === 'forgot' ? 'forgot-password' : 'login')}`;
@@ -217,7 +216,7 @@
                 if(v) conf.kunci_essay[i] = v; 
             }
 
-            const batchSize = 2; // Mengirim per 2 foto agar tidak overload
+            const batchSize = 2; 
             
             try {
                 for (let i = 0; i < files.length; i += batchSize) {
@@ -231,13 +230,23 @@
                     const req = await fetch('/ai/proses-koreksi', { method: 'POST', body: fd });
                     const res = await req.json();
                     
+                    // CEK LIMIT KUOTA DARI SERVER
+                    if(res.limitReached) {
+                        const pesanWA = encodeURIComponent("Halo Admin Versacy, saya ingin beli paket koreksi AI. Mohon bantuannya.");
+                        alert("⚠️ LIMIT TERCAPAI!\n\nJatah gratis Anda habis. Silahkan hubungi Admin Versacy.");
+                        window.open(`https://wa.me/6282240400388?text=${pesanWA}`, "_blank");
+                        btn.innerText = "HUBUNGI ADMIN (WA)";
+                        btn.disabled = false;
+                        return; // Berhenti proses
+                    }
+
                     if(res.success) {
                         dbData = [...dbData, ...res.data];
                         document.getElementById('resWrap').classList.remove('hidden');
                         tampilkanHasilKeLayar(); 
                     }
                 }
-            } catch(e) { alert("Gagal memproses beberapa file!"); }
+            } catch(e) { alert("Terjadi kesalahan sistem!"); }
             
             btn.innerText = "PROSES JAWABAN AI SELESAI";
             btn.disabled = false;
