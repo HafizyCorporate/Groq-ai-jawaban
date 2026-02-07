@@ -285,20 +285,29 @@
             const dataLama = [...dbData].reverse().slice(5);
 
             const card = (s, i) => `
-                <div class="bg-white p-4 rounded-[25px] border border-slate-100 shadow-sm flex items-center justify-between">
-                    <div class="flex flex-col overflow-hidden">
-                        <span class="text-[9px] font-black text-blue-500 uppercase italic">Siswa #${dbData.length - i}</span>
-                        <span class="text-sm font-black text-slate-800 truncate uppercase">${s.nama || 'Tanpa Nama'}</span>
+                <div class="bg-white p-5 rounded-[25px] border border-slate-100 shadow-sm space-y-3">
+                    <div class="flex justify-between items-center">
+                        <div class="flex flex-col overflow-hidden">
+                            <span class="text-[9px] font-black text-blue-500 uppercase italic">Siswa #${dbData.length - i}</span>
+                            <span class="text-sm font-black text-slate-800 truncate uppercase">${s.nama || 'TIDAK TERBACA'}</span>
+                        </div>
+                        <div class="flex gap-2">
+                            <div class="bg-blue-50 px-3 py-1 rounded-xl text-center border border-blue-100">
+                                <span class="block text-[7px] font-black text-blue-400">PG</span>
+                                <span class="text-sm font-black text-blue-600">${s.pg_betul || 0}</span>
+                            </div>
+                            <div class="bg-emerald-50 px-3 py-1 rounded-xl text-center border border-emerald-100">
+                                <span class="block text-[7px] font-black text-emerald-400">ES</span>
+                                <span class="text-sm font-black text-emerald-600">${s.es_betul || 0}</span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="flex gap-2">
-                        <div class="bg-blue-50 px-3 py-1 rounded-xl text-center">
-                            <span class="block text-[7px] font-black text-blue-400">PG</span>
-                            <span class="text-sm font-black text-blue-600">${s.pg_betul || 0}</span>
-                        </div>
-                        <div class="bg-emerald-50 px-3 py-1 rounded-xl text-center">
-                            <span class="block text-[7px] font-black text-emerald-400">ES</span>
-                            <span class="text-sm font-black text-emerald-600">${s.es_betul || 0}</span>
-                        </div>
+                    
+                    <div class="pt-2 border-t border-slate-50">
+                        <p class="text-[8px] font-black text-slate-400 uppercase mb-1 tracking-widest italic">Nomor Betul:</p>
+                        <p class="text-[10px] font-bold text-slate-600 leading-tight">
+                            ${s.list_pg_betul && s.list_pg_betul.length > 0 ? s.list_pg_betul.join(', ') : 'Tidak ada'}
+                        </p>
                     </div>
                 </div>`;
 
@@ -377,9 +386,17 @@
                 let reportHtml = `<p class="text-center font-black text-blue-600 uppercase text-[10px] tracking-widest mt-10 italic">REKAP NILAI AKHIR</p>`;
                 json.hasil.forEach(s => {
                     reportHtml += `
-                    <div class="bg-white p-6 rounded-3xl border-l-8 border-blue-600 shadow-sm flex justify-between items-center mb-3">
-                        <span class="text-sm font-black text-slate-700 uppercase">${s.nama}</span>
-                        <span class="text-4xl font-black text-slate-900">${s.nilai_akhir}</span>
+                    <div class="bg-white p-6 rounded-3xl border-l-8 border-blue-600 shadow-sm space-y-3 mb-3">
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm font-black text-slate-700 uppercase">${s.nama}</span>
+                            <span class="text-4xl font-black text-slate-900">${s.nilai_akhir}</span>
+                        </div>
+                        <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                            <p class="text-[8px] font-black text-blue-500 uppercase tracking-widest mb-1 italic">Rincian Nomor Betul:</p>
+                            <p class="text-[11px] font-bold text-slate-600 leading-relaxed">
+                                ${s.list_pg_betul && s.list_pg_betul.length > 0 ? s.list_pg_betul.join(', ') : 'Tidak ada'}
+                            </p>
+                        </div>
                     </div>`;
                 });
                 box.innerHTML = reportHtml;
