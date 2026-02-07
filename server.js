@@ -19,7 +19,7 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'views', 'dashboard.html'));
 });
 
-// LOGIKA KOREKSI DENGAN MODEL LLAMA 4 SCOUT
+// LOGIKA KOREKSI HYBRID
 app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
     try {
         const settings = JSON.parse(req.body.data);
@@ -36,7 +36,7 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
                     "content": [
                         { 
                             "type": "text", 
-                            "text": `Cari Nama Siswa. Deteksi tanda silang (X) MERAH pada pilihan A,B,C,D (1-20). Bandingkan dengan kunci: ${JSON.stringify(kunciPG)}. Analisa essay dengan kunci: ${JSON.stringify(kunciES)}. Output JSON: {"nama_siswa": "", "jawaban_pg": {"1": "A"}, "skor_essay": {"1": true}}` 
+                            "text": `Tugas Guru AI: Cari Nama Siswa. Deteksi tanda silang (X) MERAH pada pilihan A,B,C, atau D (Nomor 1-20). Bandingkan dengan kunci guru ini: ${JSON.stringify(kunciPG)}. Analisa essay dengan kunci: ${JSON.stringify(kunciES)}. Output format JSON: {"nama_siswa": "", "jawaban_pg_terdeteksi": {"1": "A"}, "skor_essay": {"1": true}}` 
                         },
                         { "type": "image_url", "image_url": { "url": `data:image/jpeg;base64,${base64}` } }
                     ]
@@ -47,11 +47,11 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
 
             const aiData = JSON.parse(response.choices[0].message.content);
             
-            // Hitung manual di server (Sistem Hybrid)
+            // Hitung manual di server
             let pg_betul = 0;
             let pg_total = Object.keys(kunciPG).length;
             for (let n in kunciPG) {
-                if (aiData.jawaban_pg[n] === kunciPG[n]) pg_betul++;
+                if (aiData.jawaban_pg_terdeteksi[n] === kunciPG[n]) pg_betul++;
             }
 
             let es_betul = 0;
@@ -61,7 +61,7 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
             }
 
             return {
-                nama: aiData.nama_siswa || "Tanpa Nama",
+                nama: aiData.nama_siswa || "Tidak Terbaca",
                 pg_betul, pg_total, pg_salah: pg_total - pg_betul,
                 es_betul, es_total, es_salah: es_total - es_betul
             };
@@ -88,4 +88,4 @@ app.post('/ai/hitung-rumus', (req, res) => {
     res.json({ success: true, hasil });
 });
 
-app.listen(port, () => console.log(`Server running on port ${port}`));
+app.listen(port, () => console.log(`Server Ready on Port ${port}`));
