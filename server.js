@@ -76,7 +76,7 @@ app.post('/auth/forgot-password', async (req, res) => {
     });
 });
 
-// --- KODE ASLI KAMU (TIDAK DIRUBAH) ---
+// --- KODE ASLI KAMU (DENGAN TAMBAHAN LOGIKA LAPORAN TEGAS) ---
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'views', 'dashboard.html'));
@@ -99,7 +99,16 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
                     "content": [
                         { 
                             "type": "text", 
-                            "text": `Tugas Guru AI: Cari Nama Siswa. Deteksi tanda silang (X) MERAH pada pilihan A,B,C, atau D (Nomor 1-20). Bandingkan dengan kunci guru ini: ${JSON.stringify(kunciPG)}. Analisa essay dengan kunci: ${JSON.stringify(kunciES)}. Output format JSON: {"nama_siswa": "", "jawaban_pg_terdeteksi": {"1": "A"}, "skor_essay": {"1": true}}` 
+                            "text": `Tugas Guru AI: Cari Nama Siswa. Deteksi tanda silang (X) MERAH pada pilihan A,B,C, atau D (Nomor 1-20). Bandingkan dengan kunci guru: ${JSON.stringify(kunciPG)}. Analisa essay dengan kunci: ${JSON.stringify(kunciES)}. 
+                            PENTING: Berikan alasan kenapa soal essay tersebut betul/salah.
+                            Output format JSON: 
+                            {
+                                "nama_siswa": "", 
+                                "jawaban_pg_terdeteksi": {"1": "A"}, 
+                                "essay_detail": [
+                                    {"no": 1, "betul": true, "alasan": "karena berkaitan dengan Allah"}
+                                ]
+                            }` 
                         },
                         { "type": "image_url", "image_url": { "url": `data:image/jpeg;base64,${base64}` } }
                     ]
@@ -110,23 +119,28 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
 
             const aiData = JSON.parse(response.choices[0].message.content);
             
-            // Hitung manual di server
-            let pg_betul = 0;
-            let pg_total = Object.keys(kunciPG).length;
+            // Logika Hitung & List Nomor PG Betul
+            let pg_betul_list = [];
             for (let n in kunciPG) {
-                if (aiData.jawaban_pg_terdeteksi[n] === kunciPG[n]) pg_betul++;
+                if (aiData.jawaban_pg_terdeteksi[n] === kunciPG[n]) {
+                    pg_betul_list.push(n);
+                }
             }
 
+            // Logika Hitung Essay & Alasan
             let es_betul = 0;
-            let es_total = Object.keys(kunciES).length;
-            for (let n in aiData.skor_essay) {
-                if (aiData.skor_essay[n] === true) es_betul++;
-            }
+            aiData.essay_detail.forEach(e => { if(e.betul) es_betul++; });
 
             return {
                 nama: aiData.nama_siswa || "Tidak Terbaca",
-                pg_betul, pg_total, pg_salah: pg_total - pg_betul,
-                es_betul, es_total, es_salah: es_total - es_betul
+                pg_betul: pg_betul_list.length,
+                pg_total: Object.keys(kunciPG).length,
+                pg_salah: Object.keys(kunciPG).length - pg_betul_list.length,
+                pg_list_nomor: pg_betul_list.join(", "), // Daftar nomor PG yang betul
+                es_betul,
+                es_total: Object.keys(kunciES).length,
+                es_salah: Object.keys(kunciES).length - es_betul,
+                es_detail: aiData.essay_detail // Detail nomor + alasan
             };
         }));
         res.json({ success: true, data: results });
