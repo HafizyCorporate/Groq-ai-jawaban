@@ -112,7 +112,7 @@
 
         <div class="bg-white p-8 rounded-[45px] shadow-sm border border-slate-100">
             <p class="text-[11px] font-black text-blue-600 uppercase mb-5 tracking-widest">Kunci PG (1-20)</p>
-            <div id="gridPG" class="grid grid-cols-5 gap-2 mb-8"></div>
+            <div id="gridPG" class="grid grid-cols-5 gap-y-4 gap-x-2 mb-8"></div>
             
             <p class="text-[11px] font-black text-emerald-500 uppercase mb-4 tracking-widest">Kunci Essay</p>
             <div id="gridES" class="space-y-2"></div>
@@ -186,14 +186,30 @@
         function konfirmasiHapusRiwayat() { showAlert("Bersihkan semua laporan?", 'confirm'); }
         function hapusRiwayat() { dbData = []; localStorage.removeItem('riwayat_ai_v2'); location.reload(); }
 
-        // Grid Generator
+        // Grid Generator (BAGIAN YANG DIPERBAIKI)
         const gPG = document.getElementById('gridPG');
+        gPG.innerHTML = ''; 
         for(let i=1; i<=20; i++) {
-            gPG.innerHTML += `<select id="p${i}" class="key-dropdown w-full p-3 bg-slate-50 rounded-xl text-lg font-black border border-slate-100 outline-none text-center"><option value="">${i}</option><option>A</option><option>B</option><option>C</option><option>D</option></select>`;
+            gPG.innerHTML += `
+                <div class="flex flex-col items-center gap-1">
+                    <span class="text-[10px] font-black text-slate-400 uppercase italic leading-none">${i}</span>
+                    <select id="p${i}" class="key-dropdown w-full p-3 bg-slate-50 rounded-xl text-lg font-black border border-slate-100 outline-none text-center">
+                        <option value="">-</option>
+                        <option>A</option>
+                        <option>B</option>
+                        <option>C</option>
+                        <option>D</option>
+                    </select>
+                </div>`;
         }
         const gES = document.getElementById('gridES');
+        gES.innerHTML = '';
         for(let i=1; i<=5; i++) {
-            gES.innerHTML += `<input id="e${i}" placeholder="Kunci Essay No ${i}" class="w-full p-4 bg-slate-50 rounded-2xl text-sm font-bold border border-slate-100 outline-none">`;
+            gES.innerHTML += `
+                <div class="relative">
+                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-300 italic">No ${i}</span>
+                    <input id="e${i}" placeholder="Kunci Jawaban Essay..." class="w-full pl-14 p-4 bg-slate-50 rounded-2xl text-sm font-bold border border-slate-100 outline-none">
+                </div>`;
         }
 
         function changeAuthMode(mode) {
@@ -344,7 +360,8 @@
             const conf = { kunci_pg: {}, kunci_essay: {} };
             for(let i=1; i<=20; i++) { 
                 const v = document.getElementById(`p${i}`).value; 
-                if(v && isNaN(v)) conf.kunci_pg[i] = v; 
+                // Logika: Jika dropdown tidak kosong, masukkan ke kunci
+                if(v !== "") conf.kunci_pg[i] = v; 
             }
             for(let i=1; i<=5; i++) { 
                 const v = document.getElementById(`e${i}`).value; 
