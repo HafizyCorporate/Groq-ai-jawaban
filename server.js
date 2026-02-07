@@ -39,7 +39,7 @@ app.post('/auth/register', async (req, res) => {
         const { email, password } = req.body;
         const hashedPassword = await bcrypt.hash(password, 10);
         users.push({ email, password: hashedPassword });
-        res.json({ success: true, message: "Pendaftaran Berhasil!" });
+        res.json({ success: true, message: "Pendaftaran Berhasil! Silakan Login." });
     } catch (e) { res.status(500).json({ success: false }); }
 });
 
@@ -58,21 +58,26 @@ app.post('/auth/login', async (req, res) => {
 // Route Lupa Password (Kirim Email)
 app.post('/auth/forgot-password', async (req, res) => {
     const { email } = req.body;
+    
+    // Konfigurasi transporter menggunakan env
     const transporter = nodemailer.createTransport({
         service: 'gmail',
-        auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
+        auth: { 
+            user: process.env.EMAIL_USER, 
+            pass: process.env.EMAIL_PASS 
+        }
     });
 
     const mailOptions = {
         from: process.env.EMAIL_USER,
         to: email,
         subject: 'Reset Password JAWABAN AI',
-        text: 'Anda meminta reset password. Silakan gunakan kode sementara: 123456'
+        text: `Halo, Anda meminta bantuan akses untuk email ${email}. Silakan gunakan kode sementara: 123456 untuk login kembali atau hubungi admin.`
     };
 
     transporter.sendMail(mailOptions, (err) => {
-        if (err) return res.status(500).json({ success: false, message: "Gagal kirim email" });
-        res.json({ success: true, message: "Cek email anda!" });
+        if (err) return res.status(500).json({ success: false, message: "Gagal kirim email: " + err.message });
+        res.json({ success: true, message: "Instruksi pemulihan telah dikirim ke email " + email });
     });
 });
 
@@ -92,8 +97,6 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
         let namaTerakhir = "Tidak Terbaca"; 
         const results = [];
 
-        // Menggunakan loop for...of agar proses foto berurutan (sequential)
-        // Ini penting supaya logika sinkronisasi nama tidak tertukar
         for (const file of req.files) {
             const base64 = file.buffer.toString("base64");
             
@@ -105,10 +108,10 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
                         { 
                             "type": "text", 
                             "text": `Tugas Guru AI: Cari Nama Siswa (Jika tidak ada nama di lembar ini, tulis "KOSONG"). 
-                            Deteksi tanda silang (X) MERAH pada pilihan A,B,C, atau D (Nomor 1-20). 
+                            Deteksi tanda silang (X) atau tanda lain pada pilihan A,B,C, atau D (Nomor 1-20). 
                             Bandingkan dengan kunci guru: ${JSON.stringify(kunciPG)}. 
                             Analisa essay dengan kunci: ${JSON.stringify(kunciES)}. 
-                            PENTING: Berikan alasan kenapa soal essay tersebut betul/salah.
+                            AI paham multi-bahasa (Arab, Inggris, Indo) & simbol Matematika/Fisika.
                             Output format JSON: 
                             {
                                 "nama_siswa": "", 
@@ -128,7 +131,6 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
             const aiData = JSON.parse(response.choices[0].message.content);
             
             // LOGIKA SINKRONISASI NAMA:
-            // Jika AI menemukan nama baru, simpan. Jika AI lapor "KOSONG", gunakan nama sebelumnya.
             if (aiData.nama_siswa && aiData.nama_siswa.toUpperCase() !== "KOSONG") {
                 namaTerakhir = aiData.nama_siswa;
             }
@@ -141,20 +143,22 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
                 }
             }
 
-            // Logika Hitung Essay & Alasan
+            // Logika Hitung Essay
             let es_betul = 0;
-            aiData.essay_detail.forEach(e => { if(e.betul) es_betul++; });
+            if (aiData.essay_detail) {
+                aiData.essay_detail.forEach(e => { if(e.betul) es_betul++; });
+            }
 
             results.push({
-                nama: namaTerakhir, // Menggunakan nama yang sudah disinkronkan
+                nama: namaTerakhir,
                 pg_betul: pg_betul_list.length,
                 pg_total: Object.keys(kunciPG).length,
                 pg_salah: Object.keys(kunciPG).length - pg_betul_list.length,
-                pg_list_nomor: pg_betul_list.join(", "), 
+                pg_list_nomor: pg_betul_list.length > 0 ? pg_betul_list.join(", ") : "Tidak ada yang betul", 
                 es_betul,
                 es_total: Object.keys(kunciES).length,
                 es_salah: Object.keys(kunciES).length - es_betul,
-                es_detail: aiData.essay_detail
+                es_detail: aiData.essay_detail || []
             });
         }
 
@@ -169,6 +173,7 @@ app.post('/ai/hitung-rumus', (req, res) => {
     const hasil = data.map(s => {
         const hitung = (rumus, betul, total) => {
             try {
+                if(!rumus) return 0;
                 let f = rumus.toLowerCase().replace(/betul/g, betul).replace(/total/g, total).replace(/x/g, '*');
                 return eval(f.replace(/[^0-9+\-*/().]/g, '')) || 0;
             } catch (e) { return 0; }
