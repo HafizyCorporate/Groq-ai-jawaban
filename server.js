@@ -34,7 +34,6 @@ async function initAdmin() {
     const adminPass = "08556545";
     const hashedPassword = await bcrypt.hash(adminPass, 10);
     
-    // Cek apakah admin sudah ada agar tidak duplikat saat restart
     const cekAdmin = users.find(u => u.email === adminUser);
     if (!cekAdmin) {
         users.push({ 
@@ -53,7 +52,6 @@ const upload = multer({ storage: storage, limits: { fileSize: 20 * 1024 * 1024 }
 
 // --- BAGIAN BARU: AUTH ROUTES ---
 
-// Route Daftar (User Baru Dikasih Jatah 1x)
 app.post('/auth/register', async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -68,7 +66,6 @@ app.post('/auth/register', async (req, res) => {
     } catch (e) { res.status(500).json({ success: false }); }
 });
 
-// Route Login
 app.post('/auth/login', async (req, res) => {
     const { email, password } = req.body;
     const user = users.find(u => u.email === email);
@@ -80,7 +77,6 @@ app.post('/auth/login', async (req, res) => {
     }
 });
 
-// Route Lupa Password
 app.post('/auth/forgot-password', async (req, res) => {
     const { email } = req.body;
     const transporter = nodemailer.createTransport({
@@ -101,7 +97,28 @@ app.post('/auth/forgot-password', async (req, res) => {
     });
 });
 
-// --- LOGIKA KOREKSI DENGAN PEMBATASAN KUOTA ---
+// --- ROUTE KHUSUS ADMIN TAMBAH TOKEN ---
+
+app.post('/admin/tambah-token', (req, res) => {
+    if (req.session.userId !== "Versacy") {
+        return res.status(403).json({ success: false, message: "Akses Ditolak!" });
+    }
+
+    const { emailTarget, jumlahToken } = req.body;
+    const user = users.find(u => u.email === emailTarget);
+
+    if (user) {
+        user.quota += parseInt(jumlahToken);
+        res.json({ 
+            success: true, 
+            message: `Berhasil! ${jumlahToken} token ditambahkan ke ${emailTarget}. Total sekarang: ${user.quota}` 
+        });
+    } else {
+        res.status(404).json({ success: false, message: "User tidak ditemukan!" });
+    }
+});
+
+// --- LOGIKA KOREKSI DENGAN PEMBATASAN TOKEN ---
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'views', 'dashboard.html'));
@@ -109,17 +126,16 @@ app.get('/', (req, res) => {
 
 app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
     try {
-        // Cek Session
         if (!req.session.userId) return res.status(401).json({ success: false, message: "Silakan login dulu!" });
 
         const user = users.find(u => u.email === req.session.userId);
 
-        // CEK KUOTA (Admin Versacy tidak kena limit)
-        if (!user.isPremium && user.quota <= 0) {
+        // CEK TOKEN (1 Foto = 1 Token)
+        if (!user.isPremium && user.quota < req.files.length) {
             return res.json({ 
                 success: false, 
                 limitReached: true, 
-                message: "Jatah gratis habis! Hubungi Admin Versacy (082240400388) untuk upgrade." 
+                message: "MAAF TOKEN ANDA HABIS\nsilahkan\nHubungi Admin\nWhatsapp 082240400388" 
             });
         }
 
@@ -180,9 +196,9 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
             });
         }
 
-        // Potong Kuota setelah berhasil (Kecuali Admin/Premium)
+        // Potong Token (1 foto = 1 token)
         if (!user.isPremium) {
-            user.quota -= 1;
+            user.quota -= req.files.length;
         }
 
         res.json({ success: true, data: results, remainingQuota: user.isPremium ? 'Unlimited' : user.quota });
