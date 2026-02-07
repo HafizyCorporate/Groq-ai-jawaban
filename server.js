@@ -67,7 +67,7 @@ app.post('/auth/login', async (req, res) => {
     }
 });
 
-// LOGIKA FORGOT PASSWORD - DENGAN PEMBERSIH VARIABEL OTOMATIS
+// LOGIKA FORGOT PASSWORD - MENGGUNAKAN PORT 587 UNTUK MENGATASI TIMEOUT
 app.post('/auth/forgot-password', async (req, res) => {
     const { email } = req.body;
     const userExists = users.find(u => u.email === email);
@@ -77,19 +77,21 @@ app.post('/auth/forgot-password', async (req, res) => {
     }
 
     // --- BAGIAN PEMBERSIH (CLEANER) ---
-    // Membersihkan spasi di awal/akhir dan menghapus baris baru (enter)
     const cleanEmail = process.env.EMAIL_USER ? process.env.EMAIL_USER.trim() : "";
     const cleanPass = process.env.EMAIL_PASS ? process.env.EMAIL_PASS.replace(/\s+/g, '') : "";
 
     const transporter = nodemailer.createTransport({
         host: 'smtp.gmail.com',
-        port: 465,
-        secure: true, 
+        port: 587, // Ganti ke 587
+        secure: false, // Wajib false untuk port 587
         auth: { 
             user: cleanEmail, 
             pass: cleanPass 
         },
-        connectionTimeout: 10000 
+        tls: {
+            rejectUnauthorized: false // Membantu koneksi di lingkungan cloud seperti Railway
+        },
+        connectionTimeout: 15000 // Menambah waktu tunggu menjadi 15 detik
     });
 
     const mailOptions = {
