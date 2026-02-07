@@ -7,7 +7,10 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus_Jakarta_Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        /* CSS Jalur Paksa untuk memastikan elemen terlihat */
+        /* --- PENYESUAIAN UKURAN TEKS GLOBAL --- */
+        html { font-size: 16px; }
+        body { font-size: 1rem; }
+
         .force-show {
             display: block !important;
             opacity: 1 !important;
@@ -19,115 +22,128 @@
             border: 3px solid #f3f3f3;
             border-radius: 50%;
             border-top: 3px solid #3498db;
-            width: 20px;
-            height: 20px;
+            width: 24px;
+            height: 24px;
             animation: spin 1s linear infinite;
             display: inline-block;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
-        /* Animasi angka token saat berkurang */
         .token-pulse { animation: pulse-blue 0.5s ease-in-out; }
         @keyframes pulse-blue {
             0% { transform: scale(1); }
-            50% { transform: scale(1.2); color: #2563eb; }
+            50% { transform: scale(1.1); color: #2563eb; }
             100% { transform: scale(1); }
+        }
+
+        /* --- PENYESUAIAN DESKTOP (KOMPUTER) --- */
+        @media (min-width: 768px) {
+            #authWrapper > div, 
+            #dashboardWrapper {
+                max-width: 550px !important; /* Agar tidak melebar di PC */
+                margin: 2rem auto !important;
+                padding: 2rem;
+                background: #ffffff;
+                border-radius: 50px;
+                box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1);
+            }
+            body { background-color: #f1f5f9; }
         }
     </style>
 </head>
 <body class="bg-slate-50 p-4 font-['Plus_Jakarta_Sans'] text-slate-900">
 
     <div id="tokenBadge" class="fixed top-4 right-4 z-[110] hidden">
-        <div class="bg-white/80 backdrop-blur-md border border-blue-100 px-4 py-2 rounded-full shadow-lg flex items-center gap-2">
-            <span class="text-[9px] font-black text-slate-400 uppercase italic tracking-tighter">Sisa Token:</span>
-            <span id="valToken" class="text-lg font-black text-blue-600">0</span>
+        <div class="bg-white/90 backdrop-blur-md border border-blue-100 px-5 py-3 rounded-full shadow-xl flex items-center gap-3">
+            <span class="text-[11px] font-black text-slate-400 uppercase italic tracking-tighter">Sisa Token:</span>
+            <span id="valToken" class="text-2xl font-black text-blue-600">0</span>
         </div>
     </div>
 
     <div id="authWrapper" class="fixed inset-0 bg-slate-50 z-[100] flex flex-col items-center justify-center p-6">
-        <div class="max-w-md w-full space-y-6">
-            <h1 class="text-3xl font-black italic uppercase text-center">JAWABAN <span class="text-blue-600">AI</span></h1>
-            <div class="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-4">
-                <p id="authTitle" class="text-[10px] font-black text-blue-600 uppercase tracking-widest text-center">Selamat Datang Kembali</p>
-                <input type="email" id="authEmail" placeholder="Email Anda" class="w-full p-4 bg-slate-50 rounded-2xl text-xs font-bold outline-none border border-slate-100">
-                <input type="password" id="authPass" placeholder="Password" class="w-full p-4 bg-slate-50 rounded-2xl text-xs font-bold outline-none border border-slate-100">
-                <button id="btnAuthAction" onclick="submitAuth()" class="w-full bg-[#0f172a] text-white font-black py-5 rounded-[28px] text-[10px] uppercase shadow-xl active:scale-95 transition">MASUK SEKARANG</button>
+        <div class="max-w-md w-full space-y-8">
+            <h1 class="text-4xl font-black italic uppercase text-center">JAWABAN <span class="text-blue-600">AI</span></h1>
+            <div class="bg-white p-10 rounded-[45px] shadow-sm border border-slate-100 space-y-6">
+                <p id="authTitle" class="text-[12px] font-black text-blue-600 uppercase tracking-widest text-center">Selamat Datang Kembali</p>
+                <input type="email" id="authEmail" placeholder="Email Anda" class="w-full p-5 bg-slate-50 rounded-2xl text-sm font-bold outline-none border border-slate-100 focus:border-blue-400 transition-all">
+                <input type="password" id="authPass" placeholder="Password" class="w-full p-5 bg-slate-50 rounded-2xl text-sm font-bold outline-none border border-slate-100 focus:border-blue-400 transition-all">
+                <button id="btnAuthAction" onclick="submitAuth()" class="w-full bg-[#0f172a] text-white font-black py-6 rounded-[30px] text-xs uppercase shadow-xl active:scale-95 transition">MASUK SEKARANG</button>
                 <div class="flex justify-between px-2">
-                    <button onclick="changeAuthMode('forgot')" class="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Lupa Password?</button>
-                    <button onclick="changeAuthMode('reg')" id="authToggleBtn" class="text-[9px] font-bold text-blue-600 uppercase tracking-tighter">Daftar Akun Baru</button>
+                    <button onclick="changeAuthMode('forgot')" class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Lupa Password?</button>
+                    <button onclick="changeAuthMode('reg')" id="authToggleBtn" class="text-[10px] font-bold text-blue-600 uppercase tracking-tighter">Daftar Akun Baru</button>
                 </div>
             </div>
         </div>
     </div>
 
     <div id="dashboardWrapper" class="max-w-md mx-auto space-y-6 opacity-0 pointer-events-none transition-opacity duration-500">
-        <div class="flex justify-between items-center py-4">
-            <h1 class="text-xl font-black italic uppercase">JAWABAN <span class="text-blue-600">AI</span></h1>
-            <button onclick="logout()" class="bg-red-50 text-red-500 px-4 py-2 rounded-full text-[10px] font-black uppercase">Keluar</button>
+        <div class="flex justify-between items-center py-6">
+            <h1 class="text-2xl font-black italic uppercase">JAWABAN <span class="text-blue-600">AI</span></h1>
+            <button onclick="logout()" class="bg-red-50 text-red-500 px-5 py-2.5 rounded-full text-[11px] font-black uppercase">Keluar</button>
         </div>
 
-        <div id="adminPanel" class="hidden bg-slate-900 p-6 rounded-[40px] shadow-xl border-2 border-blue-500 mb-6">
-            <p class="text-[10px] font-black text-blue-400 uppercase mb-4 tracking-widest text-center">💎 ADMIN DASHBOARD</p>
-            <div class="space-y-3">
-                <input type="email" id="targetEmail" placeholder="Email Pelanggan" class="w-full p-4 bg-slate-800 text-white rounded-2xl text-xs font-bold outline-none border border-slate-700">
-                <select id="paketToken" class="w-full p-4 bg-slate-800 text-white rounded-2xl text-[10px] font-bold border border-slate-700">
+        <div id="adminPanel" class="hidden bg-slate-900 p-8 rounded-[45px] shadow-xl border-2 border-blue-500 mb-8">
+            <p class="text-[11px] font-black text-blue-400 uppercase mb-5 tracking-widest text-center">💎 ADMIN DASHBOARD</p>
+            <div class="space-y-4">
+                <input type="email" id="targetEmail" placeholder="Email Pelanggan" class="w-full p-5 bg-slate-800 text-white rounded-2xl text-sm font-bold outline-none border border-slate-700">
+                <select id="paketToken" class="w-full p-5 bg-slate-800 text-white rounded-2xl text-sm font-bold border border-slate-700">
                     <option value="100">100 Token</option>
                     <option value="210">210 Token</option>
                     <option value="350">350 Token</option>
                 </select>
-                <button onclick="prosesTambahToken()" class="w-full bg-blue-600 text-white font-black py-4 rounded-2xl text-[10px] uppercase">TAMBAH TOKEN</button>
+                <button onclick="prosesTambahToken()" class="w-full bg-blue-600 text-white font-black py-5 rounded-2xl text-xs uppercase">TAMBAH TOKEN</button>
             </div>
         </div>
 
-        <div class="grid grid-cols-2 gap-4">
-            <button onclick="document.getElementById('file').click()" class="bg-white p-8 rounded-[32px] border-2 border-dashed border-slate-200 flex flex-col items-center">
-                <span class="text-2xl mb-2">📸</span>
-                <span class="text-[10px] font-black uppercase text-slate-500 italic text-center">Ambil Foto / Galeri</span>
+        <div class="grid grid-cols-2 gap-5">
+            <button onclick="document.getElementById('file').click()" class="bg-white p-10 rounded-[35px] border-2 border-dashed border-slate-200 flex flex-col items-center hover:border-blue-400 transition-colors">
+                <span class="text-4xl mb-3">📸</span>
+                <span class="text-[11px] font-black uppercase text-slate-500 italic text-center leading-tight">Ambil Foto / Galeri</span>
             </button>
-            <button onclick="document.getElementById('file').click()" class="bg-white p-8 rounded-[32px] border-2 border-dashed border-slate-200 flex flex-col items-center">
-                <span class="text-2xl mb-2">📁</span>
-                <span class="text-[10px] font-black uppercase text-slate-500 italic text-center">Pilih File PDF</span>
+            <button onclick="document.getElementById('file').click()" class="bg-white p-10 rounded-[35px] border-2 border-dashed border-slate-200 flex flex-col items-center hover:border-blue-400 transition-colors">
+                <span class="text-4xl mb-3">📁</span>
+                <span class="text-[11px] font-black uppercase text-slate-500 italic text-center leading-tight">Pilih File PDF</span>
             </button>
             <input type="file" id="file" multiple class="hidden" onchange="updateFileStatus(this)">
-            <div id="stts" class="col-span-2 text-[10px] font-black text-blue-600 uppercase text-center italic">Belum ada file dipilih</div>
+            <div id="stts" class="col-span-2 text-[12px] font-black text-blue-600 uppercase text-center italic">Belum ada file dipilih</div>
         </div>
 
-        <div class="bg-white p-6 rounded-[40px] shadow-sm border border-slate-100">
-            <p class="text-[10px] font-black text-blue-600 uppercase mb-4 tracking-widest">Kunci Jawaban PG (1-20)</p>
-            <div id="gridPG" class="grid grid-cols-5 gap-2 mb-6"></div>
-            <p class="text-[10px] font-black text-emerald-500 uppercase mb-4 tracking-widest">Kunci Jawaban Essay</p>
-            <div id="gridES" class="space-y-2"></div>
+        <div class="bg-white p-8 rounded-[45px] shadow-sm border border-slate-100">
+            <p class="text-[11px] font-black text-blue-600 uppercase mb-5 tracking-widest">Kunci Jawaban PG (1-20)</p>
+            <div id="gridPG" class="grid grid-cols-5 gap-3 mb-8"></div>
+            <p class="text-[11px] font-black text-emerald-500 uppercase mb-5 tracking-widest">Kunci Jawaban Essay</p>
+            <div id="gridES" class="space-y-3"></div>
         </div>
 
-        <button id="btnAI" class="w-full bg-[#0f172a] text-white font-black py-6 rounded-[32px] text-xs uppercase shadow-xl transition active:scale-95">
+        <button id="btnAI" class="w-full bg-[#0f172a] text-white font-black py-7 rounded-[35px] text-sm uppercase shadow-xl transition active:scale-95">
             MULAI PROSES KOREKSI AI
         </button>
 
-        <div id="resWrap" class="hidden space-y-6 pt-10">
+        <div id="resWrap" class="hidden space-y-8 pt-12">
             <div class="flex justify-between items-center px-4">
-                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Hasil Koreksi AI</p>
-                <button onclick="hapusRiwayat()" class="text-[9px] font-black text-red-500 uppercase tracking-tighter bg-red-50 px-3 py-1 rounded-full">Bersihkan Laporan</button>
+                <p class="text-[11px] font-black text-slate-400 uppercase tracking-widest">Hasil Koreksi AI</p>
+                <button onclick="hapusRiwayat()" class="text-[10px] font-black text-red-500 uppercase tracking-tighter bg-red-50 px-4 py-2 rounded-full">Bersihkan Laporan</button>
             </div>
             
-            <div id="scanAwal" class="space-y-4"></div>
+            <div id="scanAwal" class="space-y-6"></div>
 
-            <div class="bg-white p-6 rounded-[32px] border-t-4 border-blue-600 space-y-4 shadow-lg">
-                <p class="text-center font-black text-blue-600 text-[10px] uppercase italic">*Masukan rumus penilaian kamu*</p>
-                <div class="grid grid-cols-1 gap-3">
-                    <input type="text" id="r_pg" placeholder="Rumus PG (Contoh: betul * 4)" class="w-full p-4 bg-slate-50 rounded-2xl text-[11px] font-bold border border-slate-100 outline-none">
-                    <input type="text" id="r_es" placeholder="Rumus Essay (Contoh: betul * 10)" class="w-full p-4 bg-slate-50 rounded-2xl text-[11px] font-bold border border-slate-100 outline-none">
+            <div class="bg-white p-8 rounded-[40px] border-t-4 border-blue-600 space-y-6 shadow-xl">
+                <p class="text-center font-black text-blue-600 text-[12px] uppercase italic">*Masukan rumus penilaian kamu*</p>
+                <div class="grid grid-cols-1 gap-4">
+                    <input type="text" id="r_pg" placeholder="Rumus PG (Contoh: betul * 4)" class="w-full p-5 bg-slate-50 rounded-2xl text-sm font-bold border border-slate-100 outline-none">
+                    <input type="text" id="r_es" placeholder="Rumus Essay (Contoh: betul * 10)" class="w-full p-5 bg-slate-50 rounded-2xl text-sm font-bold border border-slate-100 outline-none">
                 </div>
-                <button id="btnHitung" class="w-full bg-blue-600 text-white font-black py-5 rounded-[28px] text-[10px] uppercase shadow-lg">PROSES HITUNG RUMUS</button>
+                <button id="btnHitung" class="w-full bg-blue-600 text-white font-black py-6 rounded-[30px] text-xs uppercase shadow-lg">PROSES HITUNG RUMUS</button>
             </div>
 
-            <div id="laporanFinal" class="space-y-6 pb-24"></div>
+            <div id="laporanFinal" class="space-y-8 pb-32"></div>
         </div>
     </div>
 
     <script>
         let dbData = [];
         let currentMode = 'login';
-        let currentToken = 0; // Simpan token disini
+        let currentToken = 0;
 
         function changeAuthMode(mode) {
             currentMode = mode;
@@ -152,10 +168,7 @@
                 if(data.success) {
                     if(currentMode === 'login') {
                         if(email.toLowerCase() === "versacy") document.getElementById('adminPanel').classList.remove('hidden');
-                        
-                        // AMBIL TOKEN DARI SERVER SAAT LOGIN
                         updateTokenDisplay(data.token || 0);
-                        
                         document.getElementById('authWrapper').classList.add('hidden');
                         document.getElementById('tokenBadge').classList.remove('hidden');
                         document.getElementById('dashboardWrapper').classList.remove('opacity-0', 'pointer-events-none');
@@ -170,7 +183,7 @@
             const el = document.getElementById('valToken');
             el.innerText = currentToken;
             el.classList.remove('token-pulse');
-            void el.offsetWidth; // Trigger restart animasi
+            void el.offsetWidth;
             el.classList.add('token-pulse');
         }
 
@@ -178,20 +191,18 @@
 
         const gPG = document.getElementById('gridPG');
         for(let i=1; i<=20; i++) {
-            gPG.innerHTML += `<select id="p${i}" class="p-2 bg-slate-50 rounded-xl text-[10px] font-bold border border-slate-100 outline-none"><option value="">${i}</option><option>A</option><option>B</option><option>C</option><option>D</option></select>`;
+            gPG.innerHTML += `<select id="p${i}" class="p-3 bg-slate-50 rounded-xl text-xs font-bold border border-slate-100 outline-none focus:border-blue-300"><option value="">${i}</option><option>A</option><option>B</option><option>C</option><option>D</option></select>`;
         }
         const gES = document.getElementById('gridES');
         for(let i=1; i<=5; i++) {
-            gES.innerHTML += `<input id="e${i}" placeholder="Kunci Essay No ${i}" class="w-full p-4 bg-slate-50 rounded-2xl text-[10px] font-bold border border-slate-100 outline-none">`;
+            gES.innerHTML += `<input id="e${i}" placeholder="Kunci Essay No ${i}" class="w-full p-5 bg-slate-50 rounded-2xl text-xs font-bold border border-slate-100 outline-none focus:border-emerald-300">`;
         }
 
         function updateFileStatus(input) { document.getElementById('stts').innerText = '✅ ' + input.files.length + ' File Terpilih'; }
 
-        // --- RENDER LOGIC (VERSI BOLD & BESAR) ---
         function tampilkanHasilKeLayar() {
             const resWrap = document.getElementById('resWrap');
             const container = document.getElementById('scanAwal');
-            
             if(!container || !dbData || dbData.length === 0) return;
 
             let finalHtml = "";
@@ -200,30 +211,28 @@
                 const namaSiswa = s.nama && s.nama !== "TIDAK TERBACA" ? s.nama : "SISWA TANPA NAMA";
                 
                 finalHtml += `
-                <div class="p-8 bg-white rounded-[40px] border-l-[20px] border-blue-600 shadow-2xl mb-10 text-left">
-                    <div class="border-b-4 border-slate-100 pb-6 mb-6">
-                        <p class="text-[14px] font-extrabold text-blue-600 uppercase tracking-[0.2em]">LEMBAR KE-${index + 1}</p>
-                        <h2 class="text-4xl font-black uppercase text-slate-900 leading-none mt-2">${namaSiswa}</h2>
+                <div class="p-10 bg-white rounded-[45px] border-l-[24px] border-blue-600 shadow-2xl mb-12 text-left">
+                    <div class="border-b-4 border-slate-100 pb-8 mb-8">
+                        <p class="text-[16px] font-extrabold text-blue-600 uppercase tracking-[0.2em]">LEMBAR KE-${index + 1}</p>
+                        <h2 class="text-5xl font-black uppercase text-slate-900 leading-tight mt-3">${namaSiswa}</h2>
                     </div>
-                    
-                    <div class="space-y-6">
-                        <div class="bg-slate-50 p-6 rounded-[30px] border border-slate-100">
-                            <p class="text-[12px] font-black text-slate-400 uppercase mb-2">Statistik Pilihan Ganda</p>
-                            <div class="flex items-center gap-4">
-                                <span class="text-6xl font-black text-blue-700">${s.pg_betul || 0}</span>
-                                <span class="text-xl font-bold text-slate-800 uppercase italic leading-tight">Jawaban<br>Benar</span>
+                    <div class="space-y-8">
+                        <div class="bg-slate-50 p-8 rounded-[35px] border border-slate-100">
+                            <p class="text-[14px] font-black text-slate-400 uppercase mb-3">Pilihan Ganda</p>
+                            <div class="flex items-center gap-6">
+                                <span class="text-7xl font-black text-blue-700">${s.pg_betul || 0}</span>
+                                <span class="text-2xl font-bold text-slate-800 uppercase italic leading-tight">Benar</span>
                             </div>
-                            <div class="mt-4 pt-4 border-t border-slate-200">
-                                <p class="text-[11px] font-black text-blue-500 uppercase mb-1 italic text-lg">Nomor Yang Betul:</p>
-                                <p class="text-3xl font-black text-slate-700 tracking-tight leading-tight">${listNomor}</p>
+                            <div class="mt-6 pt-6 border-t border-slate-200">
+                                <p class="text-[13px] font-black text-blue-500 uppercase mb-2 italic">Nomor Betul:</p>
+                                <p class="text-2xl font-black text-slate-700 tracking-tight leading-snug">${listNomor}</p>
                             </div>
                         </div>
-
-                        <div class="bg-emerald-50 p-6 rounded-[30px] border border-emerald-100">
-                            <p class="text-[12px] font-black text-emerald-600 uppercase mb-2">Statistik Essay</p>
-                            <div class="flex items-center gap-4">
-                                <span class="text-6xl font-black text-emerald-700">${s.es_betul || 0}</span>
-                                <span class="text-xl font-bold text-slate-800 uppercase italic">Poin Essay</span>
+                        <div class="bg-emerald-50 p-8 rounded-[35px] border border-emerald-100">
+                            <p class="text-[14px] font-black text-emerald-600 uppercase mb-3">Essay</p>
+                            <div class="flex items-center gap-6">
+                                <span class="text-7xl font-black text-emerald-700">${s.es_betul || 0}</span>
+                                <span class="text-2xl font-bold text-slate-800 uppercase italic">Poin</span>
                             </div>
                         </div>
                     </div>
@@ -233,10 +242,7 @@
             container.innerHTML = finalHtml;
             resWrap.classList.remove('hidden');
             resWrap.classList.add('force-show'); 
-            
-            setTimeout(() => {
-                window.scrollTo({ top: resWrap.offsetTop - 20, behavior: 'smooth' });
-            }, 500);
+            setTimeout(() => { window.scrollTo({ top: resWrap.offsetTop - 20, behavior: 'smooth' }); }, 500);
         }
 
         function simpanKeRiwayat() { localStorage.setItem('riwayat_ai_v2', JSON.stringify(dbData)); }
@@ -260,7 +266,7 @@
             if(files.length === 0) return alert("Silakan ambil foto atau pilih file dulu!");
 
             btn.disabled = true;
-            btn.innerHTML = `<span class="loader"></span> SEDANG MEMPROSES...`;
+            btn.innerHTML = `<span class="loader"></span> MEMPROSES...`;
             
             const conf = { kunci_pg: {}, kunci_essay: {} };
             for(let i=1; i<=20; i++) { 
@@ -277,7 +283,7 @@
                     const fd = new FormData();
                     fd.append('data', JSON.stringify(conf));
                     fd.append('foto', files[i]);
-                    btn.innerText = `⏳ MEMPROSES ${i + 1} / ${files.length}...`;
+                    btn.innerText = `⏳ PROSES ${i + 1} / ${files.length}`;
 
                     const req = await fetch('/ai/proses-koreksi', { method: 'POST', body: fd });
                     const res = await req.json();
@@ -285,31 +291,22 @@
                     if(res.success && res.data) {
                         const rawData = Array.isArray(res.data) ? res.data : [res.data];
                         dbData = [...dbData, ...rawData];
-                        
-                        // KURANGI TOKEN DI LAYAR SETIAP BERHASIL SCAN
-                        if(res.current_token !== undefined) {
-                            updateTokenDisplay(res.current_token);
-                        } else {
-                            updateTokenDisplay(currentToken - 1);
-                        }
-
+                        if(res.current_token !== undefined) updateTokenDisplay(res.current_token);
+                        else updateTokenDisplay(currentToken - 1);
                         tampilkanHasilKeLayar(); 
                         simpanKeRiwayat();
-                    } else {
-                        alert(res.message || "Gagal memproses file.");
-                        break;
-                    }
+                    } else { alert(res.message || "Gagal!"); break; }
                 }
                 btn.innerText = "PROSES SELESAI ✅";
             } catch(e) { 
-                alert("Koneksi gagal! Pastikan server menyala."); 
+                alert("Koneksi gagal!"); 
                 btn.innerText = "COBA LAGI";
             }
             btn.disabled = false;
         };
 
         document.getElementById('btnHitung').onclick = async () => {
-            if(dbData.length === 0) return alert("Laporan AI belum ada!");
+            if(dbData.length === 0) return alert("Belum ada data!");
             try {
                 const res = await fetch('/ai/hitung-rumus', {
                     method: 'POST',
@@ -323,28 +320,28 @@
                 const json = await res.json();
                 const box = document.getElementById('laporanFinal');
                 
-                let reportHtml = `<p class="text-center font-black text-blue-600 uppercase text-[10px] tracking-widest mt-10">LAPORAN HASIL RUMUS</p>`;
+                let reportHtml = `<p class="text-center font-black text-blue-600 uppercase text-[12px] tracking-widest mt-14">LAPORAN AKHIR</p>`;
                 
                 json.hasil.forEach(s => {
                     reportHtml += `
-                    <div class="p-8 bg-white rounded-[40px] border-l-[12px] border-blue-600 shadow-xl mt-6">
-                        <p class="font-black text-3xl uppercase mb-6 italic leading-tight">"NAMA: ${s.nama || ''}"</p>
-                        <div class="flex justify-between items-end pt-6 border-t-2 border-slate-900">
-                            <span class="text-[14px] font-black text-blue-600 uppercase">Nilai Akhir :</span>
-                            <span class="text-7xl font-black text-slate-900 tracking-tighter">${s.nilai_akhir}</span>
+                    <div class="p-10 bg-white rounded-[50px] border-l-[16px] border-blue-600 shadow-xl mt-8">
+                        <p class="font-black text-3xl uppercase mb-8 italic leading-tight text-slate-800">"${s.nama || ''}"</p>
+                        <div class="flex justify-between items-center pt-8 border-t-4 border-slate-50">
+                            <span class="text-[16px] font-black text-blue-600 uppercase">Nilai :</span>
+                            <span class="text-8xl font-black text-slate-900 tracking-tighter">${s.nilai_akhir}</span>
                         </div>
                     </div>`;
                 });
                 
                 box.innerHTML = reportHtml;
                 box.scrollIntoView({ behavior: 'smooth' });
-            } catch (e) { alert("Rumus tidak valid!"); }
+            } catch (e) { alert("Rumus salah!"); }
         };
 
         async function prosesTambahToken() {
             const emailTarget = document.getElementById('targetEmail').value;
             const jumlahToken = document.getElementById('paketToken').value;
-            if(!emailTarget) return alert("Masukkan email!");
+            if(!emailTarget) return alert("Isi email!");
             try {
                 const res = await fetch('/admin/tambah-token', {
                     method: 'POST',
