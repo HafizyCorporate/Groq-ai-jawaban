@@ -310,34 +310,41 @@
             document.getElementById('resWrap').classList.add('force-show');
         }
 
+        // FUNGSI GANTI MODE AUTH (LOGIN/DAFTAR/LUPA)
         function changeAuthMode(mode) {
             currentMode = mode;
             const title = document.getElementById('authTitle');
             const btn = document.getElementById('btnAuthAction');
             const toggleBtn = document.getElementById('authToggleBtn');
+            const passInput = document.getElementById('authPass');
 
             if(mode === 'reg') {
                 title.innerText = "Daftar Akun Baru";
                 btn.innerText = "DAFTAR SEKARANG";
+                passInput.style.display = 'block'; // Tampilkan password
                 toggleBtn.innerText = "Sudah punya akun? Login";
                 toggleBtn.onclick = () => changeAuthMode('login');
             } else if (mode === 'forgot') {
                 title.innerText = "Pemulihan Akun";
                 btn.innerText = "KIRIM KODE";
+                passInput.style.display = 'none'; // Sembunyikan password saat lupa
                 toggleBtn.innerText = "Kembali Login";
                 toggleBtn.onclick = () => changeAuthMode('login');
             } else {
                 title.innerText = "Selamat Datang Kembali";
                 btn.innerText = "MASUK SEKARANG";
+                passInput.style.display = 'block'; // Tampilkan password
                 toggleBtn.innerText = "Daftar Akun Baru";
                 toggleBtn.onclick = () => changeAuthMode('reg');
             }
         }
 
+        // FUNGSI SUBMIT AUTH
         async function submitAuth() {
             const email = document.getElementById('authEmail').value;
             const password = document.getElementById('authPass').value;
             if(!email) return showAlert("Email wajib diisi!");
+            
             let endpoint = '/auth/login';
             if(currentMode === 'reg') endpoint = '/auth/register';
             if(currentMode === 'forgot') endpoint = '/auth/forgot-password';
@@ -357,6 +364,9 @@
                         document.getElementById('tokenBadge').classList.remove('hidden');
                         document.getElementById('dashboardWrapper').classList.remove('opacity-0', 'pointer-events-none');
                         muatRiwayat();
+                    } else if (currentMode === 'forgot') {
+                        showAlert("Berhasil! Silakan cek email Anda untuk instruksi pemulihan.");
+                        changeAuthMode('login');
                     } else {
                         showAlert(data.message || "Berhasil! Silakan cek email/login.");
                         changeAuthMode('login');
