@@ -47,7 +47,7 @@
 <body class="bg-slate-50 p-4 text-slate-900">
 
     <div id="customAlertOverlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] hidden flex items-center justify-center p-6">
-        <div class="bg-white w-full max-w-sm rounded-[40px] p-8 shadow-2xl modal-animate text-center border border-slate-100">
+        <div class="bg-white w-full max-sm rounded-[40px] p-8 shadow-2xl modal-animate text-center border border-slate-100">
             <div id="alertIcon" class="text-6xl mb-4">⚠️</div>
             <h3 id="alertTitle" class="text-xl font-black uppercase text-slate-800 mb-2">Pemberitahuan</h3>
             <p id="alertMsg" class="text-sm font-bold text-slate-500 leading-relaxed mb-8 whitespace-pre-line"></p>
@@ -186,7 +186,7 @@
         function konfirmasiHapusRiwayat() { showAlert("Bersihkan semua laporan?", 'confirm'); }
         function hapusRiwayat() { dbData = []; localStorage.removeItem('riwayat_ai_v2'); location.reload(); }
 
-        // Grid Generator (BAGIAN YANG DIPERBAIKI)
+        // Grid Generator
         const gPG = document.getElementById('gridPG');
         gPG.innerHTML = ''; 
         for(let i=1; i<=20; i++) {
@@ -301,29 +301,37 @@
             const dataLama = [...dbData].reverse().slice(5);
 
             const card = (s, i) => `
-                <div class="bg-white p-5 rounded-[25px] border border-slate-100 shadow-sm space-y-3">
-                    <div class="flex justify-between items-center">
+                <div class="bg-white p-6 rounded-[35px] border border-slate-100 shadow-sm space-y-4">
+                    <div class="flex justify-between items-start">
                         <div class="flex flex-col overflow-hidden">
                             <span class="text-[9px] font-black text-blue-500 uppercase italic">Siswa #${dbData.length - i}</span>
-                            <span class="text-sm font-black text-slate-800 truncate uppercase">${s.nama || 'TIDAK TERBACA'}</span>
+                            <span class="text-base font-black text-slate-800 truncate uppercase">${s.nama || 'TIDAK TERBACA'}</span>
                         </div>
-                        <div class="flex gap-2">
-                            <div class="bg-blue-50 px-3 py-1 rounded-xl text-center border border-blue-100">
-                                <span class="block text-[7px] font-black text-blue-400">PG</span>
-                                <span class="text-sm font-black text-blue-600">${s.pg_betul || 0}</span>
+                        <div class="flex gap-2 shrink-0">
+                            <div class="bg-blue-50 px-3 py-2 rounded-2xl text-center border border-blue-100">
+                                <span class="block text-[7px] font-black text-blue-400 uppercase">Betul PG</span>
+                                <span class="text-lg font-black text-blue-600">${s.pg_betul || 0}</span>
                             </div>
-                            <div class="bg-emerald-50 px-3 py-1 rounded-xl text-center border border-emerald-100">
-                                <span class="block text-[7px] font-black text-emerald-400">ES</span>
-                                <span class="text-sm font-black text-emerald-600">${s.es_betul || 0}</span>
+                            <div class="bg-emerald-50 px-3 py-2 rounded-2xl text-center border border-emerald-100">
+                                <span class="block text-[7px] font-black text-emerald-400 uppercase">Betul ES</span>
+                                <span class="text-lg font-black text-emerald-600">${s.es_betul || 0}</span>
                             </div>
                         </div>
                     </div>
                     
-                    <div class="pt-2 border-t border-slate-50">
-                        <p class="text-[8px] font-black text-slate-400 uppercase mb-1 tracking-widest italic">Nomor Betul:</p>
-                        <p class="text-[10px] font-bold text-slate-600 leading-tight">
-                            ${s.list_pg_betul && s.list_pg_betul.length > 0 ? s.list_pg_betul.join(', ') : 'Tidak ada'}
-                        </p>
+                    <div class="grid grid-cols-1 gap-2 pt-3 border-t border-slate-50">
+                        <div class="bg-slate-50 p-3 rounded-2xl">
+                            <p class="text-[8px] font-black text-slate-400 uppercase mb-1 tracking-widest italic">Nomor PG Betul:</p>
+                            <p class="text-[11px] font-bold text-slate-600 leading-tight">
+                                ${s.list_pg_betul && s.list_pg_betul.length > 0 ? s.list_pg_betul.join(', ') : 'Kosong'}
+                            </p>
+                        </div>
+                        <div class="bg-emerald-50/50 p-3 rounded-2xl">
+                            <p class="text-[8px] font-black text-emerald-400 uppercase mb-1 tracking-widest italic">Nomor Essay Betul:</p>
+                            <p class="text-[11px] font-bold text-slate-600 leading-tight">
+                                ${s.list_es_betul && s.list_es_betul.length > 0 ? s.list_es_betul.join(', ') : 'Kosong'}
+                            </p>
+                        </div>
                     </div>
                 </div>`;
 
@@ -360,7 +368,6 @@
             const conf = { kunci_pg: {}, kunci_essay: {} };
             for(let i=1; i<=20; i++) { 
                 const v = document.getElementById(`p${i}`).value; 
-                // Logika: Jika dropdown tidak kosong, masukkan ke kunci
                 if(v !== "") conf.kunci_pg[i] = v; 
             }
             for(let i=1; i<=5; i++) { 
@@ -411,7 +418,7 @@
                         <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100">
                             <p class="text-[8px] font-black text-blue-500 uppercase tracking-widest mb-1 italic">Rincian Nomor Betul:</p>
                             <p class="text-[11px] font-bold text-slate-600 leading-relaxed">
-                                ${s.list_pg_betul && s.list_pg_betul.length > 0 ? s.list_pg_betul.join(', ') : 'Tidak ada'}
+                                PG: ${s.list_pg_betul?.join(', ') || '-'} | ES: ${s.list_es_betul?.join(', ') || '-'}
                             </p>
                         </div>
                     </div>`;
