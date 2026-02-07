@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Koreksi Jawaban AI</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus_Jakarta_Sans:wght@400;600;800&display=swap" rel="stylesheet">
 </head>
 <body class="bg-slate-50 p-4 font-['Plus_Jakarta_Sans'] text-slate-900">
 
@@ -82,7 +82,7 @@
     </div>
 
     <script>
-        // ================= LOGIKA AUTH (Baru) =================
+        // ================= LOGIKA AUTH =================
         let currentMode = 'login';
 
         function changeAuthMode(mode) {
@@ -128,7 +128,6 @@
 
                 if(data.success) {
                     if(currentMode === 'login') {
-                        // Jika login sukses, buka dashboard
                         document.getElementById('authWrapper').classList.add('hidden');
                         document.getElementById('dashboardWrapper').classList.remove('opacity-0', 'pointer-events-none');
                     } else {
@@ -141,7 +140,7 @@
             } catch(e) { alert("Server tidak merespon!"); }
         }
 
-        // ================= KODE ASLI KAMU (Tidak Dirubah) =================
+        // ================= KODE DASHBOARD =================
         const gPG = document.getElementById('gridPG');
         for(let i=1; i<=20; i++) {
             gPG.innerHTML += `
@@ -188,10 +187,30 @@
                 if(res.success) {
                     dbData = res.data;
                     document.getElementById('resWrap').classList.remove('hidden');
+                    // UPDATE: Jendela Review Tegas & Jelas
                     document.getElementById('scanAwal').innerHTML = dbData.map(s => `
-                        <div class="p-6 bg-white rounded-3xl border-l-8 border-slate-900 shadow-sm">
-                            <p class="font-black text-[12px] uppercase">Nama Siswa: ${s.nama}</p>
-                            <p class="text-[10px] font-bold text-blue-600">Betul PG: ${s.pg_betul} | Betul Essay: ${s.es_betul}</p>
+                        <div class="p-6 bg-white rounded-[32px] border-l-[12px] border-slate-900 shadow-sm space-y-4">
+                            <div class="border-b border-dashed pb-2">
+                                <p class="text-[9px] font-black text-slate-400 uppercase">Nama Siswa :</p>
+                                <p class="text-lg font-black uppercase text-slate-900">${s.nama}</p>
+                            </div>
+                            
+                            <div>
+                                <p class="text-[10px] font-black text-blue-600 uppercase italic">PG Betul ${s.pg_betul}</p>
+                                <p class="text-[10px] font-bold text-slate-600">No ${s.pg_list_nomor || '-'}</p>
+                            </div>
+
+                            <div class="space-y-1">
+                                <p class="text-[10px] font-black text-emerald-600 uppercase italic">Essay Betul ${s.es_betul}</p>
+                                <div class="space-y-1 text-[10px]">
+                                    ${s.es_detail.map(e => `
+                                        <p class="leading-tight">
+                                            <span class="font-black ${e.betul ? 'text-emerald-600' : 'text-red-500'}">No ${e.no}.</span> 
+                                            <span class="text-slate-500 italic">${e.alasan}</span>
+                                        </p>
+                                    `).join('')}
+                                </div>
+                            </div>
                         </div>
                     `).join('');
                 }
