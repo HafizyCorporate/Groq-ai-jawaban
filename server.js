@@ -76,20 +76,25 @@ app.post('/auth/forgot-password', async (req, res) => {
     });
 });
 
-// --- KODE ASLI KAMU (DENGAN TAMBAHAN LOGIKA LAPORAN TEGAS) ---
+// --- LOGIKA KOREKSI DENGAN SINKRONISASI LEMBAR BERLAPIS ---
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'views', 'dashboard.html'));
 });
 
-// LOGIKA KOREKSI HYBRID
 app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
     try {
         const settings = JSON.parse(req.body.data);
         const kunciPG = settings.kunci_pg;
         const kunciES = settings.kunci_essay;
 
-        const results = await Promise.all(req.files.map(async (file) => {
+        // Variabel untuk mengingat nama siswa dari lembar sebelumnya
+        let namaTerakhir = "Tidak Terbaca"; 
+        const results = [];
+
+        // Menggunakan loop for...of agar proses foto berurutan (sequential)
+        // Ini penting supaya logika sinkronisasi nama tidak tertukar
+        for (const file of req.files) {
             const base64 = file.buffer.toString("base64");
             
             const response = await groq.chat.completions.create({
@@ -99,7 +104,10 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
                     "content": [
                         { 
                             "type": "text", 
-                            "text": `Tugas Guru AI: Cari Nama Siswa. Deteksi tanda silang (X) MERAH pada pilihan A,B,C, atau D (Nomor 1-20). Bandingkan dengan kunci guru: ${JSON.stringify(kunciPG)}. Analisa essay dengan kunci: ${JSON.stringify(kunciES)}. 
+                            "text": `Tugas Guru AI: Cari Nama Siswa (Jika tidak ada nama di lembar ini, tulis "KOSONG"). 
+                            Deteksi tanda silang (X) MERAH pada pilihan A,B,C, atau D (Nomor 1-20). 
+                            Bandingkan dengan kunci guru: ${JSON.stringify(kunciPG)}. 
+                            Analisa essay dengan kunci: ${JSON.stringify(kunciES)}. 
                             PENTING: Berikan alasan kenapa soal essay tersebut betul/salah.
                             Output format JSON: 
                             {
@@ -119,6 +127,12 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
 
             const aiData = JSON.parse(response.choices[0].message.content);
             
+            // LOGIKA SINKRONISASI NAMA:
+            // Jika AI menemukan nama baru, simpan. Jika AI lapor "KOSONG", gunakan nama sebelumnya.
+            if (aiData.nama_siswa && aiData.nama_siswa.toUpperCase() !== "KOSONG") {
+                namaTerakhir = aiData.nama_siswa;
+            }
+
             // Logika Hitung & List Nomor PG Betul
             let pg_betul_list = [];
             for (let n in kunciPG) {
@@ -131,18 +145,19 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
             let es_betul = 0;
             aiData.essay_detail.forEach(e => { if(e.betul) es_betul++; });
 
-            return {
-                nama: aiData.nama_siswa || "Tidak Terbaca",
+            results.push({
+                nama: namaTerakhir, // Menggunakan nama yang sudah disinkronkan
                 pg_betul: pg_betul_list.length,
                 pg_total: Object.keys(kunciPG).length,
                 pg_salah: Object.keys(kunciPG).length - pg_betul_list.length,
-                pg_list_nomor: pg_betul_list.join(", "), // Daftar nomor PG yang betul
+                pg_list_nomor: pg_betul_list.join(", "), 
                 es_betul,
                 es_total: Object.keys(kunciES).length,
                 es_salah: Object.keys(kunciES).length - es_betul,
-                es_detail: aiData.essay_detail // Detail nomor + alasan
-            };
-        }));
+                es_detail: aiData.essay_detail
+            });
+        }
+
         res.json({ success: true, data: results });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
