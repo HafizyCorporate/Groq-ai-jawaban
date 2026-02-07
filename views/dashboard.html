@@ -3,121 +3,222 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Koreksi AI</title>
+    <title>Jawaban AI - Full System</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
-        body { background: #f1f5f9; font-family: sans-serif; }
-        .card { background: white; border-radius: 20px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        body { font-family: 'Inter', sans-serif; }
     </style>
 </head>
-<body class="p-4 pb-10">
+<body class="p-4 bg-slate-50">
     <div class="max-w-md mx-auto space-y-4">
-        
-        <div class="flex justify-between items-center mb-4">
-            <h1 class="font-black text-xl italic text-slate-800">JAWABAN <span class="text-blue-600">AI</span></h1>
-            <button onclick="location.reload()" class="text-red-500 font-bold text-xs">KELUAR</button>
+        <div class="flex justify-between items-center p-2">
+            <h1 class="font-black text-xl italic uppercase">JAWABAN <span class="text-blue-600">AI</span></h1>
+            <button onclick="location.reload()" class="bg-red-50 text-red-500 px-4 py-1 rounded-full text-[10px] font-bold">KELUAR</button>
         </div>
 
-        <div class="grid grid-cols-2 gap-2">
-            <label class="card flex flex-col items-center justify-center cursor-pointer border-2 border-dashed border-blue-200">
-                <span class="text-2xl">📸</span>
-                <span class="text-[10px] font-bold uppercase mt-1">Kamera</span>
-                <input type="file" id="inpCam" capture="environment" class="hidden" onchange="listItems()">
+        <div class="grid grid-cols-2 gap-3">
+            <label class="bg-white p-6 rounded-3xl border-2 border-dashed border-slate-200 flex flex-col items-center cursor-pointer hover:bg-slate-50 transition">
+                <span class="text-3xl">📸</span>
+                <span class="text-[10px] font-bold mt-2 uppercase">Potret Kamera</span>
+                <input type="file" id="cam" capture="environment" class="hidden" onchange="updateFiles()">
             </label>
-            <label class="card flex flex-col items-center justify-center cursor-pointer border-2 border-dashed border-blue-200">
-                <span class="text-2xl">📁</span>
-                <span class="text-[10px] font-bold uppercase mt-1">File</span>
-                <input type="file" id="inpFile" multiple class="hidden" onchange="listItems()">
+            <label class="bg-white p-6 rounded-3xl border-2 border-dashed border-slate-200 flex flex-col items-center cursor-pointer hover:bg-slate-50 transition">
+                <span class="text-3xl">📁</span>
+                <span class="text-[10px] font-bold mt-2 uppercase">Ambil File</span>
+                <input type="file" id="file" multiple class="hidden" onchange="updateFiles()">
             </label>
         </div>
 
-        <div id="fileBox" class="hidden card bg-blue-50 border-blue-100">
-            <h4 class="text-[9px] font-black text-blue-600 uppercase mb-2">Item Berhasil Diupload:</h4>
-            <div id="fileList" class="space-y-1 text-[10px] font-mono text-slate-600"></div>
+        <div id="fileStatus" class="hidden p-4 bg-blue-50 rounded-2xl border border-blue-100">
+            <p class="text-[9px] font-black text-blue-600 mb-2 uppercase">File Terupload:</p>
+            <div id="fileList" class="text-[10px] space-y-1 font-mono text-slate-500"></div>
         </div>
 
-        <div class="card">
-            <h3 class="text-[10px] font-black uppercase text-blue-600 mb-3 tracking-widest">Kunci PG</h3>
-            <div id="pgArea" class="grid grid-cols-5 gap-2"></div>
+        <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-100">
+            <h3 class="text-[10px] font-black text-blue-600 uppercase mb-4 tracking-widest flex items-center gap-2">
+                <span class="w-1 h-4 bg-blue-600 rounded-full"></span> Kunci Jawaban PG
+            </h3>
+            <div id="gridPG" class="grid grid-cols-5 gap-2">
+                </div>
+            
+            <h3 class="text-[10px] font-black text-emerald-600 uppercase mt-8 mb-4 tracking-widest flex items-center gap-2">
+                <span class="w-1 h-4 bg-emerald-600 rounded-full"></span> Kunci Jawaban Essay
+            </h3>
+            <div id="areaES" class="space-y-2">
+                </div>
         </div>
 
-        <div class="card">
-            <h3 class="text-[10px] font-black uppercase text-emerald-600 mb-3 tracking-widest">Kunci Essay</h3>
-            <div id="esArea" class="space-y-2"></div>
-        </div>
+        <button id="btnAI" class="w-full bg-slate-900 text-white font-black py-5 rounded-3xl text-xs uppercase shadow-xl active:scale-95 transition-transform">
+            Mulai Proses Koreksi AI
+        </button>
 
-        <button id="btnKoreksi" class="w-full bg-slate-900 text-white font-black py-4 rounded-2xl text-xs uppercase shadow-lg">Mulai Proses Koreksi AI</button>
-
-        <div id="boxKoreksi" class="space-y-3"></div>
+        <div id="jendelaKoreksi" class="space-y-3"></div>
 
         <div id="boxRumus" class="hidden space-y-3 pt-6 border-t-2 border-dashed border-slate-300">
-            <p class="text-center font-bold text-blue-600 text-[9px] italic">*Masukan rumus penilaian kamu*</p>
-            <div class="card bg-slate-50 space-y-3 border-slate-200">
-                <input type="text" id="rumus_pg" placeholder="Rumus PG (Contoh: betul * 2)" class="w-full p-3 rounded-xl border-none shadow-sm text-sm font-bold text-blue-600">
-                <input type="text" id="rumus_es" placeholder="Rumus Essay (Contoh: betul * 10)" class="w-full p-3 rounded-xl border-none shadow-sm text-sm font-bold text-emerald-600">
-                <button id="btnHitung" class="w-full bg-blue-600 text-white font-black py-3 rounded-xl text-[10px] uppercase">Proses Hitung Rumus</button>
+            <p class="text-center font-black text-blue-600 text-[10px] italic uppercase tracking-wider">
+                *Kalau mau tau nilai aslinya silahkan masukan rumus kamu*
+            </p>
+            <div class="space-y-2">
+                <p class="text-[9px] font-bold text-slate-400 uppercase ml-2">Ketik Rumus PG Kamu</p>
+                <input type="text" id="r_pg" placeholder="Contoh: betul x 4 / total" class="w-full p-4 rounded-2xl bg-white shadow-sm font-bold text-sm border-none focus:ring-2 focus:ring-blue-500 outline-none">
             </div>
+            <div class="space-y-2">
+                <p class="text-[9px] font-bold text-slate-400 uppercase ml-2">Ketik Rumus Essay Kamu</p>
+                <input type="text" id="r_es" placeholder="Contoh: betul / total * 80" class="w-full p-4 rounded-2xl bg-white shadow-sm font-bold text-sm border-none focus:ring-2 focus:ring-blue-500 outline-none">
+            </div>
+            <button id="btnHitung" class="w-full bg-blue-600 text-white font-black py-4 rounded-3xl text-[10px] uppercase shadow-lg active:scale-95 transition">
+                Proses Hitung Rumus Sekarang
+            </button>
         </div>
 
-        <div id="boxHasil" class="space-y-3"></div>
-
+        <div id="jendelaHasil" class="space-y-4 pb-10"></div>
     </div>
 
     <script>
-        // Generate Input Kunci
-        for(let i=1; i<=20; i++) document.getElementById('pgArea').innerHTML += `<select id="p${i}" class="p-2 border rounded-lg text-[10px] font-bold"><option value="">${i}</option><option>A</option><option>B</option><option>C</option></select>`;
-        for(let i=1; i<=5; i++) document.getElementById('esArea').innerHTML += `<input type="text" id="e${i}" placeholder="Kunci Essay ${i}" class="w-full p-3 bg-slate-50 rounded-xl text-[11px] border-none outline-none font-bold">`;
+        // Generate Grid PG 1-20
+        const gridPG = document.getElementById('gridPG');
+        for(let i=1; i<=20; i++) {
+            gridPG.innerHTML += `
+                <select id="p${i}" class="p-2 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-bold outline-none focus:border-blue-500 transition">
+                    <option value="">${i}</option>
+                    <option value="A">A</option>
+                    <option value="B">B</option>
+                    <option value="C">C</option>
+                    <option value="D">D</option>
+                </select>`;
+        }
 
-        function listItems() {
-            const box = document.getElementById('fileBox');
+        // Generate Input Essay 1-5
+        const areaES = document.getElementById('areaES');
+        for(let i=1; i<=5; i++) {
+            areaES.innerHTML += `
+                <input type="text" id="e${i}" placeholder="Kunci Jawaban Essay No ${i}" 
+                class="w-full p-4 bg-slate-50 rounded-2xl text-[11px] font-bold outline-none border border-slate-100 focus:border-emerald-500 transition">`;
+        }
+
+        // Fungsi Update Nama File di UI
+        function updateFiles() {
             const list = document.getElementById('fileList');
-            const files = [...document.getElementById('inpCam').files, ...document.getElementById('inpFile').files];
-            if(files.length > 0) {
-                box.classList.remove('hidden');
-                list.innerHTML = files.map((f, i) => `<div>✅ Item ${i+1}: <b>${f.name}</b></div>`).join('');
+            const camFiles = document.getElementById('cam').files;
+            const uploadFiles = document.getElementById('file').files;
+            const allFiles = [...camFiles, ...uploadFiles];
+            
+            if(allFiles.length > 0) {
+                document.getElementById('fileStatus').classList.remove('hidden');
+                list.innerHTML = allFiles.map((f, i) => `<div>✅ Item ${i+1}: <b>${f.name}</b></div>`).join('');
             }
         }
 
-        let databaseAI = [];
+        let databaseHasilAI = [];
 
-        document.getElementById('btnKoreksi').onclick = async () => {
-            const btn = document.getElementById('btnKoreksi'); btn.innerText = "SEDANG MENGOREKSI...";
+        // Logika Tombol Koreksi AI
+        document.getElementById('btnAI').onclick = async () => {
+            const btn = document.getElementById('btnAI');
+            btn.innerText = "SEDANG MENGOREKSI...";
+            btn.disabled = true;
+
+            // Ambil Kunci
             const config = { kunci_pg: {}, kunci_essay: {} };
             for(let i=1; i<=20; i++) config.kunci_pg[i] = document.getElementById(`p${i}`).value;
             for(let i=1; i<=5; i++) config.kunci_essay[i] = document.getElementById(`e${i}`).value;
 
             const fd = new FormData();
             fd.append('data', JSON.stringify(config));
-            const files = [...document.getElementById('inpCam').files, ...document.getElementById('inpFile').files];
-            files.forEach(f => fd.append('foto', f));
-
-            const res = await fetch('/ai/proses-koreksi', { method: 'POST', body: fd });
-            const json = await res.json();
-            if(json.success) {
-                databaseAI = json.data;
-                const container = document.getElementById('boxKoreksi');
-                container.innerHTML = "";
-                databaseAI.forEach(s => {
-                    container.innerHTML += `<div class="card border-l-4 border-slate-900"><p class="text-xs font-bold uppercase">Nama: ${s.nama}</p><p class="text-[10px] text-slate-500">Betul PG: ${s.pg_betul} | Betul Essay: ${s.es_betul}</p></div>`;
-                });
-                document.getElementById('boxRumus').classList.remove('hidden');
+            
+            const allFiles = [...document.getElementById('cam').files, ...document.getElementById('file').files];
+            if(allFiles.length === 0) {
+                alert("Pilih foto dulu bos!");
+                btn.innerText = "Mulai Proses Koreksi AI";
+                btn.disabled = false;
+                return;
             }
+            allFiles.forEach(f => fd.append('foto', f));
+
+            try {
+                const res = await fetch('/ai/proses-koreksi', { method: 'POST', body: fd });
+                const json = await res.json();
+                
+                if(json.success) {
+                    databaseHasilAI = json.data;
+                    renderJendelaKoreksi();
+                    document.getElementById('boxRumus').classList.remove('hidden');
+                    window.scrollTo({ top: document.getElementById('boxRumus').offsetTop, behavior: 'smooth' });
+                }
+            } catch (e) {
+                alert("Gagal konek ke server!");
+            }
+            
             btn.innerText = "Mulai Proses Koreksi AI";
+            btn.disabled = false;
         };
 
-        document.getElementById('btnHitung').onclick = async () => {
-            const res = await fetch('/ai/hitung-rumus', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ data: databaseAI, rumus_pg: document.getElementById('rumus_pg').value, rumus_es: document.getElementById('rumus_es').value })
+        function renderJendelaKoreksi() {
+            const box = document.getElementById('jendelaKoreksi');
+            box.innerHTML = `<p class="text-center text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-4">Hasil Koreksi Murni AI</p>`;
+            databaseHasilAI.forEach(s => {
+                box.innerHTML += `
+                <div class="p-6 bg-white rounded-[32px] border-l-8 border-slate-900 shadow-sm">
+                    <p class="font-black text-sm uppercase text-slate-800">Nama Siswa: ${s.nama || 'Tanpa Nama'}</p>
+                    <div class="flex gap-4 mt-2">
+                        <p class="text-[10px] font-bold text-blue-600">Betul PG: ${s.pg_betul}</p>
+                        <p class="text-[10px] font-bold text-emerald-600">Betul Essay: ${s.es_betul}</p>
+                    </div>
+                </div>`;
             });
-            const json = await res.json();
-            if(json.success) {
-                const box = document.getElementById('boxHasil');
-                box.innerHTML = `<h2 class="text-center font-black text-[10px] text-blue-600 uppercase mt-6 mb-3">Laporan Hasil Rumus</h2>`;
-                json.hasil.forEach(s => {
-                    box.innerHTML += `<div class="card border-l-4 border-blue-600"><p class="text-xs font-bold uppercase">"Nama: ${s.nama}"</p><p class="text-2xl font-black mt-2 text-slate-900">Nilai: ${s.nilai_akhir}"</p></div>`;
+        }
+
+        // Logika Hitung Rumus & Laporan Akhir
+        document.getElementById('btnHitung').onclick = async () => {
+            const r_pg = document.getElementById('r_pg').value;
+            const r_es = document.getElementById('r_es').value;
+
+            try {
+                const res = await fetch('/ai/hitung-rumus', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ data: databaseHasilAI, rumus_pg: r_pg, rumus_es: r_es })
                 });
+                const json = await res.json();
+
+                if(json.success) {
+                    const box = document.getElementById('jendelaHasil');
+                    box.innerHTML = `<h2 class="text-center font-black text-[10px] text-blue-600 uppercase mt-10 mb-4 tracking-widest">Laporan Hasil Rumus</h2>`;
+                    
+                    json.hasil.forEach(s => {
+                        const pgSalah = s.pg_total - s.pg_betul;
+                        const esSalah = s.es_total - s.es_betul;
+
+                        box.innerHTML += `
+                        <div class="p-8 bg-white rounded-[40px] border-l-8 border-blue-600 shadow-xl mb-4">
+                            <p class="font-black text-sm uppercase mb-6 text-slate-800 tracking-tight">"Nama siswa : ${s.nama}"</p>
+                            
+                            <div class="space-y-1 mb-5 pb-5 border-b border-dashed border-slate-100">
+                                <p class="text-[11px] font-bold text-slate-500">Jumlah soal PG: ${s.pg_total}</p>
+                                <p class="text-[11px] font-bold text-emerald-600">Jawaban Pg betul: ${s.pg_betul}</p>
+                                <p class="text-[11px] font-bold text-red-500">PG salah: ${pgSalah}</p>
+                            </div>
+
+                            <div class="space-y-1 mb-8">
+                                <p class="text-[11px] font-bold text-slate-500">Soal Essay: ${s.es_total}</p>
+                                <p class="text-[11px] font-bold text-emerald-600">Essay betul: ${s.es_betul}</p>
+                                <p class="text-[11px] font-bold text-red-500">Salah: ${esSalah}</p>
+                            </div>
+
+                            <div class="flex justify-between items-end pt-5 border-t-2 border-slate-900">
+                                <span class="text-[10px] font-black text-blue-600 italic uppercase">Nilai Setelah Rumus :</span>
+                                <span class="text-5xl font-black text-slate-900 leading-none">${s.nilai_akhir || '0'}</span>
+                            </div>
+                        </div>
+                        
+                        <button class="w-full bg-white border-2 border-slate-900 py-5 rounded-[2rem] font-black text-[10px] uppercase flex items-center justify-center gap-2 mb-10 hover:bg-slate-900 hover:text-white transition group">
+                            <span class="text-lg group-hover:scale-125 transition">📄</span> Cetak Laporan Hasil Rumus (Word)
+                        </button>`;
+                    });
+                    window.scrollTo({ top: box.offsetTop, behavior: 'smooth' });
+                }
+            } catch (e) {
+                alert("Gagal menghitung rumus!");
             }
         };
     </script>
