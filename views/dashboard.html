@@ -114,7 +114,10 @@
         async function submitAuth() {
             const email = document.getElementById('authEmail').value;
             const password = document.getElementById('authPass').value;
+            
             if(!email) return alert("Email wajib diisi!");
+            // Validasi password hanya jika bukan mode 'forgot'
+            if(currentMode !== 'forgot' && !password) return alert("Password wajib diisi!");
 
             let endpoint = `/auth/${currentMode === 'reg' ? 'register' : (currentMode === 'forgot' ? 'forgot-password' : 'login')}`;
             
@@ -135,7 +138,7 @@
                         changeAuthMode('login');
                     }
                 } else {
-                    alert(data.message || "Terjadi kesalahan!");
+                    alert(data.message || "Email atau Password Salah!");
                 }
             } catch(e) { alert("Server tidak merespon!"); }
         }
@@ -157,7 +160,6 @@
 
         let dbData = [];
 
-        // FUNGSI UNTUK MERENDER LAPORAN KE LAYAR (BESAR & TEGAS)
         function tampilkanHasilKeLayar() {
             document.getElementById('scanAwal').innerHTML = dbData.map((s, index) => `
                 <div class="p-8 bg-white rounded-[40px] border-l-[16px] border-slate-900 shadow-lg space-y-6 mb-8 text-left">
@@ -203,7 +205,7 @@
             if(files.length === 0) return alert("Pilih foto terlebih dahulu!");
 
             btn.disabled = true;
-            dbData = []; // Reset data lama
+            dbData = []; 
 
             const conf = { kunci_pg: {}, kunci_essay: {} };
             for(let i=1; i<=20; i++) { 
@@ -215,7 +217,7 @@
                 if(v) conf.kunci_essay[i] = v; 
             }
 
-            const batchSize = 2; // SOLUSI: Kirim 2 foto per jalan agar tidak kena limit Groq
+            const batchSize = 2; // Mengirim per 2 foto agar tidak overload
             
             try {
                 for (let i = 0; i < files.length; i += batchSize) {
@@ -232,10 +234,10 @@
                     if(res.success) {
                         dbData = [...dbData, ...res.data];
                         document.getElementById('resWrap').classList.remove('hidden');
-                        tampilkanHasilKeLayar(); // Update tampilan setiap batch selesai
+                        tampilkanHasilKeLayar(); 
                     }
                 }
-            } catch(e) { alert("Terjadi kesalahan saat memproses batch!"); }
+            } catch(e) { alert("Gagal memproses beberapa file!"); }
             
             btn.innerText = "PROSES JAWABAN AI SELESAI";
             btn.disabled = false;
