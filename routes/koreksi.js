@@ -14,23 +14,29 @@ router.post('/proses-koreksi', async (req, res) => {
                 "messages": [
                     {
                         "role": "system",
-                        "content": "Anda adalah mesin Jawaban AI. Fokus pada Nama, PG (abaikan bekas hapusan pudar), dan Essay sesuai kunci yang diberikan saja."
+                        "content": "Anda adalah mesin Jawaban AI. Tugas Anda mengekstrak Nama dan mengoreksi jawaban siswa."
                     },
                     {
                         "role": "user",
                         "content": [
                             {
                                 "type": "text",
-                                "text": `INSTRUKSI KERJA JAWABAN AI:
-                                1. Ekstrak Nama Murid.
-                                2. Periksa PG dengan Kunci: ${JSON.stringify(settings.kunci_pg)}. 
-                                   - Teliti bekas penghapus! Hanya hitung silang yang paling HITAM dan TEBAL.
-                                   - Abaikan nomor soal yang tidak ada di kunci ini.
-                                3. Periksa Essay dengan Kunci: ${JSON.stringify(settings.kunci_essay)}.
+                                "text": `INSTRUKSI:
+                                1. Cari Nama Siswa.
+                                2. Koreksi PG kunci: ${JSON.stringify(settings.kunci_pg)}. (Hanya hitung yang ada di kunci).
+                                3. Koreksi Essay kunci: ${JSON.stringify(settings.kunci_essay)}.
                                 4. Hitung PG_BETUL, PG_SALAH, ESSAY_BETUL, ESSAY_SALAH.
-                                5. Gunakan Rumus PG: ${settings.rumus_pg} & Rumus Essay: ${settings.rumus_essay}.
-                                6. Nilai_Akhir = Hasil Skor PG + Hasil Skor Essay.
-                                BALAS HANYA JSON.`
+                                5. Hitung SKOR_PG_HASIL dengan rumus: ${settings.rumus_pg}.
+                                6. Hitung SKOR_ESSAY_HASIL dengan rumus: ${settings.rumus_essay}.
+                                7. NILAI_AKHIR = SKOR_PG_HASIL + SKOR_ESSAY_HASIL.
+
+                                OUTPUT WAJIB JSON:
+                                {
+                                    "nama": "...",
+                                    "pg_betul": 0, "pg_salah": 0, "skor_pg_hasil": 0,
+                                    "essay_betul": 0, "essay_salah": 0, "skor_essay_hasil": 0,
+                                    "nilai_akhir": 0
+                                }`
                             },
                             {
                                 "type": "image_url",
@@ -46,8 +52,8 @@ router.post('/proses-koreksi', async (req, res) => {
         }));
         res.json({ success: true, data: results });
     } catch (error) {
-        console.error("Maverick Error:", error);
-        res.status(500).json({ success: false });
+        console.error("AI Error:", error);
+        res.status(500).json({ success: false, message: "AI gagal memproses gambar." });
     }
 });
 
