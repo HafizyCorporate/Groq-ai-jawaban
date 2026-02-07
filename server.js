@@ -67,20 +67,47 @@ app.post('/auth/login', async (req, res) => {
     }
 });
 
+// DIPERBAIKI: Logika Forgot Password agar menggunakan transporter dengan benar
 app.post('/auth/forgot-password', async (req, res) => {
     const { email } = req.body;
+    const userExists = users.find(u => u.email === email);
+    
+    if (!userExists) {
+        return res.status(404).json({ success: false, message: "Email tidak terdaftar!" });
+    }
+
     const transporter = nodemailer.createTransport({
         service: 'gmail',
-        auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
+        auth: { 
+            user: process.env.EMAIL_USER, 
+            pass: process.env.EMAIL_PASS 
+        }
     });
+
     const mailOptions = {
         from: process.env.EMAIL_USER,
         to: email,
         subject: 'Reset Password JAWABAN AI',
-        text: `Halo, kode sementara: 123456 atau hubungi admin Versacy.`
+        html: `
+            <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+                <h2 style="color: #2563eb;">Pemulihan Akun JAWABAN AI</h2>
+                <p>Halo,</p>
+                <p>Kami menerima permintaan untuk pemulihan password akun Anda.</p>
+                <div style="background: #f1f5f9; padding: 15px; border-radius: 8px; font-size: 18px; font-weight: bold; text-align: center;">
+                    Kode Sementara: 123456
+                </div>
+                <p style="margin-top: 20px;">Silakan login menggunakan kode di atas atau hubungi <b>Admin Versacy</b> untuk bantuan lebih lanjut.</p>
+                <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+                <small style="color: #888;">Jika Anda tidak merasa meminta ini, abaikan email ini.</small>
+            </div>
+        `
     };
+
     transporter.sendMail(mailOptions, (err) => {
-        if (err) return res.status(500).json({ success: false, message: "Gagal kirim email" });
+        if (err) {
+            console.log(err);
+            return res.status(500).json({ success: false, message: "Gagal kirim email. Cek koneksi server." });
+        }
         res.json({ success: true, message: "Instruksi dikirim ke email " + email });
     });
 });
@@ -101,7 +128,7 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'views', 'dashboard.html'));
 });
 
-// --- BAGIAN YANG DIPERBAIKI (Sinkronisasi Variabel ke Frontend) ---
+// --- BAGIAN KOREKSI AI (TIDAK BERUBAH) ---
 app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
     try {
         if (!req.session.userId) return res.status(401).json({ success: false, message: "Silakan login dulu!" });
@@ -141,14 +168,13 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
                 namaTerakhir = aiData.nama_siswa;
             }
 
-            // --- Logika Pencatatan Nomor (PENTING) ---
             let pg_betul_list = [];
             for (let n in kunciPG) {
                 if (aiData.jawaban_pg_terdeteksi && aiData.jawaban_pg_terdeteksi[n] === kunciPG[n]) {
-                    pg_betul_list.push(parseInt(n)); // Simpan sebagai angka
+                    pg_betul_list.push(parseInt(n));
                 }
             }
-            pg_betul_list.sort((a, b) => a - b); // Urutkan nomor 1, 2, 3...
+            pg_betul_list.sort((a, b) => a - b);
 
             let es_betul_list = [];
             let es_betul_count = 0;
@@ -166,10 +192,10 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
                 pg_betul: pg_betul_list.length,
                 pg_total: Object.keys(kunciPG).length,
                 pg_salah: Object.keys(kunciPG).length - pg_betul_list.length,
-                list_pg_betul: pg_betul_list, // Variabel ini sekarang cocok dengan frontend
+                list_pg_betul: pg_betul_list,
                 es_betul: es_betul_count,
                 es_total: Object.keys(kunciES).length,
-                list_es_betul: es_betul_list, // Tambahan agar rincian essay juga muncul
+                list_es_betul: es_betul_list,
                 es_detail: aiData.essay_detail || []
             });
         }
