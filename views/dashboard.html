@@ -33,35 +33,24 @@
 
         /* --- PENYESUAIAN KHUSUS LAYAR HP (SEDANG & ENAK DIPANDANG) --- */
         @media (max-width: 767px) {
-            html { font-size: 15px; } /* Mengecilkan skala global agar tidak raksasa */
+            html { font-size: 15px; } 
             body { padding: 12px; }
-            
-            /* Mengecilkan border radius yang terlalu ekstrem di HP */
             .rounded-\[45px\], .rounded-\[40px\] { border-radius: 28px !important; }
             .rounded-\[35px\], .rounded-\[30px\] { border-radius: 20px !important; }
-
-            /* Menyesuaikan padding kontainer agar lebih compact */
             .p-10 { padding: 1.5rem !important; }
             .p-8 { padding: 1.2rem !important; }
             .py-8 { padding-top: 1.5rem !important; padding-bottom: 1.5rem !important; }
-
-            /* Ukuran font spesifik untuk elemen besar */
             .text-5xl { font-size: 2.5rem !important; }
             .text-3xl { font-size: 1.75rem !important; }
             .text-4xl { font-size: 2.2rem !important; }
             .text-6xl { font-size: 3rem !important; }
-
-            /* Grid PG agar tetap rapi */
             #gridPG { gap: 8px !important; }
-            
-            /* Dropdown PG di HP */
             select.key-dropdown {
-                font-size: 1.1rem !important; /* Ukuran angka di dropdown sedang */
+                font-size: 1.1rem !important;
                 padding: 0.8rem 0.4rem !important;
             }
         }
 
-        /* --- TETAP: SETTING KHUSUS LAYAR KOMPUTER --- */
         @media (min-width: 1024px) {
             #dashboardWrapper { 
                 max-width: 1200px !important; 
@@ -80,7 +69,6 @@
             body { background-color: #f1f5f9; }
         }
 
-        /* DEFAULT DROPDOWN (PC/TABLET) */
         select.key-dropdown {
             appearance: none;
             background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
@@ -152,10 +140,10 @@
                 <span class="text-xs font-black uppercase text-slate-500">Ambil Foto</span>
             </button>
             <button onclick="document.getElementById('file').click()" class="bg-white p-10 rounded-[35px] border-2 border-dashed border-slate-200 flex flex-col items-center">
-                <span class="text-5xl mb-2">📁</span>
-                <span class="text-xs font-black uppercase text-slate-500">File PDF</span>
+                <span class="text-5xl mb-2">🖼️</span>
+                <span class="text-xs font-black uppercase text-slate-500">File Gambar</span>
             </button>
-            <input type="file" id="file" multiple class="hidden" onchange="updateFileStatus(this)">
+            <input type="file" id="file" multiple class="hidden" onchange="updateFileStatus(this)" accept="image/*">
             <div id="stts" class="col-span-2 text-xs font-black text-blue-600 uppercase text-center italic">Belum ada file dipilih</div>
         </div>
 
@@ -276,7 +264,7 @@
                     <div class="flex justify-between items-start">
                         <div class="flex flex-col overflow-hidden">
                             <span class="text-xs font-black text-blue-500 uppercase italic">Siswa #${dbData.length - i}</span>
-                            <span class="text-3xl font-black text-slate-800 uppercase leading-tight">${s.nama || 'TIDAK TERBACA'}</span>
+                            <span class="text-3xl font-black text-slate-800 uppercase leading-tight">${s.nama || 'TIDACA TERBACA'}</span>
                         </div>
                         <div class="flex gap-3 shrink-0">
                             <div class="bg-blue-50 px-5 py-4 rounded-3xl text-center border border-blue-100">
