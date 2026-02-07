@@ -96,7 +96,7 @@
             
             <div id="scanAwal" class="space-y-4"></div>
 
-            <div class="bg-white p-6 rounded-[40px] border-t-4 border-blue-600 space-y-4 shadow-lg">
+            <div class="bg-white p-6 rounded-[32px] border-t-4 border-blue-600 space-y-4 shadow-lg">
                 <p class="text-center font-black text-blue-600 text-[10px] uppercase italic">*Masukan rumus penilaian kamu*</p>
                 <div class="grid grid-cols-1 gap-3">
                     <input type="text" id="r_pg" placeholder="Rumus PG (Contoh: betul * 4)" class="w-full p-4 bg-slate-50 rounded-2xl text-[11px] font-bold border border-slate-100 outline-none">
@@ -113,7 +113,6 @@
         let dbData = [];
         let currentMode = 'login';
 
-        // --- AUTH ---
         function changeAuthMode(mode) {
             currentMode = mode;
             const title = document.getElementById('authTitle');
@@ -147,7 +146,6 @@
 
         function logout() { location.reload(); }
 
-        // --- GRID GENERATOR ---
         const gPG = document.getElementById('gridPG');
         for(let i=1; i<=20; i++) {
             gPG.innerHTML += `<select id="p${i}" class="p-2 bg-slate-50 rounded-xl text-[10px] font-bold border border-slate-100 outline-none"><option value="">${i}</option><option>A</option><option>B</option><option>C</option><option>D</option></select>`;
@@ -159,7 +157,7 @@
 
         function updateFileStatus(input) { document.getElementById('stts').innerText = '✅ ' + input.files.length + ' File Terpilih'; }
 
-        // --- RENDER LOGIC (THE FIX) ---
+        // --- RENDER LOGIC (VERSI BOLD & BESAR) ---
         function tampilkanHasilKeLayar() {
             const resWrap = document.getElementById('resWrap');
             const container = document.getElementById('scanAwal');
@@ -168,27 +166,47 @@
 
             let finalHtml = "";
             dbData.forEach((s, index) => {
-                const essayDetail = s.es_detail || [];
+                const listNomor = s.pg_list_nomor || "Tidak ada yang betul";
+                const namaSiswa = s.nama && s.nama !== "TIDAK TERBACA" ? s.nama : "SISWA TANPA NAMA";
+                
                 finalHtml += `
-                <div class="p-8 bg-white rounded-[40px] border-l-[16px] border-slate-900 shadow-lg space-y-6 mb-8 text-left">
-                    <div class="border-b-2 border-dashed border-slate-200 pb-4">
-                        <p class="text-[12px] font-black text-blue-600 uppercase tracking-widest">Lembar Ke-${index + 1}</p>
-                        <p class="text-3xl font-black uppercase text-slate-900 mt-1">${s.nama || 'SISWA'}</p>
+                <div class="p-8 bg-white rounded-[40px] border-l-[20px] border-blue-600 shadow-2xl mb-10 text-left">
+                    <div class="border-b-4 border-slate-100 pb-6 mb-6">
+                        <p class="text-[14px] font-extrabold text-blue-600 uppercase tracking-[0.2em]">LEMBAR KE-${index + 1}</p>
+                        <h2 class="text-4xl font-black uppercase text-slate-900 leading-none mt-2">${namaSiswa}</h2>
                     </div>
-                    <div class="space-y-2">
-                        <p class="text-sm font-bold text-slate-500 uppercase">Betul PG: ${s.pg_betul || 0} | Betul Essay: ${s.es_betul || 0}</p>
+                    
+                    <div class="space-y-6">
+                        <div class="bg-slate-50 p-6 rounded-[30px] border border-slate-100">
+                            <p class="text-[12px] font-black text-slate-400 uppercase mb-2">Statistik Pilihan Ganda</p>
+                            <div class="flex items-center gap-4">
+                                <span class="text-6xl font-black text-blue-700">${s.pg_betul || 0}</span>
+                                <span class="text-xl font-bold text-slate-800 uppercase italic leading-tight">Jawaban<br>Benar</span>
+                            </div>
+                            <div class="mt-4 pt-4 border-t border-slate-200">
+                                <p class="text-[11px] font-black text-blue-500 uppercase mb-1 italic text-lg">Nomor Yang Betul:</p>
+                                <p class="text-3xl font-black text-slate-700 tracking-tight leading-tight">${listNomor}</p>
+                            </div>
+                        </div>
+
+                        <div class="bg-emerald-50 p-6 rounded-[30px] border border-emerald-100">
+                            <p class="text-[12px] font-black text-emerald-600 uppercase mb-2">Statistik Essay</p>
+                            <div class="flex items-center gap-4">
+                                <span class="text-6xl font-black text-emerald-700">${s.es_betul || 0}</span>
+                                <span class="text-xl font-bold text-slate-800 uppercase italic">Poin Essay</span>
+                            </div>
+                        </div>
                     </div>
                 </div>`;
             });
 
             container.innerHTML = finalHtml;
-
-            // JALUR PAKSA MUNCULKAN
             resWrap.classList.remove('hidden');
             resWrap.classList.add('force-show'); 
             
-            // Debugging Alert di HP
-            console.log("Rendering selesai. Status resWrap:", resWrap.className);
+            setTimeout(() => {
+                window.scrollTo({ top: resWrap.offsetTop - 20, behavior: 'smooth' });
+            }, 500);
         }
 
         function simpanKeRiwayat() { localStorage.setItem('riwayat_ai_v2', JSON.stringify(dbData)); }
@@ -206,7 +224,6 @@
             }
         }
 
-        // --- PROCESS AI ---
         document.getElementById('btnAI').onclick = async () => {
             const btn = document.getElementById('btnAI');
             const files = document.getElementById('file').files;
@@ -238,13 +255,8 @@
                     if(res.success && res.data) {
                         const rawData = Array.isArray(res.data) ? res.data : [res.data];
                         dbData = [...dbData, ...rawData];
-                        
                         tampilkanHasilKeLayar(); 
                         simpanKeRiwayat();
-
-                        // Scroll otomatis
-                        const resWrap = document.getElementById('resWrap');
-                        window.scrollTo({ top: resWrap.offsetTop - 20, behavior: 'smooth' });
                     }
                 }
                 btn.innerText = "PROSES SELESAI ✅";
@@ -255,7 +267,6 @@
             btn.disabled = false;
         };
 
-        // --- HITUNG RUMUS ---
         document.getElementById('btnHitung').onclick = async () => {
             if(dbData.length === 0) return alert("Laporan AI belum ada!");
             try {
@@ -276,17 +287,17 @@
                 json.hasil.forEach(s => {
                     reportHtml += `
                     <div class="p-8 bg-white rounded-[40px] border-l-[12px] border-blue-600 shadow-xl mt-6">
-                        <p class="font-black text-xl uppercase mb-6 italic">"NAMA: ${s.nama || ''}"</p>
+                        <p class="font-black text-3xl uppercase mb-6 italic leading-tight">"NAMA: ${s.nama || ''}"</p>
                         <div class="flex justify-between items-end pt-6 border-t-2 border-slate-900">
                             <span class="text-[14px] font-black text-blue-600 uppercase">Nilai Akhir :</span>
-                            <span class="text-5xl font-black text-slate-900 tracking-tighter">${s.nilai_akhir}</span>
+                            <span class="text-7xl font-black text-slate-900 tracking-tighter">${s.nilai_akhir}</span>
                         </div>
                     </div>`;
                 });
                 
                 box.innerHTML = reportHtml;
                 box.scrollIntoView({ behavior: 'smooth' });
-            } catch (e) { alert("Rumus tidak valid atau error server!"); }
+            } catch (e) { alert("Rumus tidak valid!"); }
         };
 
         async function prosesTambahToken() {
