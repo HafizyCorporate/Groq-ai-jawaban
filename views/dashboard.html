@@ -36,11 +36,21 @@
             100% { transform: scale(1); }
         }
 
+        /* --- ANIMASI MODAL ALERT --- */
+        @keyframes modalBounce {
+            0% { transform: scale(0.8); opacity: 0; }
+            70% { transform: scale(1.05); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .modal-animate {
+            animation: modalBounce 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
         /* --- PENYESUAIAN DESKTOP (KOMPUTER) --- */
         @media (min-width: 768px) {
             #authWrapper > div, 
             #dashboardWrapper {
-                max-width: 550px !important; /* Agar tidak melebar di PC */
+                max-width: 550px !important;
                 margin: 2rem auto !important;
                 padding: 2rem;
                 background: #ffffff;
@@ -52,6 +62,15 @@
     </style>
 </head>
 <body class="bg-slate-50 p-4 font-['Plus_Jakarta_Sans'] text-slate-900">
+
+    <div id="customAlertOverlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] hidden flex items-center justify-center p-6">
+        <div class="bg-white w-full max-w-sm rounded-[40px] p-8 shadow-2xl modal-animate text-center border border-slate-100">
+            <div id="alertIcon" class="text-6xl mb-4">⚠️</div>
+            <h3 id="alertTitle" class="text-xl font-black uppercase text-slate-800 mb-2 font-['Plus_Jakarta_Sans']">Pemberitahuan</h3>
+            <p id="alertMsg" class="text-sm font-bold text-slate-500 leading-relaxed mb-8 whitespace-pre-line font-['Plus_Jakarta_Sans']"></p>
+            <button onclick="closeAlert()" class="w-full bg-blue-600 text-white font-black py-5 rounded-[25px] text-xs uppercase shadow-lg shadow-blue-200 active:scale-95 transition">Oke, Mengerti</button>
+        </div>
+    </div>
 
     <div id="tokenBadge" class="fixed top-4 right-4 z-[110] hidden">
         <div class="bg-white/90 backdrop-blur-md border border-blue-100 px-5 py-3 rounded-full shadow-xl flex items-center gap-3">
@@ -145,6 +164,36 @@
         let currentMode = 'login';
         let currentToken = 0;
 
+        // --- FUNGSI MODAL ALERT KUSTOM ---
+        function showAlert(msg) {
+            const overlay = document.getElementById('customAlertOverlay');
+            const msgEl = document.getElementById('alertMsg');
+            const titleEl = document.getElementById('alertTitle');
+            const iconEl = document.getElementById('alertIcon');
+
+            msgEl.innerText = msg;
+            
+            if (msg.toLowerCase().includes("habis")) {
+                titleEl.innerText = "Token Habis!";
+                iconEl.innerText = "🎫";
+            } else if (msg.toLowerCase().includes("berhasil") || msg.toLowerCase().includes("sukses")) {
+                titleEl.innerText = "Berhasil!";
+                iconEl.innerText = "✅";
+            } else if (msg.toLowerCase().includes("salah") || msg.toLowerCase().includes("gagal")) {
+                titleEl.innerText = "Ups! Gagal";
+                iconEl.innerText = "❌";
+            } else {
+                titleEl.innerText = "Pemberitahuan";
+                iconEl.innerText = "⚠️";
+            }
+
+            overlay.classList.remove('hidden');
+        }
+
+        function closeAlert() {
+            document.getElementById('customAlertOverlay').classList.add('hidden');
+        }
+
         function changeAuthMode(mode) {
             currentMode = mode;
             const title = document.getElementById('authTitle');
@@ -157,7 +206,7 @@
         async function submitAuth() {
             const email = document.getElementById('authEmail').value;
             const password = document.getElementById('authPass').value;
-            if(!email) return alert("Email wajib diisi!");
+            if(!email) return showAlert("Email wajib diisi!");
             try {
                 const res = await fetch(`/auth/${currentMode === 'reg' ? 'register' : (currentMode === 'forgot' ? 'forgot-password' : 'login')}`, {
                     method: 'POST',
@@ -173,9 +222,9 @@
                         document.getElementById('tokenBadge').classList.remove('hidden');
                         document.getElementById('dashboardWrapper').classList.remove('opacity-0', 'pointer-events-none');
                         muatRiwayat();
-                    } else { alert(data.message); changeAuthMode('login'); }
-                } else { alert(data.message || "Gagal!"); }
-            } catch(e) { alert("Error Server!"); }
+                    } else { showAlert(data.message); changeAuthMode('login'); }
+                } else { showAlert(data.message || "Gagal!"); }
+            } catch(e) { showAlert("Error Server!"); }
         }
 
         function updateTokenDisplay(val) {
@@ -211,7 +260,7 @@
                 const namaSiswa = s.nama && s.nama !== "TIDAK TERBACA" ? s.nama : "SISWA TANPA NAMA";
                 
                 finalHtml += `
-                <div class="p-10 bg-white rounded-[45px] border-l-[24px] border-blue-600 shadow-2xl mb-12 text-left">
+                <div class="p-10 bg-white rounded-[45px] border-l-[24px] border-blue-600 shadow-2xl mb-12 text-left text-['Plus_Jakarta_Sans']">
                     <div class="border-b-4 border-slate-100 pb-8 mb-8">
                         <p class="text-[16px] font-extrabold text-blue-600 uppercase tracking-[0.2em]">LEMBAR KE-${index + 1}</p>
                         <h2 class="text-5xl font-black uppercase text-slate-900 leading-tight mt-3">${namaSiswa}</h2>
@@ -254,6 +303,8 @@
             }
         }
         function hapusRiwayat() {
+            // Menggunakan Modal Kustom butuh logika confirm berbeda, 
+            // sementara pakai confirm asli untuk keamanan penghapusan data.
             if(confirm("Bersihkan semua laporan?")) {
                 dbData = []; localStorage.removeItem('riwayat_ai_v2');
                 location.reload();
@@ -263,7 +314,7 @@
         document.getElementById('btnAI').onclick = async () => {
             const btn = document.getElementById('btnAI');
             const files = document.getElementById('file').files;
-            if(files.length === 0) return alert("Silakan ambil foto atau pilih file dulu!");
+            if(files.length === 0) return showAlert("Silakan ambil foto atau pilih file dulu!");
 
             btn.disabled = true;
             btn.innerHTML = `<span class="loader"></span> MEMPROSES...`;
@@ -295,18 +346,18 @@
                         else updateTokenDisplay(currentToken - 1);
                         tampilkanHasilKeLayar(); 
                         simpanKeRiwayat();
-                    } else { alert(res.message || "Gagal!"); break; }
+                    } else { showAlert(res.message || "Gagal!"); break; }
                 }
                 btn.innerText = "PROSES SELESAI ✅";
             } catch(e) { 
-                alert("Koneksi gagal!"); 
+                showAlert("Koneksi gagal!"); 
                 btn.innerText = "COBA LAGI";
             }
             btn.disabled = false;
         };
 
         document.getElementById('btnHitung').onclick = async () => {
-            if(dbData.length === 0) return alert("Belum ada data!");
+            if(dbData.length === 0) return showAlert("Belum ada data!");
             try {
                 const res = await fetch('/ai/hitung-rumus', {
                     method: 'POST',
@@ -335,21 +386,21 @@
                 
                 box.innerHTML = reportHtml;
                 box.scrollIntoView({ behavior: 'smooth' });
-            } catch (e) { alert("Rumus salah!"); }
+            } catch (e) { showAlert("Rumus salah!"); }
         };
 
         async function prosesTambahToken() {
             const emailTarget = document.getElementById('targetEmail').value;
             const jumlahToken = document.getElementById('paketToken').value;
-            if(!emailTarget) return alert("Isi email!");
+            if(!emailTarget) return showAlert("Isi email!");
             try {
                 const res = await fetch('/admin/tambah-token', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ emailTarget, jumlahToken })
                 });
-                const d = await res.json(); alert(d.message);
-            } catch(e) { alert("Gagal!"); }
+                const d = await res.json(); showAlert(d.message);
+            } catch(e) { showAlert("Gagal!"); }
         }
     </script>
 </body>
