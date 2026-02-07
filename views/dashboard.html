@@ -37,6 +37,23 @@
             <button onclick="location.reload()" class="bg-red-50 text-red-500 px-4 py-2 rounded-full text-[10px] font-black uppercase">Keluar</button>
         </div>
 
+        <div id="adminPanel" class="hidden bg-slate-900 p-6 rounded-[40px] shadow-xl border-2 border-blue-500 mb-6">
+            <p class="text-[10px] font-black text-blue-400 uppercase mb-4 tracking-widest text-center">💎 DASHBOARD ADMIN VERSACY</p>
+            <div class="space-y-3">
+                <input type="email" id="targetEmail" placeholder="Email Pelanggan" class="w-full p-4 bg-slate-800 text-white rounded-2xl text-xs font-bold outline-none border border-slate-700">
+                <select id="paketToken" class="w-full p-4 bg-slate-800 text-white rounded-2xl text-[10px] font-bold outline-none border border-slate-700">
+                    <option value="100">Rp 5.000 = 100 Token</option>
+                    <option value="210">Rp 10.000 = 210 Token</option>
+                    <option value="350">Rp 20.000 = 350 Token</option>
+                    <option value="1500">Rp 50.000 = 1500 Token</option>
+                    <option value="4000">Rp 100.000 = 4000 Token</option>
+                </select>
+                <button onclick="prosesTambahToken()" class="w-full bg-blue-600 text-white font-black py-4 rounded-2xl text-[10px] uppercase shadow-lg active:scale-95 transition">
+                    TAMBAH TOKEN SEKARANG
+                </button>
+            </div>
+        </div>
+
         <div class="grid grid-cols-2 gap-4">
             <button onclick="document.getElementById('file').click()" class="bg-white p-8 rounded-[32px] border-2 border-dashed border-slate-200 flex flex-col items-center">
                 <span class="text-2xl mb-2">📸</span>
@@ -130,6 +147,10 @@
 
                 if(data.success) {
                     if(currentMode === 'login') {
+                        // TAMPILKAN PANEL ADMIN JIKA YANG LOGIN ADALAH VERSACY
+                        if(email.toLowerCase() === "versacy") {
+                            document.getElementById('adminPanel').classList.remove('hidden');
+                        }
                         document.getElementById('authWrapper').classList.add('hidden');
                         document.getElementById('dashboardWrapper').classList.remove('opacity-0', 'pointer-events-none');
                     } else {
@@ -140,6 +161,24 @@
                     alert(data.message || "Email atau Password Salah!");
                 }
             } catch(e) { alert("Server tidak merespon!"); }
+        }
+
+        // ================= LOGIKA ADMIN =================
+        async function prosesTambahToken() {
+            const emailTarget = document.getElementById('targetEmail').value;
+            const jumlahToken = document.getElementById('paketToken').value;
+
+            if(!emailTarget) return alert("Masukkan email pelanggan!");
+
+            try {
+                const res = await fetch('/admin/tambah-token', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ emailTarget, jumlahToken })
+                });
+                const data = await res.json();
+                alert(data.message);
+            } catch(e) { alert("Gagal menghubungi server!"); }
         }
 
         // ================= KODE DASHBOARD =================
@@ -230,14 +269,12 @@
                     const req = await fetch('/ai/proses-koreksi', { method: 'POST', body: fd });
                     const res = await req.json();
                     
-                    // CEK LIMIT KUOTA DARI SERVER
                     if(res.limitReached) {
-                        const pesanWA = encodeURIComponent("Halo Admin Versacy, saya ingin beli paket koreksi AI. Mohon bantuannya.");
-                        alert("⚠️ LIMIT TERCAPAI!\n\nJatah gratis Anda habis. Silahkan hubungi Admin Versacy.");
-                        window.open(`https://wa.me/6282240400388?text=${pesanWA}`, "_blank");
+                        alert(res.message); // Memunculkan "MAAF TOKEN ANDA HABIS..."
+                        window.open("https://wa.me/6282240400388", "_blank");
                         btn.innerText = "HUBUNGI ADMIN (WA)";
                         btn.disabled = false;
-                        return; // Berhenti proses
+                        return; 
                     }
 
                     if(res.success) {
