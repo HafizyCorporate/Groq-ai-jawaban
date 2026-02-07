@@ -7,58 +7,67 @@ router.post('/proses-koreksi', async (req, res) => {
     try {
         const settings = JSON.parse(req.body.data);
         const kunciPG = Object.fromEntries(Object.entries(settings.kunci_pg).filter(([_, v]) => v !== ""));
-        const kunciES = Object.fromEntries(Object.entries(settings.kunci_essay).filter(([_, v]) => v !== ""));
+        
+        // Cek jika tidak ada file yang diunggah
+        if (!req.files || req.files.length === 0) {
+            return res.status(400).json({ success: false, message: "Tidak ada foto" });
+        }
 
         const results = await Promise.all(req.files.map(async (file) => {
             const base64 = file.buffer.toString("base64");
 
             const response = await groq.chat.completions.create({
-                "model": "meta-llama/llama-3.2-11b-vision-preview", // Pastikan pakai model Vision
+                "model": "meta-llama/llama-3.2-11b-vision-preview",
                 "messages": [{
                     "role": "user",
                     "content": [
                         {
                             "type": "text",
-                            "text": `INSTRUKSI KETAT:
-                            1. Lihat gambar lembar soal ini. Cari tanda silang (X) atau coretan berwarna MERAH pada pilihan jawaban A, B, atau C.
-                            2. Bandingkan pilihan yang disilang siswa dengan Kunci PG berikut: ${JSON.stringify(kunciPG)}.
-                            3. Periksa jawaban tertulis untuk Essay dan bandingkan dengan Kunci Essay: ${JSON.stringify(kunciES)}.
-                            4. Cari nama siswa di bagian atas kertas.
+                            "text": `Tugas: Koreksi lembar soal ini.
+                            1. Identifikasi Nama Siswa di bagian atas.
+                            2. Cari tanda silang (X) berwarna MERAH. Jika ada coretan merah pada opsi (A, B, atau C), itulah jawaban siswa.
+                            3. Bandingkan dengan Kunci Jawaban ini: ${JSON.stringify(kunciPG)}.
+                            4. Hitung berapa yang cocok (betul).
                             
-                            HASIL HARUS JSON:
+                            Output harus JSON murni:
                             {
-                                "nama": "Nama Siswa yang ditemukan",
-                                "pg_betul": (jumlah kecocokan PG),
+                                "nama": "Nama Siswa",
+                                "pg_betul": 0,
                                 "pg_total": ${Object.keys(kunciPG).length},
-                                "es_betul": (jumlah kecocokan Essay),
-                                "es_total": ${Object.keys(kunciES).length}
+                                "es_betul": 0,
+                                "es_total": 5
                             }`
                         },
                         { "type": "image_url", "image_url": { "url": `data:image/jpeg;base64,${base64}` } }
                     ]
                 }],
-                "temperature": 0.1, // Suhu rendah agar AI lebih teliti/kaku
+                "temperature": 0,
                 "response_format": { "type": "json_object" }
             });
+            
             return JSON.parse(response.choices[0].message.content);
         }));
+
         res.json({ success: true, data: results });
-    } catch (err) { res.status(500).json({ success: false }); }
+    } catch (err) {
+        console.error("Error AI:", err);
+        res.status(500).json({ success: false, message: err.message });
+    }
 });
 
 router.post('/hitung-rumus', async (req, res) => {
     try {
         const { data, rumus_pg, rumus_es } = req.body;
-        const finalResults = data.map(s => {
+        const hasilFinal = data.map(s => {
             const hitung = (rumus, betul, total) => {
+                if(!rumus) return 0;
                 try {
-                    if(!rumus) return 0;
-                    let expr = rumus.toLowerCase()
-                                    .replace(/betul/g, betul)
-                                    .replace(/total/g, total)
-                                    .replace(/x/g, '*');
-                    expr = expr.replace(/[^0-9+\-*/().]/g, ''); 
-                    return eval(expr) || 0;
+                    let f = rumus.toLowerCase()
+                                .replace(/betul/g, betul)
+                                .replace(/total/g, total)
+                                .replace(/x/g, '*');
+                    f = f.replace(/[^0-9+\-*/().]/g, ''); 
+                    return eval(f) || 0;
                 } catch (e) { return 0; }
             };
 
@@ -66,7 +75,7 @@ router.post('/hitung-rumus', async (req, res) => {
             const nES = hitung(rumus_es, s.es_betul, s.es_total);
             return { ...s, nilai_akhir: Math.round((nPG + nES) * 10) / 10 };
         });
-        res.json({ success: true, hasil: finalResults });
+        res.json({ success: true, hasil: hasilFinal });
     } catch (err) { res.status(500).json({ success: false }); }
 });
 
