@@ -69,10 +69,10 @@
                 <p id="authTitle" class="text-[12px] font-black text-blue-600 uppercase tracking-widest text-center">Selamat Datang Kembali</p>
                 <input type="email" id="authEmail" placeholder="Email Anda" class="w-full p-5 bg-slate-50 rounded-2xl text-sm font-bold border border-slate-100 outline-none focus:border-blue-400">
                 <input type="password" id="authPass" placeholder="Password" class="w-full p-5 bg-slate-50 rounded-2xl text-sm font-bold border border-slate-100 outline-none focus:border-blue-400">
-                <button onclick="submitAuth()" class="w-full bg-[#0f172a] text-white font-black py-6 rounded-[30px] text-xs uppercase shadow-xl active:scale-95 transition">MASUK SEKARANG</button>
+                <button id="btnAuthAction" onclick="submitAuth()" class="w-full bg-[#0f172a] text-white font-black py-6 rounded-[30px] text-xs uppercase shadow-xl active:scale-95 transition">MASUK SEKARANG</button>
                 <div class="flex justify-between px-2 text-[10px] font-bold uppercase">
-                    <button onclick="changeAuthMode('forgot')" class="text-slate-400">Lupa?</button>
-                    <button onclick="changeAuthMode('reg')" class="text-blue-600">Daftar Akun</button>
+                    <button id="forgotBtn" onclick="changeAuthMode('forgot')" class="text-slate-400">Lupa?</button>
+                    <button id="authToggleBtn" onclick="changeAuthMode('reg')" class="text-blue-600">Daftar Akun</button>
                 </div>
             </div>
         </div>
@@ -182,6 +182,54 @@
             gES.innerHTML += `<input id="e${i}" placeholder="Kunci Essay No ${i}" class="w-full p-4 bg-slate-50 rounded-2xl text-sm font-bold border border-slate-100 outline-none">`;
         }
 
+        function changeAuthMode(mode) {
+            currentMode = mode;
+            const title = document.getElementById('authTitle');
+            const btn = document.getElementById('btnAuthAction');
+            const toggleBtn = document.getElementById('authToggleBtn');
+
+            if(mode === 'reg') {
+                title.innerText = "Daftar Akun Baru";
+                btn.innerText = "DAFTAR SEKARANG";
+                toggleBtn.innerText = "Login";
+                toggleBtn.onclick = () => changeAuthMode('login');
+            } else {
+                title.innerText = "Selamat Datang Kembali";
+                btn.innerText = "MASUK SEKARANG";
+                toggleBtn.innerText = "Daftar Akun";
+                toggleBtn.onclick = () => changeAuthMode('reg');
+            }
+        }
+
+        async function submitAuth() {
+            const email = document.getElementById('authEmail').value;
+            const password = document.getElementById('authPass').value;
+            if(!email || !password) return showAlert("Email dan Password wajib diisi!");
+            
+            const endpoint = currentMode === 'reg' ? '/auth/register' : '/auth/login';
+
+            try {
+                const res = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await res.json();
+                if(data.success) {
+                    if(currentMode === 'login') {
+                        updateTokenDisplay(data.token || 0);
+                        document.getElementById('authWrapper').classList.add('hidden');
+                        document.getElementById('tokenBadge').classList.remove('hidden');
+                        document.getElementById('dashboardWrapper').classList.remove('opacity-0', 'pointer-events-none');
+                        muatRiwayat();
+                    } else {
+                        showAlert("Pendaftaran Berhasil! Silakan Login.");
+                        changeAuthMode('login');
+                    }
+                } else { showAlert(data.message); }
+            } catch(e) { showAlert("Error Server!"); }
+        }
+
         function toggleHistory() {
             const content = document.getElementById('historyContent');
             const btn = document.getElementById('btnToggleText');
@@ -196,7 +244,6 @@
             const historyToggle = document.getElementById('historyToggle');
             if(!dbData.length) return;
 
-            // Logika Sembunyikan History: Tampilkan hanya 5 terbaru
             const dataTerbaru = [...dbData].reverse().slice(0, 5);
             const dataLama = [...dbData].reverse().slice(5);
 
@@ -226,28 +273,6 @@
             }
 
             document.getElementById('resWrap').classList.add('force-show');
-        }
-
-        // --- Sisanya Fungsi Logic (AI, Auth, Hitung) Tetap Sesuai Kemu ---
-        async function submitAuth() {
-            const email = document.getElementById('authEmail').value;
-            const password = document.getElementById('authPass').value;
-            if(!email) return showAlert("Isi email!");
-            try {
-                const res = await fetch(`/auth/${currentMode === 'reg' ? 'register' : 'login'}`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ email, password })
-                });
-                const data = await res.json();
-                if(data.success) {
-                    updateTokenDisplay(data.token || 0);
-                    document.getElementById('authWrapper').classList.add('hidden');
-                    document.getElementById('tokenBadge').classList.remove('hidden');
-                    document.getElementById('dashboardWrapper').classList.remove('opacity-0', 'pointer-events-none');
-                    muatRiwayat();
-                } else { showAlert(data.message); }
-            } catch(e) { showAlert("Error Server!"); }
         }
 
         function updateTokenDisplay(val) {
