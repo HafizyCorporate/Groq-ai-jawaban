@@ -8,7 +8,30 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
 </head>
 <body class="bg-slate-50 p-4 font-['Plus_Jakarta_Sans'] text-slate-900">
-    <div class="max-w-md mx-auto space-y-6">
+
+    <div id="authWrapper" class="fixed inset-0 bg-slate-50 z-[100] flex flex-col items-center justify-center p-6">
+        <div class="max-w-md w-full space-y-6">
+            <h1 class="text-3xl font-black italic uppercase text-center">JAWABAN <span class="text-blue-600">AI</span></h1>
+            
+            <div class="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 space-y-4">
+                <p id="authTitle" class="text-[10px] font-black text-blue-600 uppercase tracking-widest text-center">Selamat Datang Kembali</p>
+                
+                <input type="email" id="authEmail" placeholder="Email Anda" class="w-full p-4 bg-slate-50 rounded-2xl text-xs font-bold outline-none border border-slate-100">
+                <input type="password" id="authPass" placeholder="Password" class="w-full p-4 bg-slate-50 rounded-2xl text-xs font-bold outline-none border border-slate-100">
+                
+                <button id="btnAuthAction" onclick="submitAuth()" class="w-full bg-[#0f172a] text-white font-black py-5 rounded-[28px] text-[10px] uppercase shadow-xl active:scale-95 transition">
+                    MASUK SEKARANG
+                </button>
+                
+                <div class="flex justify-between px-2">
+                    <button onclick="changeAuthMode('forgot')" class="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Lupa Password?</button>
+                    <button onclick="changeAuthMode('reg')" id="authToggleBtn" class="text-[9px] font-bold text-blue-600 uppercase tracking-tighter">Daftar Akun Baru</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="dashboardWrapper" class="max-w-md mx-auto space-y-6 opacity-0 pointer-events-none transition-opacity duration-500">
         <div class="flex justify-between items-center py-4">
             <h1 class="text-xl font-black italic uppercase">JAWABAN <span class="text-blue-600">AI</span></h1>
             <button onclick="location.reload()" class="bg-red-50 text-red-500 px-4 py-2 rounded-full text-[10px] font-black uppercase">Keluar</button>
@@ -59,7 +82,66 @@
     </div>
 
     <script>
-        // Generate Grid PG (1-20, Opsi A-D)
+        // ================= LOGIKA AUTH (Baru) =================
+        let currentMode = 'login';
+
+        function changeAuthMode(mode) {
+            currentMode = mode;
+            const title = document.getElementById('authTitle');
+            const btn = document.getElementById('btnAuthAction');
+            const passInput = document.getElementById('authPass');
+            const toggleBtn = document.getElementById('authToggleBtn');
+
+            if(mode === 'reg') {
+                title.innerText = "Daftar Akun Baru";
+                btn.innerText = "DAFTAR SEKARANG";
+                passInput.style.display = "block";
+                toggleBtn.innerText = "Sudah Punya Akun? Login";
+            } else if (mode === 'forgot') {
+                title.innerText = "Pemulihan Kata Sandi";
+                btn.innerText = "KIRIM KODE KE EMAIL";
+                passInput.style.display = "none";
+                toggleBtn.innerText = "Kembali ke Login";
+            } else {
+                currentMode = 'login';
+                title.innerText = "Selamat Datang Kembali";
+                btn.innerText = "MASUK SEKARANG";
+                passInput.style.display = "block";
+                toggleBtn.innerText = "Daftar Akun Baru";
+            }
+        }
+
+        async function submitAuth() {
+            const email = document.getElementById('authEmail').value;
+            const password = document.getElementById('authPass').value;
+            if(!email) return alert("Email wajib diisi!");
+
+            let endpoint = `/auth/${currentMode === 'reg' ? 'register' : (currentMode === 'forgot' ? 'forgot-password' : 'login')}`;
+            
+            try {
+                const res = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await res.json();
+
+                if(data.success) {
+                    if(currentMode === 'login') {
+                        // Jika login sukses, buka dashboard
+                        document.getElementById('authWrapper').classList.add('hidden');
+                        document.getElementById('dashboardWrapper').classList.remove('opacity-0', 'pointer-events-none');
+                    } else {
+                        alert(data.message);
+                        changeAuthMode('login');
+                    }
+                } else {
+                    alert(data.message || "Terjadi kesalahan!");
+                }
+            } catch(e) { alert("Server tidak merespon!"); }
+        }
+
+        // ================= KODE ASLI KAMU (Tidak Dirubah) =================
         const gPG = document.getElementById('gridPG');
         for(let i=1; i<=20; i++) {
             gPG.innerHTML += `
@@ -69,7 +151,6 @@
                 </select>`;
         }
         
-        // Generate Grid Essay (1-5)
         const gES = document.getElementById('gridES');
         for(let i=1; i<=5; i++) {
             gES.innerHTML += `<input id="e${i}" placeholder="Kunci Jawaban Essay No ${i}" class="w-full p-4 bg-slate-50 rounded-2xl text-[10px] font-bold outline-none border border-slate-100">`;
@@ -77,7 +158,6 @@
 
         let dbData = [];
 
-        // Logika Tombol PROSES JAWABAN AI
         document.getElementById('btnAI').onclick = async () => {
             const btn = document.getElementById('btnAI');
             const files = document.getElementById('file').files;
@@ -107,7 +187,6 @@
                 
                 if(res.success) {
                     dbData = res.data;
-                    // Jendela hasil dan rumus muncul di sini
                     document.getElementById('resWrap').classList.remove('hidden');
                     document.getElementById('scanAwal').innerHTML = dbData.map(s => `
                         <div class="p-6 bg-white rounded-3xl border-l-8 border-slate-900 shadow-sm">
@@ -122,7 +201,6 @@
             btn.disabled = false;
         };
 
-        // Logika Hitung Rumus
         document.getElementById('btnHitung').onclick = async () => {
             const res = await fetch('/ai/hitung-rumus', {
                 method: 'POST',
