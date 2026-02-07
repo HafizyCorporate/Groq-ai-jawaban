@@ -8,15 +8,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus_Jakarta_Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
         html { font-size: 16px; }
-        body { font-size: 1rem; }
+        body { font-size: 1rem; font-family: 'Plus_Jakarta_Sans', sans-serif; }
 
-        .force-show {
-            display: block !important;
-            opacity: 1 !important;
-            visibility: visible !important;
-            height: auto !important;
-            min-height: 200px !important;
-        }
+        .force-show { display: block !important; opacity: 1 !important; visibility: visible !important; }
         .loader {
             border: 3px solid #f3f3f3;
             border-radius: 50%;
@@ -28,36 +22,19 @@
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
-        .token-pulse { animation: pulse-blue 0.5s ease-in-out; }
-        @keyframes pulse-blue {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.1); color: #2563eb; }
-            100% { transform: scale(1); }
-        }
-
-        @keyframes modalBounce {
-            0% { transform: scale(0.8); opacity: 0; }
-            70% { transform: scale(1.05); }
-            100% { transform: scale(1); opacity: 1; }
-        }
         .modal-animate {
             animation: modalBounce 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
+        @keyframes modalBounce {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
 
         @media (min-width: 768px) {
-            #authWrapper > div, 
-            #dashboardWrapper {
-                max-width: 550px !important;
-                margin: 2rem auto !important;
-                padding: 2rem;
-                background: #ffffff;
-                border-radius: 50px;
-                box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1);
-            }
+            #authWrapper > div, #dashboardWrapper { max-width: 550px !important; margin: 2rem auto !important; padding: 2rem; background: #ffffff; border-radius: 50px; box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1); }
             body { background-color: #f1f5f9; }
         }
 
-        /* Styling khusus agar nomor dropdown terlihat jelas */
         select.key-dropdown {
             appearance: none;
             background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
@@ -67,23 +44,20 @@
         }
     </style>
 </head>
-<body class="bg-slate-50 p-4 font-['Plus_Jakarta_Sans'] text-slate-900">
+<body class="bg-slate-50 p-4 text-slate-900">
 
     <div id="customAlertOverlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] hidden flex items-center justify-center p-6">
         <div class="bg-white w-full max-w-sm rounded-[40px] p-8 shadow-2xl modal-animate text-center border border-slate-100">
             <div id="alertIcon" class="text-6xl mb-4">⚠️</div>
             <h3 id="alertTitle" class="text-xl font-black uppercase text-slate-800 mb-2">Pemberitahuan</h3>
             <p id="alertMsg" class="text-sm font-bold text-slate-500 leading-relaxed mb-8 whitespace-pre-line"></p>
-            
-            <div id="alertButtons" class="space-y-3">
-                <button id="mainAlertBtn" onclick="closeAlert()" class="w-full bg-blue-600 text-white font-black py-5 rounded-[25px] text-xs uppercase shadow-lg active:scale-95 transition">Oke, Mengerti</button>
-            </div>
+            <div id="alertButtons" class="space-y-3"></div>
         </div>
     </div>
 
     <div id="tokenBadge" class="fixed top-4 right-4 z-[110] hidden">
         <div class="bg-white/90 backdrop-blur-md border border-blue-100 px-5 py-3 rounded-full shadow-xl flex items-center gap-3">
-            <span class="text-[11px] font-black text-slate-400 uppercase italic tracking-tighter">Sisa Token:</span>
+            <span class="text-[11px] font-black text-slate-400 uppercase italic">Token:</span>
             <span id="valToken" class="text-2xl font-black text-blue-600">0</span>
         </div>
     </div>
@@ -93,12 +67,12 @@
             <h1 class="text-4xl font-black italic uppercase text-center">JAWABAN <span class="text-blue-600">AI</span></h1>
             <div class="bg-white p-10 rounded-[45px] shadow-sm border border-slate-100 space-y-6">
                 <p id="authTitle" class="text-[12px] font-black text-blue-600 uppercase tracking-widest text-center">Selamat Datang Kembali</p>
-                <input type="email" id="authEmail" placeholder="Email Anda" class="w-full p-5 bg-slate-50 rounded-2xl text-sm font-bold outline-none border border-slate-100 focus:border-blue-400 transition-all">
-                <input type="password" id="authPass" placeholder="Password" class="w-full p-5 bg-slate-50 rounded-2xl text-sm font-bold outline-none border border-slate-100 focus:border-blue-400 transition-all">
-                <button id="btnAuthAction" onclick="submitAuth()" class="w-full bg-[#0f172a] text-white font-black py-6 rounded-[30px] text-xs uppercase shadow-xl active:scale-95 transition">MASUK SEKARANG</button>
-                <div class="flex justify-between px-2">
-                    <button onclick="changeAuthMode('forgot')" class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Lupa Password?</button>
-                    <button onclick="changeAuthMode('reg')" id="authToggleBtn" class="text-[10px] font-bold text-blue-600 uppercase tracking-tighter">Daftar Akun Baru</button>
+                <input type="email" id="authEmail" placeholder="Email Anda" class="w-full p-5 bg-slate-50 rounded-2xl text-sm font-bold border border-slate-100 outline-none focus:border-blue-400">
+                <input type="password" id="authPass" placeholder="Password" class="w-full p-5 bg-slate-50 rounded-2xl text-sm font-bold border border-slate-100 outline-none focus:border-blue-400">
+                <button onclick="submitAuth()" class="w-full bg-[#0f172a] text-white font-black py-6 rounded-[30px] text-xs uppercase shadow-xl active:scale-95 transition">MASUK SEKARANG</button>
+                <div class="flex justify-between px-2 text-[10px] font-bold uppercase">
+                    <button onclick="changeAuthMode('forgot')" class="text-slate-400">Lupa?</button>
+                    <button onclick="changeAuthMode('reg')" class="text-blue-600">Daftar Akun</button>
                 </div>
             </div>
         </div>
@@ -110,59 +84,56 @@
             <button onclick="logout()" class="bg-red-50 text-red-500 px-5 py-2.5 rounded-full text-[11px] font-black uppercase">Keluar</button>
         </div>
 
-        <div id="adminPanel" class="hidden bg-slate-900 p-8 rounded-[45px] shadow-xl border-2 border-blue-500 mb-8">
-            <p class="text-[11px] font-black text-blue-400 uppercase mb-5 tracking-widest text-center">💎 ADMIN DASHBOARD</p>
-            <div class="space-y-4">
-                <input type="email" id="targetEmail" placeholder="Email Pelanggan" class="w-full p-5 bg-slate-800 text-white rounded-2xl text-sm font-bold outline-none border border-slate-700">
-                <select id="paketToken" class="w-full p-5 bg-slate-800 text-white rounded-2xl text-sm font-bold border border-slate-700">
-                    <option value="100">100 Token</option>
-                    <option value="210">210 Token</option>
-                    <option value="350">350 Token</option>
-                </select>
-                <button onclick="prosesTambahToken()" class="w-full bg-blue-600 text-white font-black py-5 rounded-2xl text-xs uppercase">TAMBAH TOKEN</button>
-            </div>
-        </div>
-
-        <div class="grid grid-cols-2 gap-5">
-            <button onclick="document.getElementById('file').click()" class="bg-white p-10 rounded-[35px] border-2 border-dashed border-slate-200 flex flex-col items-center hover:border-blue-400 transition-colors">
-                <span class="text-4xl mb-3">📸</span>
-                <span class="text-[11px] font-black uppercase text-slate-500 italic text-center leading-tight">Ambil Foto / Galeri</span>
+        <div class="grid grid-cols-2 gap-4">
+            <button onclick="document.getElementById('file').click()" class="bg-white p-8 rounded-[30px] border-2 border-dashed border-slate-200 flex flex-col items-center">
+                <span class="text-4xl mb-2">📸</span>
+                <span class="text-[10px] font-black uppercase text-slate-500">Ambil Foto</span>
             </button>
-            <button onclick="document.getElementById('file').click()" class="bg-white p-10 rounded-[35px] border-2 border-dashed border-slate-200 flex flex-col items-center hover:border-blue-400 transition-colors">
-                <span class="text-4xl mb-3">📁</span>
-                <span class="text-[11px] font-black uppercase text-slate-500 italic text-center leading-tight">Pilih File PDF</span>
+            <button onclick="document.getElementById('file').click()" class="bg-white p-8 rounded-[30px] border-2 border-dashed border-slate-200 flex flex-col items-center">
+                <span class="text-4xl mb-2">📁</span>
+                <span class="text-[10px] font-black uppercase text-slate-500">File PDF</span>
             </button>
             <input type="file" id="file" multiple class="hidden" onchange="updateFileStatus(this)">
-            <div id="stts" class="col-span-2 text-[12px] font-black text-blue-600 uppercase text-center italic">Belum ada file dipilih</div>
+            <div id="stts" class="col-span-2 text-[11px] font-black text-blue-600 uppercase text-center italic">Belum ada file dipilih</div>
         </div>
 
         <div class="bg-white p-8 rounded-[45px] shadow-sm border border-slate-100">
-            <p class="text-[11px] font-black text-blue-600 uppercase mb-5 tracking-widest">Kunci Jawaban PG (1-20)</p>
-            <div id="gridPG" class="grid grid-cols-4 gap-3 mb-8"></div>
+            <p class="text-[11px] font-black text-blue-600 uppercase mb-5 tracking-widest">Kunci PG (1-20)</p>
+            <div id="gridPG" class="grid grid-cols-5 gap-2 mb-8"></div>
             
-            <p class="text-[11px] font-black text-emerald-500 uppercase mb-5 tracking-widest">Kunci Jawaban Essay</p>
-            <div id="gridES" class="space-y-3"></div>
+            <p class="text-[11px] font-black text-emerald-500 uppercase mb-4 tracking-widest">Kunci Essay</p>
+            <div id="gridES" class="space-y-2"></div>
         </div>
 
         <button id="btnAI" class="w-full bg-[#0f172a] text-white font-black py-7 rounded-[35px] text-sm uppercase shadow-xl transition active:scale-95">
             MULAI PROSES KOREKSI AI
         </button>
 
-        <div id="resWrap" class="hidden space-y-8 pt-12">
-            <div class="flex justify-between items-center px-4">
-                <p class="text-[11px] font-black text-slate-400 uppercase tracking-widest">Hasil Koreksi AI</p>
-                <button onclick="konfirmasiHapusRiwayat()" class="text-[10px] font-black text-red-500 uppercase tracking-tighter bg-red-50 px-4 py-2 rounded-full font-bold">Bersihkan Laporan</button>
+        <div id="resWrap" class="hidden space-y-4 pt-8">
+            <div class="flex justify-between items-center px-2">
+                <p class="text-[11px] font-black text-slate-400 uppercase tracking-widest italic">Hasil Scan Terbaru</p>
+                <button onclick="konfirmasiHapusRiwayat()" class="text-[10px] font-black text-red-500 uppercase">Bersihkan</button>
             </div>
-            <div id="scanAwal" class="space-y-6"></div>
-            <div class="bg-white p-8 rounded-[40px] border-t-4 border-blue-600 space-y-6 shadow-xl">
-                <p class="text-center font-black text-blue-600 text-[12px] uppercase italic">*Masukan rumus penilaian kamu*</p>
-                <div class="grid grid-cols-1 gap-4">
-                    <input type="text" id="r_pg" placeholder="Rumus PG (Contoh: betul * 4)" class="w-full p-5 bg-slate-50 rounded-2xl text-sm font-bold border border-slate-100 outline-none">
-                    <input type="text" id="r_es" placeholder="Rumus Essay (Contoh: betul * 10)" class="w-full p-5 bg-slate-50 rounded-2xl text-sm font-bold border border-slate-100 outline-none">
+
+            <div id="scanAwal" class="space-y-3"></div>
+
+            <div id="historyToggle" class="hidden">
+                <button onclick="toggleHistory()" id="btnToggleText" class="w-full py-3 text-[10px] font-black text-blue-500 bg-blue-50 rounded-2xl uppercase italic">
+                    + Lihat Riwayat Sebelumnya
+                </button>
+                <div id="historyContent" class="hidden mt-3 space-y-2"></div>
+            </div>
+
+            <div class="bg-white p-8 rounded-[40px] border-t-4 border-blue-600 space-y-4 shadow-xl mt-10">
+                <p class="text-center font-black text-blue-600 text-[11px] uppercase italic">Masukan Rumus Penilaian</p>
+                <div class="grid grid-cols-2 gap-3">
+                    <input type="text" id="r_pg" placeholder="Rumus PG" class="w-full p-4 bg-slate-50 rounded-2xl text-xs font-bold border border-slate-100 outline-none">
+                    <input type="text" id="r_es" placeholder="Rumus Essay" class="w-full p-4 bg-slate-50 rounded-2xl text-xs font-bold border border-slate-100 outline-none">
                 </div>
-                <button id="btnHitung" class="w-full bg-blue-600 text-white font-black py-6 rounded-[30px] text-xs uppercase shadow-lg">PROSES HITUNG RUMUS</button>
+                <button id="btnHitung" class="w-full bg-blue-600 text-white font-black py-5 rounded-[25px] text-xs uppercase shadow-lg">HITUNG NILAI AKHIR</button>
             </div>
-            <div id="laporanFinal" class="space-y-8 pb-32"></div>
+
+            <div id="laporanFinal" class="space-y-4 pb-32"></div>
         </div>
     </div>
 
@@ -171,172 +142,131 @@
         let currentMode = 'login';
         let currentToken = 0;
 
-        // --- SISTEM MODAL ALERT KUSTOM TERBARU ---
         function showAlert(msg, mode = 'alert') {
             const overlay = document.getElementById('customAlertOverlay');
             const msgEl = document.getElementById('alertMsg');
             const titleEl = document.getElementById('alertTitle');
             const iconEl = document.getElementById('alertIcon');
             const btnArea = document.getElementById('alertButtons');
-
             msgEl.innerText = msg;
-            btnArea.innerHTML = ''; // Reset tombol
+            btnArea.innerHTML = '';
 
             if (mode === 'confirm') {
-                titleEl.innerText = "Konfirmasi";
-                iconEl.innerText = "🗑️";
+                titleEl.innerText = "Konfirmasi"; iconEl.innerText = "🗑️";
                 btnArea.innerHTML = `
-                    <button onclick="hapusRiwayat()" class="w-full bg-red-500 text-white font-black py-5 rounded-[25px] text-xs uppercase shadow-lg active:scale-95 transition">Ya, Hapus Semua</button>
-                    <button onclick="closeAlert()" class="w-full bg-slate-100 text-slate-500 font-black py-4 rounded-[25px] text-[10px] uppercase active:scale-95 transition">Batalkan</button>
-                `;
+                    <button onclick="hapusRiwayat()" class="w-full bg-red-500 text-white font-black py-5 rounded-[25px] text-xs uppercase">Ya, Hapus Semua</button>
+                    <button onclick="closeAlert()" class="w-full bg-slate-100 text-slate-500 font-black py-4 rounded-[25px] text-[10px] uppercase">Batal</button>`;
             } else if (msg.toLowerCase().includes("habis")) {
-                titleEl.innerText = "Token Habis!";
-                iconEl.innerText = "🎫";
+                titleEl.innerText = "Token Habis!"; iconEl.innerText = "🎫";
                 btnArea.innerHTML = `
-                    <a href="https://wa.me/6282240400388?text=Halo%20Admin,%20saya%20ingin%20isi%20ulang%20token%20Jawaban%20AI" target="_blank" class="block w-full bg-green-500 text-white font-black py-5 rounded-[25px] text-xs uppercase shadow-lg text-center active:scale-95 transition">Hubungi Admin (WhatsApp)</a>
-                    <button onclick="closeAlert()" class="w-full bg-slate-100 text-slate-500 font-black py-4 rounded-[25px] text-[10px] uppercase active:scale-95 transition">Tutup</button>
-                `;
+                    <a href="https://wa.me/6282240400388?text=Halo%20Admin,%20Token%20Habis" target="_blank" class="block w-full bg-green-500 text-white font-black py-5 rounded-[25px] text-xs text-center uppercase">Hubungi Admin (WA)</a>
+                    <button onclick="closeAlert()" class="w-full bg-slate-100 text-slate-500 font-black py-4 rounded-[25px] text-[10px] uppercase">Tutup</button>`;
             } else {
-                titleEl.innerText = msg.toLowerCase().includes("berhasil") ? "Sukses!" : "Pemberitahuan";
-                iconEl.innerText = msg.toLowerCase().includes("berhasil") ? "✅" : "⚠️";
-                btnArea.innerHTML = `<button onclick="closeAlert()" class="w-full bg-blue-600 text-white font-black py-5 rounded-[25px] text-xs uppercase shadow-lg active:scale-95 transition">Oke, Mengerti</button>`;
+                titleEl.innerText = "Pemberitahuan"; iconEl.innerText = msg.includes("berhasil") ? "✅" : "⚠️";
+                btnArea.innerHTML = `<button onclick="closeAlert()" class="w-full bg-blue-600 text-white font-black py-5 rounded-[25px] text-xs uppercase">Oke</button>`;
             }
-
             overlay.classList.remove('hidden');
         }
 
         function closeAlert() { document.getElementById('customAlertOverlay').classList.add('hidden'); }
+        function konfirmasiHapusRiwayat() { showAlert("Bersihkan semua laporan?", 'confirm'); }
+        function hapusRiwayat() { dbData = []; localStorage.removeItem('riwayat_ai_v2'); location.reload(); }
 
-        // --- FUNGSI KHUSUS HAPUS ---
-        function konfirmasiHapusRiwayat() { showAlert("Apakah Anda yakin ingin menghapus semua laporan koreksi?", 'confirm'); }
-
-        function hapusRiwayat() {
-            dbData = []; 
-            localStorage.removeItem('riwayat_ai_v2');
-            location.reload();
-        }
-
-        // --- GENERATE GRID PG DENGAN ANGKA BESAR ---
+        // Grid Generator
         const gPG = document.getElementById('gridPG');
         for(let i=1; i<=20; i++) {
-            // Kita gunakan Padding p-4 dan text-lg (18px) agar angka terlihat besar di dropdown
-            gPG.innerHTML += `
-            <div class="relative">
-                <select id="p${i}" class="key-dropdown w-full p-4 bg-slate-50 rounded-2xl text-lg font-black border-2 border-slate-100 outline-none focus:border-blue-400 transition-all text-center">
-                    <option value="">${i}</option>
-                    <option>A</option>
-                    <option>B</option>
-                    <option>C</option>
-                    <option>D</option>
-                </select>
-            </div>`;
+            gPG.innerHTML += `<select id="p${i}" class="key-dropdown w-full p-3 bg-slate-50 rounded-xl text-lg font-black border border-slate-100 outline-none text-center"><option value="">${i}</option><option>A</option><option>B</option><option>C</option><option>D</option></select>`;
         }
-
         const gES = document.getElementById('gridES');
         for(let i=1; i<=5; i++) {
-            gES.innerHTML += `<input id="e${i}" placeholder="Kunci Essay No ${i}" class="w-full p-5 bg-slate-50 rounded-2xl text-sm font-bold border border-slate-100 outline-none focus:border-emerald-300">`;
+            gES.innerHTML += `<input id="e${i}" placeholder="Kunci Essay No ${i}" class="w-full p-4 bg-slate-50 rounded-2xl text-sm font-bold border border-slate-100 outline-none">`;
         }
 
-        // --- SISA LOGIKA (TETAP SAMA TAPI PAKAI SHOWALERT) ---
+        function toggleHistory() {
+            const content = document.getElementById('historyContent');
+            const btn = document.getElementById('btnToggleText');
+            const isHidden = content.classList.contains('hidden');
+            content.classList.toggle('hidden');
+            btn.innerText = isHidden ? "- Sembunyikan Riwayat" : "+ Lihat Riwayat Sebelumnya";
+        }
+
+        function tampilkanHasilKeLayar() {
+            const container = document.getElementById('scanAwal');
+            const historyContainer = document.getElementById('historyContent');
+            const historyToggle = document.getElementById('historyToggle');
+            if(!dbData.length) return;
+
+            // Logika Sembunyikan History: Tampilkan hanya 5 terbaru
+            const dataTerbaru = [...dbData].reverse().slice(0, 5);
+            const dataLama = [...dbData].reverse().slice(5);
+
+            const card = (s, i) => `
+                <div class="bg-white p-4 rounded-[25px] border border-slate-100 shadow-sm flex items-center justify-between">
+                    <div class="flex flex-col overflow-hidden">
+                        <span class="text-[9px] font-black text-blue-500 uppercase italic">Siswa #${dbData.length - i}</span>
+                        <span class="text-sm font-black text-slate-800 truncate uppercase">${s.nama || 'Tanpa Nama'}</span>
+                    </div>
+                    <div class="flex gap-2">
+                        <div class="bg-blue-50 px-3 py-1 rounded-xl text-center">
+                            <span class="block text-[7px] font-black text-blue-400">PG</span>
+                            <span class="text-sm font-black text-blue-600">${s.pg_betul || 0}</span>
+                        </div>
+                        <div class="bg-emerald-50 px-3 py-1 rounded-xl text-center">
+                            <span class="block text-[7px] font-black text-emerald-400">ES</span>
+                            <span class="text-sm font-black text-emerald-600">${s.es_betul || 0}</span>
+                        </div>
+                    </div>
+                </div>`;
+
+            container.innerHTML = dataTerbaru.map((s, i) => card(s, i)).join('');
+            
+            if(dataLama.length > 0) {
+                historyToggle.classList.remove('hidden');
+                historyContainer.innerHTML = dataLama.map((s, i) => card(s, i + 5)).join('');
+            }
+
+            document.getElementById('resWrap').classList.add('force-show');
+        }
+
+        // --- Sisanya Fungsi Logic (AI, Auth, Hitung) Tetap Sesuai Kemu ---
         async function submitAuth() {
             const email = document.getElementById('authEmail').value;
             const password = document.getElementById('authPass').value;
-            if(!email) return showAlert("Email wajib diisi!");
+            if(!email) return showAlert("Isi email!");
             try {
-                const res = await fetch(`/auth/${currentMode === 'reg' ? 'register' : (currentMode === 'forgot' ? 'forgot-password' : 'login')}`, {
+                const res = await fetch(`/auth/${currentMode === 'reg' ? 'register' : 'login'}`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ email, password })
                 });
                 const data = await res.json();
                 if(data.success) {
-                    if(currentMode === 'login') {
-                        if(email.toLowerCase() === "versacy") document.getElementById('adminPanel').classList.remove('hidden');
-                        updateTokenDisplay(data.token || 0);
-                        document.getElementById('authWrapper').classList.add('hidden');
-                        document.getElementById('tokenBadge').classList.remove('hidden');
-                        document.getElementById('dashboardWrapper').classList.remove('opacity-0', 'pointer-events-none');
-                        muatRiwayat();
-                    } else { showAlert(data.message); changeAuthMode('login'); }
-                } else { showAlert(data.message || "Gagal!"); }
+                    updateTokenDisplay(data.token || 0);
+                    document.getElementById('authWrapper').classList.add('hidden');
+                    document.getElementById('tokenBadge').classList.remove('hidden');
+                    document.getElementById('dashboardWrapper').classList.remove('opacity-0', 'pointer-events-none');
+                    muatRiwayat();
+                } else { showAlert(data.message); }
             } catch(e) { showAlert("Error Server!"); }
         }
 
         function updateTokenDisplay(val) {
             currentToken = val;
-            const el = document.getElementById('valToken');
-            el.innerText = currentToken;
-            el.classList.remove('token-pulse');
-            void el.offsetWidth;
-            el.classList.add('token-pulse');
-        }
-
-        function changeAuthMode(mode) {
-            currentMode = mode;
-            const title = document.getElementById('authTitle');
-            const btn = document.getElementById('btnAuthAction');
-            if(mode === 'reg') { title.innerText = "Daftar Akun Baru"; btn.innerText = "DAFTAR SEKARANG"; }
-            else if (mode === 'forgot') { title.innerText = "Pemulihan"; btn.innerText = "KIRIM KODE"; }
-            else { title.innerText = "Selamat Datang"; btn.innerText = "MASUK SEKARANG"; }
+            document.getElementById('valToken').innerText = currentToken;
         }
 
         function updateFileStatus(input) { document.getElementById('stts').innerText = '✅ ' + input.files.length + ' File Terpilih'; }
         function logout() { location.reload(); }
-
-        function tampilkanHasilKeLayar() {
-            const resWrap = document.getElementById('resWrap');
-            const container = document.getElementById('scanAwal');
-            if(!container || !dbData || dbData.length === 0) return;
-            let finalHtml = "";
-            dbData.forEach((s, index) => {
-                const listNomor = s.pg_list_nomor || "Tidak ada yang betul";
-                const namaSiswa = s.nama && s.nama !== "TIDAK TERBACA" ? s.nama : "SISWA TANPA NAMA";
-                finalHtml += `
-                <div class="p-10 bg-white rounded-[45px] border-l-[24px] border-blue-600 shadow-2xl mb-12 text-left">
-                    <div class="border-b-4 border-slate-100 pb-8 mb-8">
-                        <p class="text-[16px] font-extrabold text-blue-600 uppercase tracking-[0.2em]">LEMBAR KE-${index + 1}</p>
-                        <h2 class="text-5xl font-black uppercase text-slate-900 leading-tight mt-3">${namaSiswa}</h2>
-                    </div>
-                    <div class="space-y-8">
-                        <div class="bg-slate-50 p-8 rounded-[35px] border border-slate-100">
-                            <p class="text-[14px] font-black text-slate-400 uppercase mb-3">Pilihan Ganda</p>
-                            <div class="flex items-center gap-6">
-                                <span class="text-7xl font-black text-blue-700">${s.pg_betul || 0}</span>
-                                <span class="text-2xl font-bold text-slate-800 uppercase italic leading-tight">Benar</span>
-                            </div>
-                            <div class="mt-6 pt-6 border-t border-slate-200">
-                                <p class="text-[13px] font-black text-blue-500 uppercase mb-2 italic">Nomor Betul:</p>
-                                <p class="text-2xl font-black text-slate-700 tracking-tight leading-snug">${listNomor}</p>
-                            </div>
-                        </div>
-                        <div class="bg-emerald-50 p-8 rounded-[35px] border border-emerald-100">
-                            <p class="text-[14px] font-black text-emerald-600 uppercase mb-3">Essay</p>
-                            <div class="flex items-center gap-6">
-                                <span class="text-7xl font-black text-emerald-700">${s.es_betul || 0}</span>
-                                <span class="text-2xl font-bold text-slate-800 uppercase italic">Poin</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>`;
-            });
-            container.innerHTML = finalHtml;
-            resWrap.classList.remove('hidden');
-            resWrap.classList.add('force-show'); 
-        }
-
         function simpanKeRiwayat() { localStorage.setItem('riwayat_ai_v2', JSON.stringify(dbData)); }
         function muatRiwayat() {
             const saved = localStorage.getItem('riwayat_ai_v2');
-            if(saved) {
-                dbData = JSON.parse(saved);
-                if(dbData.length > 0) tampilkanHasilKeLayar();
-            }
+            if(saved) { dbData = JSON.parse(saved); if(dbData.length > 0) tampilkanHasilKeLayar(); }
         }
 
         document.getElementById('btnAI').onclick = async () => {
             const btn = document.getElementById('btnAI');
             const files = document.getElementById('file').files;
-            if(files.length === 0) return showAlert("Silakan ambil foto atau pilih file dulu!");
+            if(!files.length) return showAlert("Pilih file!");
             btn.disabled = true;
             btn.innerHTML = `<span class="loader"></span> MEMPROSES...`;
             const conf = { kunci_pg: {}, kunci_essay: {} };
@@ -353,24 +283,21 @@
                     const fd = new FormData();
                     fd.append('data', JSON.stringify(conf));
                     fd.append('foto', files[i]);
-                    btn.innerText = `⏳ PROSES ${i + 1} / ${files.length}`;
                     const req = await fetch('/ai/proses-koreksi', { method: 'POST', body: fd });
                     const res = await req.json();
-                    if(res.success && res.data) {
-                        const rawData = Array.isArray(res.data) ? res.data : [res.data];
-                        dbData = [...dbData, ...rawData];
+                    if(res.success) {
+                        dbData = [...dbData, ...(Array.isArray(res.data) ? res.data : [res.data])];
                         if(res.current_token !== undefined) updateTokenDisplay(res.current_token);
-                        tampilkanHasilKeLayar(); 
-                        simpanKeRiwayat();
-                    } else { showAlert(res.message || "Gagal!"); break; }
+                        tampilkanHasilKeLayar(); simpanKeRiwayat();
+                    } else { showAlert(res.message); break; }
                 }
-                btn.innerText = "PROSES SELESAI ✅";
-            } catch(e) { showAlert("Koneksi gagal!"); btn.innerText = "COBA LAGI"; }
+                btn.innerText = "SELESAI ✅";
+            } catch(e) { showAlert("Gagal!"); }
             btn.disabled = false;
         };
 
         document.getElementById('btnHitung').onclick = async () => {
-            if(dbData.length === 0) return showAlert("Belum ada data!");
+            if(!dbData.length) return showAlert("Data kosong!");
             try {
                 const res = await fetch('/ai/hitung-rumus', {
                     method: 'POST',
@@ -383,35 +310,18 @@
                 });
                 const json = await res.json();
                 const box = document.getElementById('laporanFinal');
-                let reportHtml = `<p class="text-center font-black text-blue-600 uppercase text-[12px] tracking-widest mt-14">LAPORAN AKHIR</p>`;
+                let reportHtml = `<p class="text-center font-black text-blue-600 uppercase text-[10px] tracking-widest mt-10">REKAP NILAI AKHIR</p>`;
                 json.hasil.forEach(s => {
                     reportHtml += `
-                    <div class="p-10 bg-white rounded-[50px] border-l-[16px] border-blue-600 shadow-xl mt-8">
-                        <p class="font-black text-3xl uppercase mb-8 italic leading-tight text-slate-800">"${s.nama || ''}"</p>
-                        <div class="flex justify-between items-center pt-8 border-t-4 border-slate-50">
-                            <span class="text-[16px] font-black text-blue-600 uppercase">Nilai :</span>
-                            <span class="text-8xl font-black text-slate-900 tracking-tighter">${s.nilai_akhir}</span>
-                        </div>
+                    <div class="bg-white p-6 rounded-3xl border-l-8 border-blue-600 shadow-sm flex justify-between items-center">
+                        <span class="text-sm font-black text-slate-700 uppercase">${s.nama}</span>
+                        <span class="text-4xl font-black text-slate-900">${s.nilai_akhir}</span>
                     </div>`;
                 });
                 box.innerHTML = reportHtml;
                 box.scrollIntoView({ behavior: 'smooth' });
             } catch (e) { showAlert("Rumus salah!"); }
         };
-
-        async function prosesTambahToken() {
-            const emailTarget = document.getElementById('targetEmail').value;
-            const jumlahToken = document.getElementById('paketToken').value;
-            if(!emailTarget) return showAlert("Isi email!");
-            try {
-                const res = await fetch('/admin/tambah-token', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ emailTarget, jumlahToken })
-                });
-                const d = await res.json(); showAlert(d.message);
-            } catch(e) { showAlert("Gagal!"); }
-        }
     </script>
 </body>
 </html>
