@@ -67,7 +67,7 @@ app.post('/auth/login', async (req, res) => {
     }
 });
 
-// LOGIKA FORGOT PASSWORD (Disesuaikan agar tidak gantung)
+// LOGIKA FORGOT PASSWORD - DISINKRONKAN AGAR TIDAK HANG/JAM PASIR
 app.post('/auth/forgot-password', async (req, res) => {
     const { email } = req.body;
     const userExists = users.find(u => u.email === email);
@@ -76,13 +76,16 @@ app.post('/auth/forgot-password', async (req, res) => {
         return res.status(404).json({ success: false, message: "Email tidak terdaftar!" });
     }
 
+    // Gunakan port 465 (Secure) karena lebih stabil untuk Cloud/Railway
     const transporter = nodemailer.createTransport({
-        service: 'gmail',
+        host: 'smtp.gmail.com',
+        port: 465,
+        secure: true, 
         auth: { 
-            user: process.env.EMAIL_USER, 
-            pass: process.env.EMAIL_PASS 
+            user: process.env.EMAIL_USER?.trim(), // Menghapus spasi liar
+            pass: process.env.EMAIL_PASS?.replace(/\s+/g, '') // Menghapus spasi/enter di tengah
         },
-        connectionTimeout: 10000 // Matikan koneksi jika lebih dari 10 detik
+        connectionTimeout: 10000 // Berhenti jika 10 detik tidak konek
     });
 
     const mailOptions = {
@@ -106,8 +109,9 @@ app.post('/auth/forgot-password', async (req, res) => {
 
     transporter.sendMail(mailOptions, (err) => {
         if (err) {
-            console.log("Error Email:", err);
-            return res.status(500).json({ success: false, message: "Gagal kirim email. Pastikan App Password Gmail benar." });
+            console.error("Gagal kirim email detail:", err);
+            // Memberikan respon error ke frontend agar jam pasir berhenti
+            return res.status(500).json({ success: false, message: "Server Gagal Mengirim Email. Cek Kredensial Railway!" });
         }
         res.json({ success: true, message: "Instruksi dikirim ke email " + email });
     });
