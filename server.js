@@ -67,7 +67,7 @@ app.post('/auth/login', async (req, res) => {
     }
 });
 
-// LOGIKA FORGOT PASSWORD - MENGGUNAKAN PORT 587 UNTUK MENGATASI TIMEOUT
+// LOGIKA FORGOT PASSWORD - OPTIMASI UNTUK RAILWAY
 app.post('/auth/forgot-password', async (req, res) => {
     const { email } = req.body;
     const userExists = users.find(u => u.email === email);
@@ -76,22 +76,17 @@ app.post('/auth/forgot-password', async (req, res) => {
         return res.status(404).json({ success: false, message: "Email tidak terdaftar!" });
     }
 
-    // --- BAGIAN PEMBERSIH (CLEANER) ---
+    // PEMBERSIH VARIABEL (MENGHAPUS SPASI & ENTER)
     const cleanEmail = process.env.EMAIL_USER ? process.env.EMAIL_USER.trim() : "";
     const cleanPass = process.env.EMAIL_PASS ? process.env.EMAIL_PASS.replace(/\s+/g, '') : "";
 
+    // KONFIGURASI TRANSPORTER (GMAIL SMTP)
     const transporter = nodemailer.createTransport({
-        host: 'smtp.gmail.com',
-        port: 587, // Ganti ke 587
-        secure: false, // Wajib false untuk port 587
+        service: 'gmail',
         auth: { 
             user: cleanEmail, 
             pass: cleanPass 
-        },
-        tls: {
-            rejectUnauthorized: false // Membantu koneksi di lingkungan cloud seperti Railway
-        },
-        connectionTimeout: 15000 // Menambah waktu tunggu menjadi 15 detik
+        }
     });
 
     const mailOptions = {
@@ -113,11 +108,16 @@ app.post('/auth/forgot-password', async (req, res) => {
         `
     };
 
-    transporter.sendMail(mailOptions, (err) => {
+    // EKSEKUSI PENGIRIMAN
+    transporter.sendMail(mailOptions, (err, info) => {
         if (err) {
-            console.error("Gagal kirim email detail:", err);
-            return res.status(500).json({ success: false, message: "Gagal kirim email. Cek Kredensial Railway!" });
+            console.error("❌ ERROR NODEMAILER:", err.message);
+            return res.status(500).json({ 
+                success: false, 
+                message: "Gagal kirim email. Pastikan password di Railway sudah RAPAT tanpa spasi!" 
+            });
         }
+        console.log("✅ EMAIL TERKIRIM:", info.response);
         res.json({ success: true, message: "Instruksi dikirim ke email " + email });
     });
 });
@@ -138,7 +138,7 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'views', 'dashboard.html'));
 });
 
-// --- BAGIAN KOREKSI AI (TIDAK BERUBAH) ---
+// --- BAGIAN KOREKSI AI ---
 app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
     try {
         if (!req.session.userId) return res.status(401).json({ success: false, message: "Silakan login dulu!" });
@@ -239,4 +239,4 @@ app.post('/ai/hitung-rumus', (req, res) => {
     res.json({ success: true, hasil });
 });
 
-app.listen(port, () => console.log(`Server Ready on Port ${port}`));
+app.listen(port, () => console.log(`🚀 Server Berjalan di Port ${port}`));
