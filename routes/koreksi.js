@@ -3,7 +3,7 @@ const router = express.Router();
 const Groq = require("groq-sdk");
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-// PROSES 1: Koreksi Gambar
+// PROSES 1: KOREKSI GAMBAR
 router.post('/proses-koreksi', async (req, res) => {
     try {
         const settings = JSON.parse(req.body.data);
@@ -18,18 +18,17 @@ router.post('/proses-koreksi', async (req, res) => {
                     "content": [
                         {
                             "type": "text",
-                            "text": `TUGAS KOREKSI:
-                            1. Nama: Ambil dari kertas, jangan mengarang.
-                            2. PG: Kunci ${JSON.stringify(settings.kunci_pg)}.
-                            3. Essay: Kunci ${JSON.stringify(settings.kunci_essay)}.
-                            4. Essay Salah: Jelaskan singkat di bagian mana siswa salah (misal: Kurang lengkap, salah konsep, dll).
+                            "text": `TUGAS: Periksa lembar jawaban ini.
+                            1. NAMA: Cari nama di kertas. Jika tidak ada tulis "Siswa Tanpa Nama". (JANGAN NGARANG).
+                            2. PG: Bandingkan silang/coretan (merah/hitam) dengan Kunci: ${JSON.stringify(settings.kunci_pg)}.
+                            3. ESSAY: Gunakan Kunci: ${JSON.stringify(settings.kunci_essay)}. Jika tidak ada essay di gambar, beri skor 0.
+                            4. DETAIL: Jelaskan singkat jika essay salah.
                             
-                            OUTPUT JSON:
+                            HASIL WAJIB JSON:
                             {
                                 "nama": "...",
-                                "total_pg_soal": ${totalPG},
-                                "pg_betul": 0, "pg_salah": 0,
-                                "essay_betul": 0, "essay_salah": 0,
+                                "pg_betul": 0, "pg_salah": 0, "total_pg_soal": ${totalPG},
+                                "essay_betul": 0, "essay_salah": 0, "total_essay_soal": 5,
                                 "penjelasan_essay_salah": "..."
                             }`
                         },
@@ -45,41 +44,32 @@ router.post('/proses-koreksi', async (req, res) => {
     } catch (err) { res.status(500).json({ success: false }); }
 });
 
-// PROSES 2: Hitung Rumus Pembuat + Pembulatan Khusus
+// PROSES 2: HITUNG RUMUS & PEMBULATAN KHUSUS
 router.post('/hitung-rumus', async (req, res) => {
-    const { data, rumus_pg, rumus_es } = req.body;
-    
-    const hasilHitung = data.map(s => {
-        // Fungsi evaluasi rumus teks menjadi angka
-        const hitung = (rumus, betul, total) => {
-            try {
-                // Ganti kata 'betul' dan 'total' dengan angka asli
-                let ekspresi = rumus.toLowerCase().replace(/betul/g, betul).replace(/total/g, total);
-                // Ganti kata 'poin' atau '%' jika ada agar tidak error
-                ekspresi = ekspresi.replace(/poin|%|presentase/g, '');
-                return eval(ekspresi);
-            } catch (e) { return 0; }
-        };
+    try {
+        const { data, rumus_pg, rumus_es } = req.body;
+        const hasil = data.map(s => {
+            const evalRumus = (rumus, betul, total) => {
+                try {
+                    let expr = rumus.toLowerCase().replace(/betul/g, betul).replace(/total/g, total);
+                    expr = expr.replace(/[^0-9+\-*/().]/g, ''); 
+                    return eval(expr) || 0;
+                } catch (e) { return 0; }
+            };
 
-        const skorPG = hitung(rumus_pg, s.pg_betul, s.total_pg_soal);
-        const skorES = hitung(rumus_es, s.essay_betul, 5);
+            const skPG = evalRumus(rumus_pg, s.pg_betul, s.total_pg_soal);
+            const skES = evalRumus(rumus_es, s.essay_betul, 5);
 
-        // LOGIKA PEMBULATAN SESUAI PERINTAH ANDA:
-        // Dibawah .50 bulatkan ke .x (misal 3.214 jadi 3.2)
-        // Diatas .50 bulatkan ke .y (misal 3.260 jadi 3.3)
-        const bulatkan = (num) => {
-            const factor = 10;
-            const rest = (num * 100) % 10;
-            if (rest < 5) return Math.floor(num * factor) / factor;
-            return Math.ceil(num * factor) / factor;
-        };
+            // PEMBULATAN KHUSUS: < .50 turun, >= .50 naik ke 0.1 terdekat
+            const bulatkan = (n) => {
+                const step = (n * 100) % 10;
+                return step < 5 ? Math.floor(n * 10) / 10 : Math.ceil(n * 10) / 10;
+            };
 
-        const nilaiFinal = bulatkan(skorPG + skorES);
-
-        return { ...s, nilai_akhir: nilaiFinal };
-    });
-
-    res.json({ success: true, hasil: hasilHitung });
+            return { ...s, nilai_akhir: bulatkan(skPG + skES) };
+        });
+        res.json({ success: true, hasil });
+    } catch (err) { res.status(500).json({ success: false }); }
 });
 
 module.exports = router;
