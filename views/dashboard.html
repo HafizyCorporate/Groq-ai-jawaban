@@ -31,7 +31,7 @@
             100% { transform: scale(1); opacity: 1; }
         }
 
-        /* --- PENYESUAIAN KHUSUS LAYAR HP (SEDANG & ENAK DIPANDANG) --- */
+        /* --- PENYESUAIAN KHUSUS LAYAR HP --- */
         @media (max-width: 767px) {
             html { font-size: 15px; } 
             body { padding: 12px; }
@@ -179,8 +179,14 @@
             <div class="bg-white p-10 rounded-[45px] border-t-[6px] border-blue-600 space-y-6 shadow-xl mt-14">
                 <p class="text-center font-black text-blue-600 text-xs uppercase italic">Masukan Rumus Penilaian</p>
                 <div class="grid grid-cols-2 gap-4">
-                    <input type="text" id="r_pg" placeholder="betul * 2" class="w-full p-5 bg-slate-50 rounded-2xl text-sm font-bold border border-slate-100 outline-none">
-                    <input type="text" id="r_es" placeholder="betul * 10" class="w-full p-5 bg-slate-50 rounded-2xl text-sm font-bold border border-slate-100 outline-none">
+                    <div>
+                        <p class="text-[10px] font-black text-slate-400 uppercase mb-2 ml-1 italic">Rumus PG:</p>
+                        <input type="text" id="r_pg" placeholder="betul * 2" class="w-full p-5 bg-slate-50 rounded-2xl text-sm font-bold border border-slate-100 outline-none">
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-black text-emerald-500 uppercase mb-2 ml-1 italic">Rumus Essay:</p>
+                        <input type="text" id="r_es" placeholder="betul * 10" class="w-full p-5 bg-slate-50 rounded-2xl text-sm font-bold border border-slate-100 outline-none">
+                    </div>
                 </div>
                 <button id="btnHitung" class="w-full bg-blue-600 text-white font-black py-7 rounded-[30px] text-sm uppercase shadow-lg">HITUNG NILAI AKHIR</button>
             </div>
@@ -264,7 +270,7 @@
                     <div class="flex justify-between items-start">
                         <div class="flex flex-col overflow-hidden">
                             <span class="text-xs font-black text-blue-500 uppercase italic">Siswa #${dbData.length - i}</span>
-                            <span class="text-3xl font-black text-slate-800 uppercase leading-tight">${s.nama || 'TIDACA TERBACA'}</span>
+                            <span class="text-3xl font-black text-slate-800 uppercase leading-tight">${s.nama || 'TIDAK TERBACA'}</span>
                         </div>
                         <div class="flex gap-3 shrink-0">
                             <div class="bg-blue-50 px-5 py-4 rounded-3xl text-center border border-blue-100">
