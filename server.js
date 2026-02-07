@@ -3,35 +3,51 @@ const multer = require('multer');
 const path = require('path');
 const dotenv = require('dotenv');
 
-// Memuat variabel lingkungan dari file .env
+// 1. Load variabel lingkungan dari file .env (Isinya API KEY Groq)
 dotenv.config();
 
 const app = express();
-const upload = multer();
+const port = process.env.PORT || 3000;
 
-// Import file router koreksi yang sudah kita buat sebelumnya
-const koreksiRouter = require('./routes/koreksi');
-
-// Middleware untuk memproses JSON dan form-data
+// 2. Middleware Dasar
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Melayani file statis dari folder 'views' (untuk dashboard.html)
-app.use(express.static(path.join(__dirname, 'views')));
+// Mengatur folder 'public' untuk file statis seperti CSS atau JS tambahan
+app.use(express.static(path.join(__dirname, 'public')));
 
-// Route utama untuk menampilkan dashboard
+// 3. Konfigurasi Multer (Penyimpanan Foto sementara di RAM)
+// Kita gunakan .array('foto') karena user bisa upload banyak file sekaligus
+const storage = multer.memoryStorage();
+const upload = multer({ 
+    storage: storage,
+    limits: { fileSize: 10 * 1024 * 1024 } // Limit 10MB per foto
+});
+
+// 4. Import Route Koreksi
+// Pastikan kamu punya file di: routes/koreksi.js
+const koreksiRoute = require('./routes/koreksi');
+
+// 5. Daftarkan Route dengan Prefix /ai
+// Middleware upload diletakkan di sini agar req.files terbaca di routes/koreksi.js
+app.use('/ai', upload.array('foto'), koreksiRoute);
+
+// 6. Route Navigasi Utama
+// Mengarahkan halaman awal langsung ke tampilan dashboard
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'views', 'dashboard.html'));
 });
 
-// Menghubungkan endpoint /ai ke router koreksi
-// Menggunakan upload.any() agar bisa menerima hingga 5 foto sekaligus
-app.use('/ai', upload.any(), koreksiRouter);
+// 7. Error Handling sederhana
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).send('Terjadi kesalahan pada server!');
+});
 
-// Konfigurasi Port 8080 sesuai permintaan Anda
-// Railway akan memberikan port otomatis lewat process.env.PORT, jika tidak ada pakai 8080
-const PORT = process.env.PORT || 8080;
-
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 Mesin Jawaban AI berjalan lancar di port ${PORT}`);
+// 8. Menjalankan Server
+app.listen(port, () => {
+    console.log('==============================================');
+    console.log(`🚀 JAWABAN AI SERVER AKTIF!`);
+    console.log(`🌐 Akses di: http://localhost:${port}`);
+    console.log('==============================================');
 });
