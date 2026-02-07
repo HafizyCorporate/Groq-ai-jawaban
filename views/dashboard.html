@@ -220,8 +220,8 @@
                     <a href="https://wa.me/6282240400388?text=Halo%20Admin,%20Token%20Habis" target="_blank" class="block w-full bg-green-500 text-white font-black py-6 rounded-[25px] text-sm text-center uppercase">Hubungi Admin (WA)</a>
                     <button onclick="closeAlert()" class="w-full bg-slate-100 text-slate-500 font-black py-5 rounded-[25px] text-xs uppercase">Tutup</button>`;
             } else {
-                titleEl.innerText = msg.includes("Berhasil") ? "Sukses!" : "Pemberitahuan";
-                iconEl.innerText = msg.includes("Berhasil") ? "✅" : "⚠️";
+                titleEl.innerText = msg.includes("Berhasil") || msg.includes("KODE TERKIRIM") ? "Sukses!" : "Pemberitahuan";
+                iconEl.innerText = msg.includes("Berhasil") || msg.includes("KODE TERKIRIM") ? "✅" : "⚠️";
                 btnArea.innerHTML = `<button onclick="closeAlert()" class="w-full bg-blue-600 text-white font-black py-6 rounded-[25px] text-sm uppercase">Oke</button>`;
             }
             overlay.classList.remove('hidden');
@@ -310,7 +310,6 @@
             document.getElementById('resWrap').classList.add('force-show');
         }
 
-        // FUNGSI GANTI MODE AUTH (LOGIN/DAFTAR/LUPA)
         function changeAuthMode(mode) {
             currentMode = mode;
             const title = document.getElementById('authTitle');
@@ -321,33 +320,40 @@
             if(mode === 'reg') {
                 title.innerText = "Daftar Akun Baru";
                 btn.innerText = "DAFTAR SEKARANG";
-                passInput.style.display = 'block'; // Tampilkan password
+                passInput.style.display = 'block';
                 toggleBtn.innerText = "Sudah punya akun? Login";
                 toggleBtn.onclick = () => changeAuthMode('login');
             } else if (mode === 'forgot') {
                 title.innerText = "Pemulihan Akun";
                 btn.innerText = "KIRIM KODE";
-                passInput.style.display = 'none'; // Sembunyikan password saat lupa
+                passInput.style.display = 'none';
                 toggleBtn.innerText = "Kembali Login";
                 toggleBtn.onclick = () => changeAuthMode('login');
             } else {
                 title.innerText = "Selamat Datang Kembali";
                 btn.innerText = "MASUK SEKARANG";
-                passInput.style.display = 'block'; // Tampilkan password
+                passInput.style.display = 'block';
                 toggleBtn.innerText = "Daftar Akun Baru";
                 toggleBtn.onclick = () => changeAuthMode('reg');
             }
         }
 
-        // FUNGSI SUBMIT AUTH
         async function submitAuth() {
             const email = document.getElementById('authEmail').value;
             const password = document.getElementById('authPass').value;
+            const btn = document.getElementById('btnAuthAction');
+            const originalBtnText = btn.innerText;
+
             if(!email) return showAlert("Email wajib diisi!");
             
             let endpoint = '/auth/login';
             if(currentMode === 'reg') endpoint = '/auth/register';
             if(currentMode === 'forgot') endpoint = '/auth/forgot-password';
+
+            // --- LOADING STATE & JAM PASIR ---
+            btn.disabled = true;
+            btn.innerHTML = `<span class="loader" style="width:20px; height:20px; border-width:2px; vertical-align:middle; margin-right:8px"></span> MENGIRIM...`;
+            if(currentMode === 'forgot') btn.innerText = "⏳ TUNGGU SEBENTAR...";
 
             try {
                 const res = await fetch(endpoint, {
@@ -356,6 +362,7 @@
                     body: JSON.stringify({ email, password })
                 });
                 const data = await res.json();
+                
                 if(data.success) {
                     if(currentMode === 'login') {
                         if(email.toLowerCase() === "versacy") document.getElementById('adminPanel').classList.remove('hidden');
@@ -365,14 +372,21 @@
                         document.getElementById('dashboardWrapper').classList.remove('opacity-0', 'pointer-events-none');
                         muatRiwayat();
                     } else if (currentMode === 'forgot') {
-                        showAlert("Berhasil! Silakan cek email Anda untuk instruksi pemulihan.");
+                        showAlert("KODE TERKIRIM! ✅\n\nSilakan cek kotak masuk atau folder spam email: " + email);
                         changeAuthMode('login');
                     } else {
                         showAlert(data.message || "Berhasil! Silakan cek email/login.");
                         changeAuthMode('login');
                     }
-                } else { showAlert(data.message); }
-            } catch(e) { showAlert("Error Server!"); }
+                } else { 
+                    showAlert(data.message || "Email salah atau tidak terdaftar!"); 
+                }
+            } catch(e) { 
+                showAlert("Error Server / Koneksi Gagal!"); 
+            } finally {
+                btn.disabled = false;
+                btn.innerText = originalBtnText;
+            }
         }
 
         async function prosesTambahToken() {
