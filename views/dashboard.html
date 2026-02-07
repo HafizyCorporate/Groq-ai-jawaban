@@ -7,7 +7,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus_Jakarta_Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        /* --- PENYESUAIAN UKURAN TEKS GLOBAL --- */
         html { font-size: 16px; }
         body { font-size: 1rem; }
 
@@ -36,7 +35,6 @@
             100% { transform: scale(1); }
         }
 
-        /* --- ANIMASI MODAL ALERT --- */
         @keyframes modalBounce {
             0% { transform: scale(0.8); opacity: 0; }
             70% { transform: scale(1.05); }
@@ -46,7 +44,6 @@
             animation: modalBounce 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
-        /* --- PENYESUAIAN DESKTOP (KOMPUTER) --- */
         @media (min-width: 768px) {
             #authWrapper > div, 
             #dashboardWrapper {
@@ -59,6 +56,15 @@
             }
             body { background-color: #f1f5f9; }
         }
+
+        /* Styling khusus agar nomor dropdown terlihat jelas */
+        select.key-dropdown {
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 0.5rem center;
+            background-size: 1em;
+        }
     </style>
 </head>
 <body class="bg-slate-50 p-4 font-['Plus_Jakarta_Sans'] text-slate-900">
@@ -66,9 +72,12 @@
     <div id="customAlertOverlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] hidden flex items-center justify-center p-6">
         <div class="bg-white w-full max-w-sm rounded-[40px] p-8 shadow-2xl modal-animate text-center border border-slate-100">
             <div id="alertIcon" class="text-6xl mb-4">⚠️</div>
-            <h3 id="alertTitle" class="text-xl font-black uppercase text-slate-800 mb-2 font-['Plus_Jakarta_Sans']">Pemberitahuan</h3>
-            <p id="alertMsg" class="text-sm font-bold text-slate-500 leading-relaxed mb-8 whitespace-pre-line font-['Plus_Jakarta_Sans']"></p>
-            <button onclick="closeAlert()" class="w-full bg-blue-600 text-white font-black py-5 rounded-[25px] text-xs uppercase shadow-lg shadow-blue-200 active:scale-95 transition">Oke, Mengerti</button>
+            <h3 id="alertTitle" class="text-xl font-black uppercase text-slate-800 mb-2">Pemberitahuan</h3>
+            <p id="alertMsg" class="text-sm font-bold text-slate-500 leading-relaxed mb-8 whitespace-pre-line"></p>
+            
+            <div id="alertButtons" class="space-y-3">
+                <button id="mainAlertBtn" onclick="closeAlert()" class="w-full bg-blue-600 text-white font-black py-5 rounded-[25px] text-xs uppercase shadow-lg active:scale-95 transition">Oke, Mengerti</button>
+            </div>
         </div>
     </div>
 
@@ -129,7 +138,8 @@
 
         <div class="bg-white p-8 rounded-[45px] shadow-sm border border-slate-100">
             <p class="text-[11px] font-black text-blue-600 uppercase mb-5 tracking-widest">Kunci Jawaban PG (1-20)</p>
-            <div id="gridPG" class="grid grid-cols-5 gap-3 mb-8"></div>
+            <div id="gridPG" class="grid grid-cols-4 gap-3 mb-8"></div>
+            
             <p class="text-[11px] font-black text-emerald-500 uppercase mb-5 tracking-widest">Kunci Jawaban Essay</p>
             <div id="gridES" class="space-y-3"></div>
         </div>
@@ -141,11 +151,9 @@
         <div id="resWrap" class="hidden space-y-8 pt-12">
             <div class="flex justify-between items-center px-4">
                 <p class="text-[11px] font-black text-slate-400 uppercase tracking-widest">Hasil Koreksi AI</p>
-                <button onclick="hapusRiwayat()" class="text-[10px] font-black text-red-500 uppercase tracking-tighter bg-red-50 px-4 py-2 rounded-full">Bersihkan Laporan</button>
+                <button onclick="konfirmasiHapusRiwayat()" class="text-[10px] font-black text-red-500 uppercase tracking-tighter bg-red-50 px-4 py-2 rounded-full font-bold">Bersihkan Laporan</button>
             </div>
-            
             <div id="scanAwal" class="space-y-6"></div>
-
             <div class="bg-white p-8 rounded-[40px] border-t-4 border-blue-600 space-y-6 shadow-xl">
                 <p class="text-center font-black text-blue-600 text-[12px] uppercase italic">*Masukan rumus penilaian kamu*</p>
                 <div class="grid grid-cols-1 gap-4">
@@ -154,7 +162,6 @@
                 </div>
                 <button id="btnHitung" class="w-full bg-blue-600 text-white font-black py-6 rounded-[30px] text-xs uppercase shadow-lg">PROSES HITUNG RUMUS</button>
             </div>
-
             <div id="laporanFinal" class="space-y-8 pb-32"></div>
         </div>
     </div>
@@ -164,45 +171,73 @@
         let currentMode = 'login';
         let currentToken = 0;
 
-        // --- FUNGSI MODAL ALERT KUSTOM ---
-        function showAlert(msg) {
+        // --- SISTEM MODAL ALERT KUSTOM TERBARU ---
+        function showAlert(msg, mode = 'alert') {
             const overlay = document.getElementById('customAlertOverlay');
             const msgEl = document.getElementById('alertMsg');
             const titleEl = document.getElementById('alertTitle');
             const iconEl = document.getElementById('alertIcon');
+            const btnArea = document.getElementById('alertButtons');
 
             msgEl.innerText = msg;
-            
-            if (msg.toLowerCase().includes("habis")) {
+            btnArea.innerHTML = ''; // Reset tombol
+
+            if (mode === 'confirm') {
+                titleEl.innerText = "Konfirmasi";
+                iconEl.innerText = "🗑️";
+                btnArea.innerHTML = `
+                    <button onclick="hapusRiwayat()" class="w-full bg-red-500 text-white font-black py-5 rounded-[25px] text-xs uppercase shadow-lg active:scale-95 transition">Ya, Hapus Semua</button>
+                    <button onclick="closeAlert()" class="w-full bg-slate-100 text-slate-500 font-black py-4 rounded-[25px] text-[10px] uppercase active:scale-95 transition">Batalkan</button>
+                `;
+            } else if (msg.toLowerCase().includes("habis")) {
                 titleEl.innerText = "Token Habis!";
                 iconEl.innerText = "🎫";
-            } else if (msg.toLowerCase().includes("berhasil") || msg.toLowerCase().includes("sukses")) {
-                titleEl.innerText = "Berhasil!";
-                iconEl.innerText = "✅";
-            } else if (msg.toLowerCase().includes("salah") || msg.toLowerCase().includes("gagal")) {
-                titleEl.innerText = "Ups! Gagal";
-                iconEl.innerText = "❌";
+                btnArea.innerHTML = `
+                    <a href="https://wa.me/6282240400388?text=Halo%20Admin,%20saya%20ingin%20isi%20ulang%20token%20Jawaban%20AI" target="_blank" class="block w-full bg-green-500 text-white font-black py-5 rounded-[25px] text-xs uppercase shadow-lg text-center active:scale-95 transition">Hubungi Admin (WhatsApp)</a>
+                    <button onclick="closeAlert()" class="w-full bg-slate-100 text-slate-500 font-black py-4 rounded-[25px] text-[10px] uppercase active:scale-95 transition">Tutup</button>
+                `;
             } else {
-                titleEl.innerText = "Pemberitahuan";
-                iconEl.innerText = "⚠️";
+                titleEl.innerText = msg.toLowerCase().includes("berhasil") ? "Sukses!" : "Pemberitahuan";
+                iconEl.innerText = msg.toLowerCase().includes("berhasil") ? "✅" : "⚠️";
+                btnArea.innerHTML = `<button onclick="closeAlert()" class="w-full bg-blue-600 text-white font-black py-5 rounded-[25px] text-xs uppercase shadow-lg active:scale-95 transition">Oke, Mengerti</button>`;
             }
 
             overlay.classList.remove('hidden');
         }
 
-        function closeAlert() {
-            document.getElementById('customAlertOverlay').classList.add('hidden');
+        function closeAlert() { document.getElementById('customAlertOverlay').classList.add('hidden'); }
+
+        // --- FUNGSI KHUSUS HAPUS ---
+        function konfirmasiHapusRiwayat() { showAlert("Apakah Anda yakin ingin menghapus semua laporan koreksi?", 'confirm'); }
+
+        function hapusRiwayat() {
+            dbData = []; 
+            localStorage.removeItem('riwayat_ai_v2');
+            location.reload();
         }
 
-        function changeAuthMode(mode) {
-            currentMode = mode;
-            const title = document.getElementById('authTitle');
-            const btn = document.getElementById('btnAuthAction');
-            if(mode === 'reg') { title.innerText = "Daftar Akun Baru"; btn.innerText = "DAFTAR SEKARANG"; }
-            else if (mode === 'forgot') { title.innerText = "Pemulihan"; btn.innerText = "KIRIM KODE"; }
-            else { title.innerText = "Selamat Datang"; btn.innerText = "MASUK SEKARANG"; }
+        // --- GENERATE GRID PG DENGAN ANGKA BESAR ---
+        const gPG = document.getElementById('gridPG');
+        for(let i=1; i<=20; i++) {
+            // Kita gunakan Padding p-4 dan text-lg (18px) agar angka terlihat besar di dropdown
+            gPG.innerHTML += `
+            <div class="relative">
+                <select id="p${i}" class="key-dropdown w-full p-4 bg-slate-50 rounded-2xl text-lg font-black border-2 border-slate-100 outline-none focus:border-blue-400 transition-all text-center">
+                    <option value="">${i}</option>
+                    <option>A</option>
+                    <option>B</option>
+                    <option>C</option>
+                    <option>D</option>
+                </select>
+            </div>`;
         }
 
+        const gES = document.getElementById('gridES');
+        for(let i=1; i<=5; i++) {
+            gES.innerHTML += `<input id="e${i}" placeholder="Kunci Essay No ${i}" class="w-full p-5 bg-slate-50 rounded-2xl text-sm font-bold border border-slate-100 outline-none focus:border-emerald-300">`;
+        }
+
+        // --- SISA LOGIKA (TETAP SAMA TAPI PAKAI SHOWALERT) ---
         async function submitAuth() {
             const email = document.getElementById('authEmail').value;
             const password = document.getElementById('authPass').value;
@@ -236,31 +271,28 @@
             el.classList.add('token-pulse');
         }
 
-        function logout() { location.reload(); }
-
-        const gPG = document.getElementById('gridPG');
-        for(let i=1; i<=20; i++) {
-            gPG.innerHTML += `<select id="p${i}" class="p-3 bg-slate-50 rounded-xl text-xs font-bold border border-slate-100 outline-none focus:border-blue-300"><option value="">${i}</option><option>A</option><option>B</option><option>C</option><option>D</option></select>`;
-        }
-        const gES = document.getElementById('gridES');
-        for(let i=1; i<=5; i++) {
-            gES.innerHTML += `<input id="e${i}" placeholder="Kunci Essay No ${i}" class="w-full p-5 bg-slate-50 rounded-2xl text-xs font-bold border border-slate-100 outline-none focus:border-emerald-300">`;
+        function changeAuthMode(mode) {
+            currentMode = mode;
+            const title = document.getElementById('authTitle');
+            const btn = document.getElementById('btnAuthAction');
+            if(mode === 'reg') { title.innerText = "Daftar Akun Baru"; btn.innerText = "DAFTAR SEKARANG"; }
+            else if (mode === 'forgot') { title.innerText = "Pemulihan"; btn.innerText = "KIRIM KODE"; }
+            else { title.innerText = "Selamat Datang"; btn.innerText = "MASUK SEKARANG"; }
         }
 
         function updateFileStatus(input) { document.getElementById('stts').innerText = '✅ ' + input.files.length + ' File Terpilih'; }
+        function logout() { location.reload(); }
 
         function tampilkanHasilKeLayar() {
             const resWrap = document.getElementById('resWrap');
             const container = document.getElementById('scanAwal');
             if(!container || !dbData || dbData.length === 0) return;
-
             let finalHtml = "";
             dbData.forEach((s, index) => {
                 const listNomor = s.pg_list_nomor || "Tidak ada yang betul";
                 const namaSiswa = s.nama && s.nama !== "TIDAK TERBACA" ? s.nama : "SISWA TANPA NAMA";
-                
                 finalHtml += `
-                <div class="p-10 bg-white rounded-[45px] border-l-[24px] border-blue-600 shadow-2xl mb-12 text-left text-['Plus_Jakarta_Sans']">
+                <div class="p-10 bg-white rounded-[45px] border-l-[24px] border-blue-600 shadow-2xl mb-12 text-left">
                     <div class="border-b-4 border-slate-100 pb-8 mb-8">
                         <p class="text-[16px] font-extrabold text-blue-600 uppercase tracking-[0.2em]">LEMBAR KE-${index + 1}</p>
                         <h2 class="text-5xl font-black uppercase text-slate-900 leading-tight mt-3">${namaSiswa}</h2>
@@ -287,11 +319,9 @@
                     </div>
                 </div>`;
             });
-
             container.innerHTML = finalHtml;
             resWrap.classList.remove('hidden');
             resWrap.classList.add('force-show'); 
-            setTimeout(() => { window.scrollTo({ top: resWrap.offsetTop - 20, behavior: 'smooth' }); }, 500);
         }
 
         function simpanKeRiwayat() { localStorage.setItem('riwayat_ai_v2', JSON.stringify(dbData)); }
@@ -302,23 +332,13 @@
                 if(dbData.length > 0) tampilkanHasilKeLayar();
             }
         }
-        function hapusRiwayat() {
-            // Menggunakan Modal Kustom butuh logika confirm berbeda, 
-            // sementara pakai confirm asli untuk keamanan penghapusan data.
-            if(confirm("Bersihkan semua laporan?")) {
-                dbData = []; localStorage.removeItem('riwayat_ai_v2');
-                location.reload();
-            }
-        }
 
         document.getElementById('btnAI').onclick = async () => {
             const btn = document.getElementById('btnAI');
             const files = document.getElementById('file').files;
             if(files.length === 0) return showAlert("Silakan ambil foto atau pilih file dulu!");
-
             btn.disabled = true;
             btn.innerHTML = `<span class="loader"></span> MEMPROSES...`;
-            
             const conf = { kunci_pg: {}, kunci_essay: {} };
             for(let i=1; i<=20; i++) { 
                 const v = document.getElementById(`p${i}`).value; 
@@ -328,31 +348,24 @@
                 const v = document.getElementById(`e${i}`).value; 
                 if(v) conf.kunci_essay[i] = v; 
             }
-
             try {
                 for (let i = 0; i < files.length; i++) {
                     const fd = new FormData();
                     fd.append('data', JSON.stringify(conf));
                     fd.append('foto', files[i]);
                     btn.innerText = `⏳ PROSES ${i + 1} / ${files.length}`;
-
                     const req = await fetch('/ai/proses-koreksi', { method: 'POST', body: fd });
                     const res = await req.json();
-                    
                     if(res.success && res.data) {
                         const rawData = Array.isArray(res.data) ? res.data : [res.data];
                         dbData = [...dbData, ...rawData];
                         if(res.current_token !== undefined) updateTokenDisplay(res.current_token);
-                        else updateTokenDisplay(currentToken - 1);
                         tampilkanHasilKeLayar(); 
                         simpanKeRiwayat();
                     } else { showAlert(res.message || "Gagal!"); break; }
                 }
                 btn.innerText = "PROSES SELESAI ✅";
-            } catch(e) { 
-                showAlert("Koneksi gagal!"); 
-                btn.innerText = "COBA LAGI";
-            }
+            } catch(e) { showAlert("Koneksi gagal!"); btn.innerText = "COBA LAGI"; }
             btn.disabled = false;
         };
 
@@ -370,9 +383,7 @@
                 });
                 const json = await res.json();
                 const box = document.getElementById('laporanFinal');
-                
                 let reportHtml = `<p class="text-center font-black text-blue-600 uppercase text-[12px] tracking-widest mt-14">LAPORAN AKHIR</p>`;
-                
                 json.hasil.forEach(s => {
                     reportHtml += `
                     <div class="p-10 bg-white rounded-[50px] border-l-[16px] border-blue-600 shadow-xl mt-8">
@@ -383,7 +394,6 @@
                         </div>
                     </div>`;
                 });
-                
                 box.innerHTML = reportHtml;
                 box.scrollIntoView({ behavior: 'smooth' });
             } catch (e) { showAlert("Rumus salah!"); }
