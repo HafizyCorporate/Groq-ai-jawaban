@@ -67,7 +67,7 @@ app.post('/auth/login', async (req, res) => {
     }
 });
 
-// DIPERBAIKI: Logika Forgot Password agar menggunakan transporter dengan benar
+// LOGIKA FORGOT PASSWORD (Disesuaikan agar tidak gantung)
 app.post('/auth/forgot-password', async (req, res) => {
     const { email } = req.body;
     const userExists = users.find(u => u.email === email);
@@ -81,11 +81,12 @@ app.post('/auth/forgot-password', async (req, res) => {
         auth: { 
             user: process.env.EMAIL_USER, 
             pass: process.env.EMAIL_PASS 
-        }
+        },
+        connectionTimeout: 10000 // Matikan koneksi jika lebih dari 10 detik
     });
 
     const mailOptions = {
-        from: process.env.EMAIL_USER,
+        from: `"JAWABAN AI" <${process.env.EMAIL_USER}>`,
         to: email,
         subject: 'Reset Password JAWABAN AI',
         html: `
@@ -105,8 +106,8 @@ app.post('/auth/forgot-password', async (req, res) => {
 
     transporter.sendMail(mailOptions, (err) => {
         if (err) {
-            console.log(err);
-            return res.status(500).json({ success: false, message: "Gagal kirim email. Cek koneksi server." });
+            console.log("Error Email:", err);
+            return res.status(500).json({ success: false, message: "Gagal kirim email. Pastikan App Password Gmail benar." });
         }
         res.json({ success: true, message: "Instruksi dikirim ke email " + email });
     });
@@ -128,7 +129,7 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'views', 'dashboard.html'));
 });
 
-// --- BAGIAN KOREKSI AI (TIDAK BERUBAH) ---
+// --- BAGIAN KOREKSI AI (TETAP SAMA) ---
 app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
     try {
         if (!req.session.userId) return res.status(401).json({ success: false, message: "Silakan login dulu!" });
