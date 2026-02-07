@@ -7,8 +7,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus_Jakarta_Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        /* UKURAN TULISAN DASAR DIPERBESAR */
-        html { font-size: 19px; } 
+        /* UKURAN DASAR (KOMPUTER/TABLET) */
+        html { font-size: 18px; } 
         body { font-size: 1rem; font-family: 'Plus_Jakarta_Sans', sans-serif; }
 
         .force-show { display: block !important; opacity: 1 !important; visibility: visible !important; }
@@ -31,7 +31,37 @@
             100% { transform: scale(1); opacity: 1; }
         }
 
-        /* --- SETTING KHUSUS LAYAR KOMPUTER --- */
+        /* --- PENYESUAIAN KHUSUS LAYAR HP (SEDANG & ENAK DIPANDANG) --- */
+        @media (max-width: 767px) {
+            html { font-size: 15px; } /* Mengecilkan skala global agar tidak raksasa */
+            body { padding: 12px; }
+            
+            /* Mengecilkan border radius yang terlalu ekstrem di HP */
+            .rounded-\[45px\], .rounded-\[40px\] { border-radius: 28px !important; }
+            .rounded-\[35px\], .rounded-\[30px\] { border-radius: 20px !important; }
+
+            /* Menyesuaikan padding kontainer agar lebih compact */
+            .p-10 { padding: 1.5rem !important; }
+            .p-8 { padding: 1.2rem !important; }
+            .py-8 { padding-top: 1.5rem !important; padding-bottom: 1.5rem !important; }
+
+            /* Ukuran font spesifik untuk elemen besar */
+            .text-5xl { font-size: 2.5rem !important; }
+            .text-3xl { font-size: 1.75rem !important; }
+            .text-4xl { font-size: 2.2rem !important; }
+            .text-6xl { font-size: 3rem !important; }
+
+            /* Grid PG agar tetap rapi */
+            #gridPG { gap: 8px !important; }
+            
+            /* Dropdown PG di HP */
+            select.key-dropdown {
+                font-size: 1.1rem !important; /* Ukuran angka di dropdown sedang */
+                padding: 0.8rem 0.4rem !important;
+            }
+        }
+
+        /* --- TETAP: SETTING KHUSUS LAYAR KOMPUTER --- */
         @media (min-width: 1024px) {
             #dashboardWrapper { 
                 max-width: 1200px !important; 
@@ -40,7 +70,6 @@
                 gap: 2rem; 
                 align-items: start; 
             }
-            /* Elemen yang harus tetap lebar penuh di komputer */
             .header-area, #adminPanel, .upload-section { grid-column: span 2; }
             #resWrap { margin-top: 0 !important; padding-top: 0 !important; }
         }
@@ -51,7 +80,7 @@
             body { background-color: #f1f5f9; }
         }
 
-        /* MEMPERBESAR DROPDOWN KUNCI JAWABAN */
+        /* DEFAULT DROPDOWN (PC/TABLET) */
         select.key-dropdown {
             appearance: none;
             background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
