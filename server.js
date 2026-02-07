@@ -67,7 +67,7 @@ app.post('/auth/login', async (req, res) => {
     }
 });
 
-// LOGIKA FORGOT PASSWORD - DIUBAH KE PORT 465 (SSL) UNTUK KEAMANAN RAILWAY
+// LOGIKA FORGOT PASSWORD - FINAL OPTIMASI PORT 465 SSL
 app.post('/auth/forgot-password', async (req, res) => {
     const { email } = req.body;
     const userExists = users.find(u => u.email === email);
@@ -80,18 +80,20 @@ app.post('/auth/forgot-password', async (req, res) => {
     const cleanEmail = process.env.EMAIL_USER ? process.env.EMAIL_USER.trim() : "";
     const cleanPass = process.env.EMAIL_PASS ? process.env.EMAIL_PASS.replace(/\s+/g, '') : "";
 
-    // KONFIGURASI TRANSPORTER MENGGUNAKAN PORT 465 (SSL)
+    // KONFIGURASI TRANSPORTER MENGGUNAKAN PORT 465 (JALUR PALING STABIL)
     const transporter = nodemailer.createTransport({
         host: 'smtp.gmail.com',
         port: 465,
-        secure: true, // Wajib true untuk port 465
+        secure: true, 
         auth: { 
             user: cleanEmail, 
             pass: cleanPass 
         },
         tls: {
             rejectUnauthorized: false
-        }
+        },
+        connectionTimeout: 20000, // Menambah waktu tunggu ke 20 detik
+        greetingTimeout: 20000
     });
 
     const mailOptions = {
@@ -143,7 +145,7 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'views', 'dashboard.html'));
 });
 
-// --- BAGIAN KOREKSI AI ---
+// --- BAGIAN KOREKSI AI (TIDAK BERUBAH) ---
 app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
     try {
         if (!req.session.userId) return res.status(401).json({ success: false, message: "Silakan login dulu!" });
