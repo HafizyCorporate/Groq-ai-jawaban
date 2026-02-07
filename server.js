@@ -71,7 +71,11 @@ app.post('/auth/login', async (req, res) => {
     const user = users.find(u => u.email === email);
     if (user && await bcrypt.compare(password, user.password)) {
         req.session.userId = email; 
-        res.json({ success: true });
+        // --- TAMBAHAN: KIRIM TOKEN SAAT LOGIN ---
+        res.json({ 
+            success: true, 
+            token: user.isPremium ? "UNLIMITED" : user.quota 
+        });
     } else {
         res.status(401).json({ success: false, message: "Email atau Password Salah!" });
     }
@@ -196,12 +200,17 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
             });
         }
 
-        // Potong Token (1 foto = 1 token)
+        // --- UPDATE TOKEN (1 foto = 1 token) ---
         if (!user.isPremium) {
             user.quota -= req.files.length;
         }
 
-        res.json({ success: true, data: results, remainingQuota: user.isPremium ? 'Unlimited' : user.quota });
+        // --- KIRIM RESPON DENGAN SISA TOKEN TERBARU (current_token) ---
+        res.json({ 
+            success: true, 
+            data: results, 
+            current_token: user.isPremium ? "UNLIMITED" : user.quota 
+        });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
     }
