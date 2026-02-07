@@ -79,7 +79,10 @@
         </button>
 
         <div id="resWrap" class="hidden space-y-6">
-            <p class="text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">Hasil Koreksi Murni AI</p>
+            <div class="flex justify-between items-center px-4">
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Hasil Koreksi Murni AI</p>
+                <button onclick="hapusRiwayat()" class="text-[9px] font-black text-red-500 uppercase tracking-tighter bg-red-50 px-3 py-1 rounded-full">Hapus Riwayat</button>
+            </div>
             
             <div id="scanAwal" class="space-y-4"></div>
 
@@ -101,6 +104,7 @@
     <script>
         // ================= LOGIKA AUTH =================
         let currentMode = 'login';
+        let dbData = [];
 
         function changeAuthMode(mode) {
             currentMode = mode;
@@ -110,21 +114,14 @@
             const toggleBtn = document.getElementById('authToggleBtn');
 
             if(mode === 'reg') {
-                title.innerText = "Daftar Akun Baru";
-                btn.innerText = "DAFTAR SEKARANG";
-                passInput.style.display = "block";
-                toggleBtn.innerText = "Sudah Punya Akun? Login";
+                title.innerText = "Daftar Akun Baru"; btn.innerText = "DAFTAR SEKARANG";
+                passInput.style.display = "block"; toggleBtn.innerText = "Sudah Punya Akun? Login";
             } else if (mode === 'forgot') {
-                title.innerText = "Pemulihan Kata Sandi";
-                btn.innerText = "KIRIM KODE KE EMAIL";
-                passInput.style.display = "none";
-                toggleBtn.innerText = "Kembali ke Login";
+                title.innerText = "Pemulihan Kata Sandi"; btn.innerText = "KIRIM KODE KE EMAIL";
+                passInput.style.display = "none"; toggleBtn.innerText = "Kembali ke Login";
             } else {
-                currentMode = 'login';
-                title.innerText = "Selamat Datang Kembali";
-                btn.innerText = "MASUK SEKARANG";
-                passInput.style.display = "block";
-                toggleBtn.innerText = "Daftar Akun Baru";
+                currentMode = 'login'; title.innerText = "Selamat Datang Kembali"; btn.innerText = "MASUK SEKARANG";
+                passInput.style.display = "block"; toggleBtn.innerText = "Daftar Akun Baru";
             }
         }
 
@@ -152,9 +149,9 @@
                         }
                         document.getElementById('authWrapper').classList.add('hidden');
                         document.getElementById('dashboardWrapper').classList.remove('opacity-0', 'pointer-events-none');
+                        muatRiwayat(); // MUAT RIWAYAT SAAT LOGIN BERHASIL
                     } else {
-                        alert(data.message);
-                        changeAuthMode('login');
+                        alert(data.message); changeAuthMode('login');
                     }
                 } else {
                     alert(data.message || "Email atau Password Salah!");
@@ -162,32 +159,54 @@
             } catch(e) { alert("Server tidak merespon!"); }
         }
 
+        // ================= LOGIKA RIWAYAT =================
+        function simpanKeRiwayat() {
+            localStorage.setItem('riwayat_ai', JSON.stringify(dbData));
+        }
+
+        function muatRiwayat() {
+            const save = localStorage.getItem('riwayat_ai');
+            if(save) {
+                dbData = JSON.parse(save);
+                if(dbData.length > 0) {
+                    const resWrap = document.getElementById('resWrap');
+                    resWrap.classList.remove('hidden');
+                    resWrap.style.setProperty('display', 'block', 'important');
+                    tampilkanHasilKeLayar();
+                }
+            }
+        }
+
+        function hapusRiwayat() {
+            if(confirm("Hapus semua hasil koreksi yang tersimpan?")) {
+                dbData = [];
+                localStorage.removeItem('riwayat_ai');
+                document.getElementById('resWrap').classList.add('hidden');
+                document.getElementById('resWrap').style.display = 'none';
+                document.getElementById('scanAwal').innerHTML = "";
+                document.getElementById('laporanFinal').innerHTML = "";
+            }
+        }
+
         // ================= LOGIKA ADMIN =================
         async function prosesTambahToken() {
             const emailTarget = document.getElementById('targetEmail').value;
             const jumlahToken = document.getElementById('paketToken').value;
-
             if(!emailTarget) return alert("Masukkan email pelanggan!");
-
             try {
                 const res = await fetch('/admin/tambah-token', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ emailTarget, jumlahToken })
                 });
-                const data = await res.json();
-                alert(data.message);
+                const data = await res.json(); alert(data.message);
             } catch(e) { alert("Gagal menghubungi server!"); }
         }
 
         // ================= KODE DASHBOARD =================
         const gPG = document.getElementById('gridPG');
         for(let i=1; i<=20; i++) {
-            gPG.innerHTML += `
-                <select id="p${i}" class="p-2 bg-slate-50 rounded-xl text-[10px] font-bold outline-none border border-slate-100">
-                    <option value="">${i}</option>
-                    <option>A</option><option>B</option><option>C</option><option>D</option>
-                </select>`;
+            gPG.innerHTML += `<select id="p${i}" class="p-2 bg-slate-50 rounded-xl text-[10px] font-bold outline-none border border-slate-100"><option value="">${i}</option><option>A</option><option>B</option><option>C</option><option>D</option></select>`;
         }
         
         const gES = document.getElementById('gridES');
@@ -195,41 +214,24 @@
             gES.innerHTML += `<input id="e${i}" placeholder="Kunci Jawaban Essay No ${i}" class="w-full p-4 bg-slate-50 rounded-2xl text-[10px] font-bold outline-none border border-slate-100">`;
         }
 
-        let dbData = [];
-
         function tampilkanHasilKeLayar() {
             const container = document.getElementById('scanAwal');
             container.innerHTML = dbData.map((s, index) => `
                 <div class="p-8 bg-white rounded-[40px] border-l-[16px] border-slate-900 shadow-lg space-y-6 mb-8 text-left">
                     <div class="border-b-2 border-dashed border-slate-200 pb-4">
-                        <p class="text-[12px] font-black text-blue-600 uppercase tracking-widest">Laporan/Lembar Ke-${index + 1}</p>
+                        <p class="text-[12px] font-black text-blue-600 uppercase tracking-widest">Lembar Ke-${index + 1}</p>
                         <p class="text-3xl font-black uppercase text-slate-900 mt-1">${s.nama}</p>
                     </div>
-                    
                     <div class="space-y-2">
                         <p class="text-xl font-black text-blue-700 uppercase italic">PG Benar: ${s.pg_betul}</p>
                         <div class="bg-blue-50 p-4 rounded-2xl">
-                            <p class="text-sm font-bold text-slate-700 leading-relaxed">
-                                <span class="text-blue-600 font-black uppercase">Nomor Betul:</span><br>
-                                ${s.pg_list_nomor || 'Tidak ada nomor yang benar'}
-                            </p>
+                            <p class="text-sm font-bold text-slate-700 leading-relaxed"><span class="text-blue-600 font-black uppercase">Nomor Betul:</span><br>${s.pg_list_nomor || 'Tidak ada'}</p>
                         </div>
                     </div>
-
                     <div class="space-y-3">
                         <p class="text-xl font-black text-emerald-600 uppercase italic">Essay Benar: ${s.es_betul}</p>
                         <div class="space-y-3">
-                            ${s.es_detail.map(e => `
-                                <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                                    <p class="text-sm leading-relaxed">
-                                        <span class="font-black ${e.betul ? 'text-emerald-600' : 'text-red-500'} uppercase text-base">
-                                            No ${e.no} ${e.betul ? '✓' : '✗'}
-                                        </span> 
-                                        <br>
-                                        <span class="text-slate-600 font-semibold italic">"${e.alasan}"</span>
-                                    </p>
-                                </div>
-                            `).join('')}
+                            ${s.es_detail.map(e => `<div class="p-4 bg-slate-50 rounded-2xl border border-slate-100"><p class="text-sm leading-relaxed"><span class="font-black ${e.betul ? 'text-emerald-600' : 'text-red-500'} uppercase text-base">No ${e.no} ${e.betul ? '✓' : '✗'}</span><br><span class="text-slate-600 font-semibold italic">"${e.alasan}"</span></p></div>`).join('')}
                         </div>
                     </div>
                 </div>
@@ -245,8 +247,7 @@
 
             btn.disabled = true;
             btn.innerText = "⏳ SEDANG MEMPROSES...";
-            dbData = []; 
-
+            
             const conf = { kunci_pg: {}, kunci_essay: {} };
             for(let i=1; i<=20; i++) { 
                 const v = document.getElementById(`p${i}`).value; 
@@ -257,15 +258,11 @@
                 if(v) conf.kunci_essay[i] = v; 
             }
 
-            // Gunakan batchSize 1 untuk kestabilan lebih baik di mobile
-            const batchSize = 1; 
-            
             try {
-                for (let i = 0; i < files.length; i += batchSize) {
-                    const chunk = Array.from(files).slice(i, i + batchSize);
+                for (let i = 0; i < files.length; i++) {
                     const fd = new FormData();
                     fd.append('data', JSON.stringify(conf));
-                    chunk.forEach(f => fd.append('foto', f));
+                    fd.append('foto', files[i]);
 
                     btn.innerText = `⏳ MEMPROSES ${i + 1} DARI ${files.length}...`;
 
@@ -282,21 +279,15 @@
 
                     if(res.success && res.data) {
                         dbData = [...dbData, ...res.data];
-                        
-                        // PAKSA MUNCULKAN WRAPPER HASIL
                         resWrap.classList.remove('hidden');
+                        resWrap.style.setProperty('display', 'block', 'important'); // PAKSA TAMPIL
                         tampilkanHasilKeLayar(); 
-                        
-                        // AUTO SCROLL KE BAGIAN HASIL
-                        resWrap.scrollIntoView({ behavior: 'smooth' });
+                        simpanKeRiwayat();
+                        setTimeout(() => resWrap.scrollIntoView({ behavior: 'smooth' }), 500);
                     }
                 }
                 btn.innerText = "PROSES JAWABAN AI SELESAI ✅";
-            } catch(e) { 
-                alert("Terjadi kesalahan sistem!"); 
-                btn.innerText = "COBA LAGI";
-            }
-            
+            } catch(e) { alert("Terjadi kesalahan sistem!"); btn.innerText = "COBA LAGI"; }
             btn.disabled = false;
         };
 
@@ -304,27 +295,13 @@
             const res = await fetch('/ai/hitung-rumus', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ 
-                    data: dbData, 
-                    rumus_pg: document.getElementById('r_pg').value, 
-                    rumus_es: document.getElementById('r_es').value 
-                })
+                body: JSON.stringify({ data: dbData, rumus_pg: document.getElementById('r_pg').value, rumus_es: document.getElementById('r_es').value })
             });
             const json = await res.json();
             const box = document.getElementById('laporanFinal');
             box.innerHTML = json.hasil.map(s => `
                 <div class="p-8 bg-white rounded-[40px] border-l-[12px] border-blue-600 shadow-xl mt-6">
                     <p class="font-black text-xl uppercase mb-6 text-slate-800 italic">"Nama siswa : ${s.nama}"</p>
-                    <div class="space-y-2 mb-6 border-b border-dashed border-slate-200 pb-4">
-                        <p class="text-[14px] font-bold text-slate-400 uppercase">JUMLAH SOAL PG: ${s.pg_total}</p>
-                        <p class="text-[16px] font-black text-emerald-600 uppercase">Jawaban Pg betul: ${s.pg_betul}</p>
-                        <p class="text-[16px] font-black text-red-500 uppercase">PG salah: ${s.pg_salah}</p>
-                    </div>
-                    <div class="space-y-2 mb-8 text-[14px] font-bold uppercase">
-                        <p class="text-slate-400">SOAL ESSAY: ${s.es_total}</p>
-                        <p class="text-emerald-600 font-black text-[16px]">Essay betul: ${s.es_betul}</p>
-                        <p class="text-red-500 font-black text-[16px]">Salah: ${s.es_salah}</p>
-                    </div>
                     <div class="flex justify-between items-end pt-6 border-t-2 border-slate-900">
                         <span class="text-[14px] font-black text-blue-600 uppercase">Nilai Akhir :</span>
                         <span class="text-7xl font-black text-slate-900 tracking-tighter">${s.nilai_akhir}</span>
@@ -336,4 +313,3 @@
     </script>
 </body>
 </html>
-
