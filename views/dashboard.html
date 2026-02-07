@@ -25,9 +25,24 @@
             display: inline-block;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        /* Animasi angka token saat berkurang */
+        .token-pulse { animation: pulse-blue 0.5s ease-in-out; }
+        @keyframes pulse-blue {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); color: #2563eb; }
+            100% { transform: scale(1); }
+        }
     </style>
 </head>
 <body class="bg-slate-50 p-4 font-['Plus_Jakarta_Sans'] text-slate-900">
+
+    <div id="tokenBadge" class="fixed top-4 right-4 z-[110] hidden">
+        <div class="bg-white/80 backdrop-blur-md border border-blue-100 px-4 py-2 rounded-full shadow-lg flex items-center gap-2">
+            <span class="text-[9px] font-black text-slate-400 uppercase italic tracking-tighter">Sisa Token:</span>
+            <span id="valToken" class="text-lg font-black text-blue-600">0</span>
+        </div>
+    </div>
 
     <div id="authWrapper" class="fixed inset-0 bg-slate-50 z-[100] flex flex-col items-center justify-center p-6">
         <div class="max-w-md w-full space-y-6">
@@ -112,6 +127,7 @@
     <script>
         let dbData = [];
         let currentMode = 'login';
+        let currentToken = 0; // Simpan token disini
 
         function changeAuthMode(mode) {
             currentMode = mode;
@@ -136,12 +152,26 @@
                 if(data.success) {
                     if(currentMode === 'login') {
                         if(email.toLowerCase() === "versacy") document.getElementById('adminPanel').classList.remove('hidden');
+                        
+                        // AMBIL TOKEN DARI SERVER SAAT LOGIN
+                        updateTokenDisplay(data.token || 0);
+                        
                         document.getElementById('authWrapper').classList.add('hidden');
+                        document.getElementById('tokenBadge').classList.remove('hidden');
                         document.getElementById('dashboardWrapper').classList.remove('opacity-0', 'pointer-events-none');
                         muatRiwayat();
                     } else { alert(data.message); changeAuthMode('login'); }
                 } else { alert(data.message || "Gagal!"); }
             } catch(e) { alert("Error Server!"); }
+        }
+
+        function updateTokenDisplay(val) {
+            currentToken = val;
+            const el = document.getElementById('valToken');
+            el.innerText = currentToken;
+            el.classList.remove('token-pulse');
+            void el.offsetWidth; // Trigger restart animasi
+            el.classList.add('token-pulse');
         }
 
         function logout() { location.reload(); }
@@ -255,8 +285,19 @@
                     if(res.success && res.data) {
                         const rawData = Array.isArray(res.data) ? res.data : [res.data];
                         dbData = [...dbData, ...rawData];
+                        
+                        // KURANGI TOKEN DI LAYAR SETIAP BERHASIL SCAN
+                        if(res.current_token !== undefined) {
+                            updateTokenDisplay(res.current_token);
+                        } else {
+                            updateTokenDisplay(currentToken - 1);
+                        }
+
                         tampilkanHasilKeLayar(); 
                         simpanKeRiwayat();
+                    } else {
+                        alert(res.message || "Gagal memproses file.");
+                        break;
                     }
                 }
                 btn.innerText = "PROSES SELESAI ✅";
