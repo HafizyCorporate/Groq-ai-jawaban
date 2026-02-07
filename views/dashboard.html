@@ -7,7 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
 </head>
-<body class="bg-slate-50 p-4 font-['Plus_Jakarta_Sans']">
+<body class="bg-slate-50 p-4 font-['Plus_Jakarta_Sans'] text-slate-900">
     <div class="max-w-md mx-auto space-y-6">
         <div class="flex justify-between items-center py-4">
             <h1 class="text-xl font-black italic">JAWABAN <span class="text-blue-600">AI</span></h1>
@@ -25,7 +25,7 @@
             </button>
             <input type="file" id="file" multiple class="hidden" onchange="document.getElementById('stts').innerText = '✅ ' + this.files.length + ' File Terupload'">
         </div>
-        <div id="stts" class="text-[10px] font-black text-blue-600 uppercase text-center">Belum ada file</div>
+        <div id="stts" class="text-[10px] font-black text-blue-600 uppercase text-center italic">Belum ada file</div>
 
         <div class="bg-white p-6 rounded-[40px] shadow-sm border border-slate-100">
             <p class="text-[10px] font-black text-blue-600 uppercase mb-4 tracking-widest">Kunci Jawaban PG (1-20)</p>
@@ -44,8 +44,8 @@
 
             <div class="bg-white p-6 rounded-[32px] border-t-4 border-blue-600 space-y-4 shadow-lg">
                 <p class="text-center font-black text-blue-600 text-[10px] uppercase italic">*Kalau mau tau nilai aslinya silahkan masukan rumus kamu*</p>
-                <input type="text" id="r_pg" placeholder="Ketik Rumus PG Kamu (Contoh: betul x 4 / total)" class="w-full p-4 bg-slate-50 rounded-2xl text-[11px] font-bold outline-none">
-                <input type="text" id="r_es" placeholder="Ketik Rumus Essay" class="w-full p-4 bg-slate-50 rounded-2xl text-[11px] font-bold outline-none">
+                <input type="text" id="r_pg" placeholder="Rumus PG (Contoh: betul x 4 / total)" class="w-full p-4 bg-slate-50 rounded-2xl text-[11px] font-bold outline-none border border-slate-100 focus:border-blue-500">
+                <input type="text" id="r_es" placeholder="Rumus Essay" class="w-full p-4 bg-slate-50 rounded-2xl text-[11px] font-bold outline-none border border-slate-100 focus:border-emerald-500">
                 <button id="btnHitung" class="w-full bg-blue-600 text-white font-black py-5 rounded-[28px] text-[10px] uppercase shadow-lg">Proses Hitung Rumus Sekarang</button>
             </div>
 
@@ -55,7 +55,8 @@
 
     <script>
         const gPG = document.getElementById('gridPG');
-        for(let i=1; i<=20; i++) gPG.innerHTML += `<select id="p${i}" class="p-2 bg-slate-50 rounded-xl text-[10px] font-bold outline-none border border-slate-100"><option value="">${i}</option><option>A</option><option>B</option><option>C</option></select>`;
+        // Kunci jawaban dibatasi dari A sampai D
+        for(let i=1; i<=20; i++) gPG.innerHTML += `<select id="p${i}" class="p-2 bg-slate-50 rounded-xl text-[10px] font-bold outline-none border border-slate-100"><option value="">${i}</option><option>A</option><option>B</option><option>C</option><option>D</option></select>`;
         
         const gES = document.getElementById('gridES');
         for(let i=1; i<=5; i++) gES.innerHTML += `<input id="e${i}" placeholder="Kunci Jawaban Essay No ${i}" class="w-full p-4 bg-slate-50 rounded-2xl text-[10px] font-bold outline-none border border-slate-100">`;
@@ -64,7 +65,7 @@
 
         document.getElementById('btnAI').onclick = async () => {
             const btn = document.getElementById('btnAI');
-            btn.innerText = "SEDANG MEMPROSES...";
+            btn.innerText = "⏳ SEDANG MEMPROSES...";
             btn.disabled = true;
 
             const conf = { kunci_pg: {}, kunci_essay: {} };
@@ -84,11 +85,11 @@
                     document.getElementById('scanAwal').innerHTML = dbData.map(s => `
                         <div class="p-6 bg-white rounded-3xl border-l-8 border-slate-900 shadow-sm">
                             <p class="font-black text-[12px] uppercase">Nama Siswa: ${s.nama}</p>
-                            <p class="text-[10px] font-bold text-blue-600">Betul PG: ${s.pg_betul} | Betul Essay: ${s.es_betul}</p>
+                            <p class="text-[10px] font-bold text-blue-600 italic">Betul PG: ${s.pg_betul} | Betul Essay: ${s.es_betul}</p>
                         </div>
                     `).join('');
                 }
-            } catch(e) { alert("Error!"); }
+            } catch(e) { console.error(e); }
             btn.innerText = "PROSES JAWABAN AI";
             btn.disabled = false;
         };
@@ -113,10 +114,10 @@
                         <p class="text-[11px] font-black text-emerald-600 uppercase">Jawaban Pg betul: ${s.pg_betul}</p>
                         <p class="text-[11px] font-black text-red-500 uppercase">PG salah: ${s.pg_salah}</p>
                     </div>
-                    <div class="space-y-2 mb-8">
-                        <p class="text-[11px] font-bold text-slate-400">SOAL ESSAY: ${s.es_total}</p>
-                        <p class="text-[11px] font-black text-emerald-600 uppercase">Essay betul: ${s.es_betul}</p>
-                        <p class="text-[11px] font-black text-red-500 uppercase">Salah: ${s.es_salah}</p>
+                    <div class="space-y-2 mb-8 text-[11px] font-bold">
+                        <p class="text-slate-400 uppercase">SOAL ESSAY: ${s.es_total}</p>
+                        <p class="text-emerald-600 uppercase font-black">Essay betul: ${s.es_betul}</p>
+                        <p class="text-red-500 uppercase font-black">Salah: ${s.es_salah}</p>
                     </div>
                     <div class="flex justify-between items-end pt-6 border-t-2 border-slate-900">
                         <span class="text-[10px] font-black text-blue-600 uppercase">Nilai Akhir :</span>
