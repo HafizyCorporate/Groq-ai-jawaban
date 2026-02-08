@@ -5,7 +5,16 @@ const dotenv = require('dotenv');
 const bcrypt = require('bcrypt'); 
 const session = require('express-session'); 
 
-// --- PEMANGGILAN FILE KOREKSI.JS (Menggunakan Gemini 3/2.5) ---
+// --- DATABASE FILE (LOWDB) ---
+const low = require('lowdb');
+const FileSync = require('lowdb/adapters/FileSync');
+const adapter = new FileSync('db.json');
+const db = low(adapter);
+
+// Inisialisasi Database Default jika file kosong
+db.defaults({ users: [] }).write();
+
+// --- PEMANGGILAN FILE KOREKSI.JS ---
 const { prosesKoreksiLengkap } = require('./routes/koreksi');
 
 dotenv.config();
@@ -23,24 +32,25 @@ app.use(session({
     cookie: { maxAge: 24 * 60 * 60 * 1000 }
 }));
 
-let users = []; 
-
+// Simulasi database diganti ke Lowdb agar permanen
 async function initAdmin() {
     try {
         const adminUser = "Versacy";
         const adminPass = "08556545";
-        const hashedPassword = await bcrypt.hash(adminPass, 10);
         
-        const cekAdmin = users.find(u => u.email === adminUser);
+        // Cek admin di database file
+        const cekAdmin = db.get('users').find({ email: adminUser }).value();
+        
         if (!cekAdmin) {
-            users.push({ 
+            const hashedPassword = await bcrypt.hash(adminPass, 10);
+            db.get('users').push({ 
                 email: adminUser, 
                 password: hashedPassword, 
                 quota: 999999, 
                 isPremium: true,
                 otp: null 
-            });
-            console.log("✅ Admin Versacy Berhasil Didaftarkan");
+            }).write();
+            console.log("✅ Admin Versacy Berhasil Didaftarkan ke Database");
         }
     } catch (e) {
         console.error("❌ Gagal init admin:", e);
@@ -51,7 +61,7 @@ initAdmin();
 const storage = multer.memoryStorage();
 const upload = multer({ 
     storage: storage, 
-    limits: { fileSize: 25 * 1024 * 1024 } // Kapasitas 25MB agar gambar jernih
+    limits: { fileSize: 25 * 1024 * 1024 } 
 });
 
 // --- AUTH ROUTES ---
@@ -59,16 +69,30 @@ app.post('/auth/register', async (req, res) => {
     try {
         const { email, password } = req.body;
         if (!email || !password) return res.status(400).json({ success: false, message: "Data tidak lengkap" });
+        
+        const cekUser = db.get('users').find({ email }).value();
+        if (cekUser) return res.status(400).json({ success: false, message: "Email sudah terdaftar!" });
+
         const hashedPassword = await bcrypt.hash(password, 10);
-        users.push({ email, password: hashedPassword, quota: 1, isPremium: false, otp: null });
-        res.json({ success: true, message: "Pendaftaran Berhasil! Jatah gratis: 1x Koreksi." });
+        
+        // Simpan permanen
+        db.get('users').push({ 
+            email, 
+            password: hashedPassword, 
+            quota: 10, 
+            isPremium: false, 
+            otp: null 
+        }).write();
+
+        res.json({ success: true, message: "Pendaftaran Berhasil! Jatah gratis: 10x Koreksi." });
     } catch (e) { res.status(500).json({ success: false }); }
 });
 
 app.post('/auth/login', async (req, res) => {
     try {
         const { email, password } = req.body;
-        const user = users.find(u => u.email === email);
+        const user = db.get('users').find({ email }).value();
+        
         if (user && await bcrypt.compare(password, user.password)) {
             req.session.userId = email; 
             res.json({ success: true, token: user.isPremium ? "UNLIMITED" : user.quota });
@@ -78,27 +102,49 @@ app.post('/auth/login', async (req, res) => {
     } catch (e) { res.status(500).json({ success: false }); }
 });
 
+// ==========================================
+// --- FITUR ADMIN: TAMBAH TOKEN (PERMANEN) ---
+// ==========================================
+app.post('/admin/add-token', async (req, res) => {
+    try {
+        const { adminEmail, targetEmail, amount } = req.body;
+
+        if (adminEmail !== "Versacy") {
+            return res.status(403).json({ success: false, message: "Anda bukan Admin!" });
+        }
+
+        const user = db.get('users').find({ email: targetEmail }).value();
+        if (!user) {
+            return res.status(404).json({ success: false, message: "User tujuan tidak ditemukan!" });
+        }
+
+        // Update token di database file
+        const newQuota = (user.quota || 0) + parseInt(amount);
+        db.get('users').find({ email: targetEmail }).assign({ quota: newQuota }).write();
+        
+        console.log(`💎 Admin menambah ${amount} token ke ${targetEmail}`);
+        res.json({ success: true, message: `Berhasil! Total token ${targetEmail} sekarang: ${newQuota}` });
+
+    } catch (e) {
+        res.status(500).json({ success: false, message: "Internal Server Error" });
+    }
+});
+
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'views', 'dashboard.html'));
 });
 
-// --- CORE AI ROUTE (Sistem Koreksi LJK Gemini) ---
+// --- CORE AI ROUTE ---
 app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
-    // Diatur ke 30 detik untuk respon cepat
     req.setTimeout(30000); 
 
     try {
         if (!req.session.userId) return res.status(401).json({ success: false, message: "Silakan login dulu!" });
-        
-        // --- TAMBAHAN: Validasi file agar tidak crash saat generate ---
-        if (!req.files || req.files.length === 0) {
-            return res.status(400).json({ success: false, message: "Mohon unggah foto LJK terlebih dahulu!" });
-        }
+        if (!req.files || req.files.length === 0) return res.status(400).json({ success: false, message: "Mohon unggah foto!" });
 
-        const user = users.find(u => u.email === req.session.userId);
+        const user = db.get('users').find({ email: req.session.userId }).value();
         if (!user) return res.status(404).json({ success: false, message: "User tidak ditemukan" });
 
-        // Cek kuota harian (Free Tier: 100/day)
         if (!user.isPremium && user.quota < req.files.length) {
             return res.json({ success: false, limitReached: true, message: "TOKEN HABIS" });
         }
@@ -107,36 +153,29 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
         const r_pg = req.body.rumus_pg || "betul * 1"; 
         const r_es = req.body.rumus_es || "betul * 1"; 
 
-        // Pemanggilan proses AI Gemini 2.5 Pro / 3 Flash
         const results = await prosesKoreksiLengkap(req.files, settings, r_pg, r_es);
 
-        // --- TAMBAHAN: Deteksi jika AI sibuk atau kuota habis ---
         if (results.length > 0 && results[0].nama.includes("Error")) {
-            return res.status(500).json({ 
-                success: false, 
-                message: "AI sedang sibuk atau kuota harian habis.",
-                detail: results[0].log_detail[0]
-            });
+            return res.status(500).json({ success: false, message: "AI sedang sibuk." });
         }
 
+        // Kurangi kuota di database file
         if (!user.isPremium && results.length > 0) {
-            user.quota = Math.max(0, user.quota - req.files.length);
+            const currentQuota = db.get('users').find({ email: req.session.userId }).value().quota;
+            const updatedQuota = Math.max(0, currentQuota - req.files.length);
+            db.get('users').find({ email: req.session.userId }).assign({ quota: updatedQuota }).write();
         }
 
+        const finalUser = db.get('users').find({ email: req.session.userId }).value();
         res.json({ 
             success: true, 
             data: results, 
-            current_token: user.isPremium ? "UNLIMITED" : user.quota 
+            current_token: finalUser.isPremium ? "UNLIMITED" : finalUser.quota 
         });
 
     } catch (err) {
-        // --- TAMBAHAN: Log error detail untuk debug ---
         console.error("❌ AI Global Error:", err);
-        res.status(500).json({ 
-            success: false, 
-            message: "Waktu tunggu habis atau sistem sibuk.",
-            error_code: err.message 
-        });
+        res.status(500).json({ success: false, message: "Waktu tunggu habis." });
     }
 });
 
