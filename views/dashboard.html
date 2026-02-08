@@ -90,6 +90,10 @@
             font-size: 1.4rem !important;
             padding: 1rem !important;
         }
+
+        /* Styling tambahan untuk detail log */
+        details summary::-webkit-details-marker { display:none; }
+        details summary { list-style: none; }
     </style>
 </head>
 <body class="bg-slate-50 p-4 text-slate-900">
@@ -293,7 +297,18 @@
             const dataTerbaru = [...dbData].reverse().slice(0, 5);
             const dataLama = [...dbData].reverse().slice(5);
 
-            const card = (s, i) => `
+            const card = (s, i) => {
+                // Generate HTML untuk log detail jika ada
+                let logHtml = "";
+                if(s.log_detail && s.log_detail.length > 0) {
+                    logHtml = s.log_detail.map(l => `
+                        <div class="text-[11px] font-bold py-2 border-b border-slate-100 last:border-0 ${l.includes('✅') ? 'text-emerald-600' : 'text-rose-500'}">
+                            ${l}
+                        </div>
+                    `).join('');
+                }
+
+                return `
                 <div class="bg-white p-8 rounded-[40px] border-2 border-slate-50 shadow-md space-y-6">
                     <div class="flex justify-between items-start">
                         <div class="flex flex-col overflow-hidden">
@@ -305,10 +320,6 @@
                                 <span class="block text-[10px] font-black text-blue-400 uppercase">PG</span>
                                 <span class="text-4xl font-black text-blue-600">${s.pg_betul || 0}</span>
                             </div>
-                            <div class="bg-emerald-50 px-5 py-4 rounded-3xl text-center border border-emerald-100">
-                                <span class="block text-[10px] font-black text-emerald-400 uppercase">ES</span>
-                                <span class="text-4xl font-black text-emerald-600">${s.es_betul || 0}</span>
-                            </div>
                         </div>
                     </div>
                     
@@ -316,17 +327,22 @@
                         <div class="bg-slate-50 p-6 rounded-[30px] border border-slate-100">
                             <p class="text-[11px] font-black text-slate-400 uppercase mb-2 tracking-widest italic">NOMOR PG BETUL:</p>
                             <p class="text-2xl font-black text-slate-700 leading-snug tracking-wider">
-                                ${s.list_pg_betul && s.list_pg_betul.length > 0 ? s.list_pg_betul.join(', ') : 'KOSONG'}
+                                ${s.nomor_pg_betul || 'KOSONG'}
                             </p>
                         </div>
-                        <div class="bg-emerald-50/50 p-6 rounded-[30px] border border-emerald-100">
-                            <p class="text-[11px] font-black text-emerald-400 uppercase mb-2 tracking-widest italic">NOMOR ESSAY BETUL:</p>
-                            <p class="text-2xl font-black text-slate-700 leading-snug tracking-wider">
-                                ${s.list_es_betul && s.list_es_betul.length > 0 ? s.list_es_betul.join(', ') : 'KOSONG'}
-                            </p>
-                        </div>
+                        
+                        <details class="group bg-slate-50 rounded-[25px] border border-slate-100 overflow-hidden">
+                            <summary class="flex justify-between items-center p-5 cursor-pointer select-none">
+                                <span class="text-[10px] font-black text-blue-600 uppercase italic">Klik Lihat Detail Analisis AI</span>
+                                <span class="text-blue-600 transition-transform group-open:rotate-180">▼</span>
+                            </summary>
+                            <div class="p-6 pt-0 max-h-60 overflow-y-auto">
+                                ${logHtml || '<p class="text-[10px] font-bold text-slate-400 italic">Data log tidak tersedia</p>'}
+                            </div>
+                        </details>
                     </div>
                 </div>`;
+            };
 
             container.innerHTML = dataTerbaru.map((s, i) => card(s, i)).join('');
             
@@ -380,7 +396,6 @@
 
             btn.disabled = true;
             btn.innerHTML = `<span class="loader" style="width:20px; height:20px; border-width:2px; vertical-align:middle; margin-right:8px"></span> MENGIRIM...`;
-            if(currentMode === 'forgot') btn.innerText = "⏳ TUNGGU SEBENTAR...";
 
             try {
                 const res = await fetch(endpoint, {
@@ -402,14 +417,13 @@
                         document.getElementById('otpModalOverlay').classList.remove('hidden');
                         showAlert("KODE TERKIRIM! Cek email Anda.");
                     } else {
-                        showAlert(data.message || "Berhasil! Silakan cek email/login.");
+                        showAlert(data.message || "Berhasil! Silakan login.");
                         changeAuthMode('login');
                     }
                 } else { 
                     showAlert(data.message || "Email salah atau tidak terdaftar!"); 
                 }
             } catch(e) { 
-                console.error("Auth Error:", e);
                 showAlert("Kesalahan Koneksi: " + e.message); 
             } finally {
                 btn.disabled = false;
@@ -433,11 +447,7 @@
                 const res = await fetch(window.location.origin + '/auth/verify-otp', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ 
-                        email: email.trim(), 
-                        otp: otp.trim(), 
-                        newPassword: newPassword 
-                    })
+                    body: JSON.stringify({ email: email.trim(), otp: otp.trim(), newPassword: newPassword })
                 });
                 const data = await res.json();
                 
@@ -451,7 +461,7 @@
                     showAlert(data.message || "Kode OTP salah!");
                 }
             } catch(e) {
-                showAlert("Gagal memverifikasi OTP: " + e.message);
+                showAlert("Gagal memverifikasi OTP");
             } finally {
                 btn.disabled = false;
                 btn.innerText = originalText;
@@ -554,8 +564,7 @@
                         <div class="bg-slate-50 p-6 rounded-3xl border border-slate-100">
                             <p class="text-xs font-black text-blue-500 uppercase tracking-widest mb-2 italic">RINCIAN NOMOR BETUL:</p>
                             <p class="text-xl font-bold text-slate-600 leading-relaxed">
-                                <span class="text-blue-600">PG:</span> ${s.list_pg_betul?.join(', ') || '-'} <br>
-                                <span class="text-emerald-600">ES:</span> ${s.list_es_betul?.join(', ') || '-'}
+                                <span class="text-blue-600">PG:</span> ${s.list_pg_betul?.join(', ') || '-'}
                             </p>
                         </div>
                     </div>`;
