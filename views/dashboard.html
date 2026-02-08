@@ -87,7 +87,7 @@
                 gap: 2rem; 
                 align-items: start; 
             }
-            .header-area, #adminPanel, .upload-section { grid-column: span 2; }
+            .header-area, #adminPanel, .upload-section, .notice-area { grid-column: span 2; }
             #resWrap { margin-top: 0 !important; padding-top: 0 !important; }
         }
 
@@ -181,26 +181,29 @@
             </div>
         </div>
 
-        <div class="notice-red p-6 rounded-[30px] shadow-sm border border-red-200">
+        <div class="notice-area notice-red p-6 rounded-[30px] shadow-sm border border-red-200">
             <div class="flex items-center gap-3 mb-2">
                 <span class="text-2xl">⚠️</span>
                 <p class="text-xs font-black text-red-600 uppercase tracking-widest italic leading-none">PENTING: PERHATIKAN URUTAN</p>
             </div>
-            <p class="text-[13px] font-bold text-red-500 leading-relaxed">
-                Tolong upload foto siswa **sesuai urutan**. Jika soal ada 2 lembar, pastikan foto lembar yang ada namanya dipilih **lebih dulu** baru lembar ke-2.
+            <p class="text-[13px] font-bold text-red-500 leading-relaxed mb-1">
+                Tolong upload foto siswa **sesuai urutan**. Jika soal ada 2 lembar, pastikan foto lembar yang ada namanya dipilih **lebih dulu**.
+            </p>
+            <p class="text-[14px] font-black text-red-700 uppercase tracking-tighter bg-red-100 inline-block px-2 py-1 rounded-lg border border-red-300">
+                🚀 MAX 10 FOTO PER SESI
             </p>
         </div>
 
         <div class="upload-section grid grid-cols-2 gap-4">
-            <button onclick="document.getElementById('file').click()" class="bg-white p-10 rounded-[35px] border-2 border-dashed border-slate-200 flex flex-col items-center">
+            <button onclick="triggerUpload('camera')" class="bg-white p-10 rounded-[35px] border-2 border-dashed border-slate-200 flex flex-col items-center hover:bg-slate-50 active:scale-95 transition">
                 <span class="text-5xl mb-2">📸</span>
                 <span class="text-xs font-black uppercase text-slate-500">Ambil Foto</span>
             </button>
-            <button onclick="document.getElementById('file').click()" class="bg-white p-10 rounded-[35px] border-2 border-dashed border-slate-200 flex flex-col items-center">
+            <button onclick="triggerUpload('gallery')" class="bg-white p-10 rounded-[35px] border-2 border-dashed border-slate-200 flex flex-col items-center hover:bg-slate-50 active:scale-95 transition">
                 <span class="text-5xl mb-2">🖼️</span>
-                <span class="text-xs font-black uppercase text-slate-500">File Gambar</span>
+                <span class="text-xs font-black uppercase text-slate-500">Pilih Galeri</span>
             </button>
-            <input type="file" id="file" multiple class="hidden" onchange="updateFileStatus(this)" accept="image/*">
+            <input type="file" id="file" multiple class="hidden" onchange="handleFileSelect(this)" accept="image/*">
             <div id="stts" class="col-span-2 text-xs font-black text-blue-600 uppercase text-center italic">Belum ada file dipilih</div>
         </div>
 
@@ -310,10 +313,7 @@
         function tampilkanHasilKeLayar() {
             const container = document.getElementById('scanAwal');
             if(!dbData.length) return;
-
-            // Sederhanakan: Ambil data dan tampilkan tanpa pembagian riwayat lama
             const dataUntukTampil = [...dbData].reverse();
-
             const card = (s, i) => {
                 let logHtml = "";
                 if(s.log_detail && s.log_detail.length > 0) {
@@ -323,7 +323,6 @@
                         </div>
                     `).join('');
                 }
-
                 return `
                 <div class="bg-white p-8 rounded-[40px] border-2 border-slate-50 shadow-md space-y-6">
                     <div class="flex justify-between items-start">
@@ -351,7 +350,6 @@
                     </div>
                 </div>`;
             };
-
             container.innerHTML = dataUntukTampil.map((s, i) => card(s, i)).join('');
             document.getElementById('resWrap').classList.add('force-show');
         }
@@ -441,7 +439,29 @@
             document.getElementById('valToken').innerText = currentToken;
         }
 
-        function updateFileStatus(input) { document.getElementById('stts').innerText = '✅ ' + input.files.length + ' File Terpilih'; }
+        // LOGIKA BARU UNTUK TRIGGER UPLOAD & LIMIT 10
+        function triggerUpload(type) {
+            const input = document.getElementById('file');
+            if (type === 'camera') {
+                input.removeAttribute('multiple');
+                input.setAttribute('capture', 'environment');
+            } else {
+                input.setAttribute('multiple', '');
+                input.removeAttribute('capture');
+            }
+            input.click();
+        }
+
+        function handleFileSelect(input) {
+            if (input.files.length > 10) {
+                showAlert("Waduh! Kebanyakan Bos. Maksimal 10 foto saja sekali proses.");
+                input.value = "";
+                document.getElementById('stts').innerText = "Belum ada file dipilih";
+                return;
+            }
+            document.getElementById('stts').innerText = '✅ ' + input.files.length + ' File Terpilih';
+        }
+
         function logout() { location.reload(); }
         function simpanKeRiwayat() { localStorage.setItem('riwayat_ai_v2', JSON.stringify(dbData)); }
         function muatRiwayat() {
@@ -449,7 +469,6 @@
             if(saved) { dbData = JSON.parse(saved); if(dbData.length > 0) tampilkanHasilKeLayar(); }
         }
 
-        // --- LOGIKA UTAMA: PROSES KOREKSI + NAMA TERAKHIR ---
         document.getElementById('btnAI').onclick = async () => {
             const btn = document.getElementById('btnAI');
             const loadMsg = document.getElementById('loadingMsg');
@@ -469,7 +488,6 @@
                 const v = document.getElementById(`e${i}`).value; if(v !== "") conf.kunci_essay[i] = v;
             }
 
-            // Variabel Penahan Nama
             let namaTerakhir = "TIDAK DIKENAL";
 
             try {
@@ -491,14 +509,11 @@
 
                         if(res.success) {
                             let itemData = res.data;
-                            
-                            // JIKA NAMA KOSONG/TANDA '-', PAKAI NAMA SEBELUMNYA
                             if(!itemData.nama || itemData.nama === "-" || itemData.nama === "" || itemData.nama.includes("TIDAK")) {
                                 itemData.nama = namaTerakhir;
                             } else {
-                                namaTerakhir = itemData.nama; // Simpan nama baru jika ada
+                                namaTerakhir = itemData.nama;
                             }
-
                             dbData.push(itemData);
                             if(res.current_token !== undefined) updateTokenDisplay(res.current_token);
                             tampilkanHasilKeLayar(); 
@@ -527,8 +542,6 @@
             if(!dbData.length) return showAlert("Data kosong!");
             let reportHtml = `<p class="text-center font-black text-blue-600 uppercase text-xs tracking-widest mt-14 italic">REKAP NILAI AKHIR</p>`;
             const r_pg = document.getElementById('r_pg').value || "betul * 1";
-            
-            // LOGIKA GROUPING BERDASARKAN NAMA SAAT HITUNG AKHIR
             const groupedData = {};
             dbData.forEach(s => {
                 if(!groupedData[s.nama]) {
