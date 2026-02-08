@@ -44,9 +44,11 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
 
                                 INSTRUKSI KHUSUS DETEKSI (PENTING!):
                                 1. **Deteksi Multi-Alat Tulis**: Siswa mungkin menjawab menggunakan PENSIL, PULPEN (HITAM/BIRU/MERAH), atau SPIDOL.
-                                2. **Logika Kontras**: Fokus pada coretan tambahan (X, centang, atau lingkaran) yang menimpa huruf opsi (a, b, atau c). 
-                                3. **Prioritas Kepekatan**: Jika ada bekas hapusan (samar), JANGAN DIPILIH. Pilih coretan yang paling TEBAL dan JELAS menutupi huruf.
-                                4. **Akurasi Posisi**: Pastikan coretan benar-benar berada di atas huruf pilihan. Jika huruf 'b' dicoret/dicentang secara tegas dan 'a' bersih, maka jawabannya adalah 'B'.
+                                2. **Metode Baris-demi-Baris**: Lakukan scan pada setiap nomor soal satu per satu secara vertikal (1 sampai 13).
+                                3. **Analisis Koordinat Opsi**: Perhatikan bahwa setiap huruf opsi (a, b, c) diikuti oleh teks/angka. 
+                                   - Contoh No 1: Huruf 'b.' diikuti angka '30'. Jika coretan menutupi angka '30', maka jawabannya MUTLAK 'B'.
+                                   - JANGAN menyimpulkan 'C' jika huruf 'c.' dan angka di sebelahnya bersih dari tinta.
+                                4. **Logika Kontras**: Fokus pada coretan tambahan (X, centang, atau lingkaran) yang menimpa huruf/teks opsi. Pilih yang paling TEBAL dan JELAS. Abaikan bekas hapusan samar.
 
                                 INSTRUKSI PILIHAN GANDA (PG):
                                 - Analisis tanda SILANG (X), CENTANG (v), atau CORETAN yang menutupi opsi.
@@ -61,7 +63,7 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
                                   "nama_siswa": "Detect Nama dari kertas",
                                   "jawaban_pg": {"1": "A", "2": "B", ...},
                                   "analisis_essay": {"1": "BENAR/SALAH (Alasan)", ...},
-                                  "log_deteksi": "Jelaskan deteksi per nomor (Contoh: No 1: Huruf B tertutup coretan pensil tebal)."
+                                  "log_deteksi": "Jelaskan deteksi per nomor (Contoh: No 1: Huruf B dan angka di sampingnya tertutup coretan tebal, opsi C bersih)."
                                 }` 
                             },
                             { "type": "image_url", "image_url": { "url": `data:image/jpeg;base64,${base64}` } }
