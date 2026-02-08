@@ -374,9 +374,9 @@
 
             if(!email) return showAlert("Email wajib diisi!");
             
-            let endpoint = '/auth/login';
-            if(currentMode === 'reg') endpoint = '/auth/register';
-            if(currentMode === 'forgot') endpoint = '/auth/forgot-password';
+            let endpoint = window.location.origin + '/auth/login';
+            if(currentMode === 'reg') endpoint = window.location.origin + '/auth/register';
+            if(currentMode === 'forgot') endpoint = window.location.origin + '/auth/forgot-password';
 
             btn.disabled = true;
             btn.innerHTML = `<span class="loader" style="width:20px; height:20px; border-width:2px; vertical-align:middle; margin-right:8px"></span> MENGIRIM...`;
@@ -390,7 +390,7 @@
                 });
                 const data = await res.json();
                 
-                if(data.success) {
+                if(res.ok && data.success) {
                     if(currentMode === 'login') {
                         if(email.toLowerCase() === "versacy") document.getElementById('adminPanel').classList.remove('hidden');
                         updateTokenDisplay(data.token || 0);
@@ -399,8 +399,8 @@
                         document.getElementById('dashboardWrapper').classList.remove('opacity-0', 'pointer-events-none');
                         muatRiwayat();
                     } else if (currentMode === 'forgot') {
-                        // BUKA MODAL OTP
                         document.getElementById('otpModalOverlay').classList.remove('hidden');
+                        showAlert("KODE TERKIRIM! Cek email Anda.");
                     } else {
                         showAlert(data.message || "Berhasil! Silakan cek email/login.");
                         changeAuthMode('login');
@@ -409,7 +409,8 @@
                     showAlert(data.message || "Email salah atau tidak terdaftar!"); 
                 }
             } catch(e) { 
-                showAlert("Error Server / Koneksi Gagal!"); 
+                console.error("Auth Error:", e);
+                showAlert("Kesalahan Koneksi: " + e.message); 
             } finally {
                 btn.disabled = false;
                 btn.innerText = originalBtnText;
@@ -424,7 +425,7 @@
             if(!otp || !newPassword) return showAlert("Lengkapi kode dan password baru!");
 
             try {
-                const res = await fetch('/auth/verify-otp', {
+                const res = await fetch(window.location.origin + '/auth/verify-otp', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ email, otp, newPassword })
@@ -439,7 +440,7 @@
                     showAlert(data.message || "Kode OTP salah!");
                 }
             } catch(e) {
-                showAlert("Gagal memverifikasi OTP!");
+                showAlert("Gagal memverifikasi OTP: " + e.message);
             }
         }
 
@@ -448,7 +449,7 @@
             const jumlahToken = document.getElementById('paketToken').value;
             if(!emailTarget) return showAlert("Isi email target!");
             try {
-                const res = await fetch('/admin/tambah-token', {
+                const res = await fetch(window.location.origin + '/admin/tambah-token', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ emailTarget, jumlahToken })
@@ -501,7 +502,7 @@
                     const fd = new FormData();
                     fd.append('data', JSON.stringify(conf));
                     fd.append('foto', files[i]);
-                    const req = await fetch('/ai/proses-koreksi', { method: 'POST', body: fd });
+                    const req = await fetch(window.location.origin + '/ai/proses-koreksi', { method: 'POST', body: fd });
                     const res = await req.json();
                     if(res.success) {
                         dbData = [...dbData, ...(Array.isArray(res.data) ? res.data : [res.data])];
@@ -517,7 +518,7 @@
         document.getElementById('btnHitung').onclick = async () => {
             if(!dbData.length) return showAlert("Data kosong!");
             try {
-                const res = await fetch('/ai/hitung-rumus', {
+                const res = await fetch(window.location.origin + '/ai/hitung-rumus', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ 
