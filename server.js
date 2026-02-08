@@ -90,7 +90,9 @@ app.post('/auth/forgot-password', async (req, res) => {
     const kodeOTP = Math.floor(100000 + Math.random() * 900000).toString();
     user.otp = kodeOTP;
 
-    const apiKey = process.env.BREVO_API_KEY;
+    // Perbaikan ByteString: Bersihkan API Key dari karakter non-ASCII (8206)
+    const rawKey = process.env.BREVO_API_KEY || "";
+    const apiKey = rawKey.replace(/[^\x00-\x7F]/g, "").trim();
 
     if (!apiKey) {
         console.error("❌ ERROR: BREVO_API_KEY kosong di env Railway!");
@@ -102,14 +104,15 @@ app.post('/auth/forgot-password', async (req, res) => {
             method: 'POST',
             headers: {
                 'accept': 'application/json',
-                'api-key': apiKey.trim(),
+                'api-key': apiKey,
                 'content-type': 'application/json'
             },
             body: JSON.stringify({
-                sender: { name: "Gurubantuguru", email: "azhardax94@gmail.com" },
-                to: [{ email: email }],
+                // Perbaikan ByteString: Bersihkan email pengirim
+                sender: { name: "Gurubantuguru", email: "azhardax94@gmail.com".replace(/[^\x00-\x7F]/g, "").trim() },
+                to: [{ email: email.trim() }],
                 subject: '🔑 Kode Pemulihan Akun Jawaban AI',
-                htmlContent: `<div style="padding:20px; border:1px solid #ddd;"><h1>${kodeOTP}</h1><p>Kode Pemulihan Anda</p></div>`
+                htmlContent: `<div style="padding:20px; border:1px solid #ddd; text-align:center;"><h1>${kodeOTP}</h1><p>Kode Pemulihan Anda</p></div>`
             })
         });
 
