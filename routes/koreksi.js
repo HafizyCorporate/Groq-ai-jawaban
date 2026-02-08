@@ -1,6 +1,6 @@
 /**
  * FILE: koreksi.js
- * TUGAS: Otak Analisis AI (via Gemini 1.5 Flash-002) & Perhitungan Nilai
+ * TUGAS: Otak Analisis AI (via Gemini Terbaru) & Perhitungan Nilai
  */
 
 const { GoogleGenerativeAI } = require("@google/generative-ai");
@@ -28,12 +28,11 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
     };
 
     /**
-     * PERBAIKAN FINAL: Menggunakan gemini-1.5-flash-002.
-     * Versi rilis spesifik ini adalah yang paling stabil untuk OCR/Vision saat ini
-     * dan biasanya tersedia di semua region tanpa error 404.
+     * MENGGUNAKAN MODEL SESUAI DAFTAR DI AI STUDIO KAMU
+     * Kita pilih Gemini 3 Flash Preview untuk kecepatan Vision yang luar biasa.
      */
     const model = genAI.getGenerativeModel({ 
-        model: "gemini-1.5-flash-002" 
+        model: "gemini-3-flash-preview" 
     });
 
     for (const [index, file] of files.entries()) {
@@ -45,14 +44,14 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
 
             ATURAN DETEKSI (WAJIB):
             1. **Fokus Interaksi Tinta**: Cari coretan manual (X, centang, atau coretan tebal). Jawaban siswa adalah huruf opsi (a, b, c, atau d) yang SECARA FISIK TERTUTUP atau TERTINDIH oleh tinta tersebut.
-            2. **Identifikasi Huruf di Bawah Tinta**: Jika Anda melihat coretan, lihat karakter huruf apa yang ada tepat di bawahnya.
+            2. **Identifikasi Huruf di Bawah Tinta**: Lihat karakter huruf apa yang ada tepat di bawah coretan.
             3. **Non-Asumsi Layout**: Cari huruf yang tertindih di area setiap nomor soal.
             4. **Deteksi Multi-Alat**: Pilih coretan yang paling TEBAL. Abaikan bekas hapusan.
 
             INSTRUKSI ESSAY:
             - Bandingkan dengan Kunci: ${JSON.stringify(kunciEssay)}. Nyatakan BENAR jika inti maknanya sama.
 
-            WAJIB OUTPUT JSON MURNI (TANPA BACKTICKS):
+            WAJIB OUTPUT JSON MURNI:
             {
               "nama_siswa": "Detect Nama dari kertas",
               "jawaban_pg": {"1": "A", "2": "B", ...},
