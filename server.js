@@ -67,7 +67,7 @@ app.post('/auth/login', async (req, res) => {
     }
 });
 
-// LOGIKA FORGOT PASSWORD - VERSI BREVO (JALUR ALTERNATIF PORT 2525)
+// LOGIKA FORGOT PASSWORD - FINAL FIX (BREVO SMTP)
 app.post('/auth/forgot-password', async (req, res) => {
     const { email } = req.body;
     const userExists = users.find(u => u.email === email);
@@ -76,13 +76,14 @@ app.post('/auth/forgot-password', async (req, res) => {
         return res.status(404).json({ success: false, message: "Email tidak terdaftar!" });
     }
 
+    // Mengambil data login dari Railway (a1d18a001@smtp-brevo.com & xsmtpsib...)
     const cleanEmail = process.env.EMAIL_USER ? process.env.EMAIL_USER.trim() : "";
     const cleanPass = process.env.EMAIL_PASS ? process.env.EMAIL_PASS.trim() : "";
 
-    // KONFIGURASI BREVO PORT 2525 (MENGATASI CONNECTION TIMEOUT)
+    // KONFIGURASI BREVO SESUAI DATA DASHBOARD KAMU
     const transporter = nodemailer.createTransport({
         host: 'smtp-relay.brevo.com',
-        port: 2525, 
+        port: 587, 
         secure: false,
         auth: { 
             user: cleanEmail, 
@@ -94,7 +95,7 @@ app.post('/auth/forgot-password', async (req, res) => {
     });
 
     const mailOptions = {
-        from: `"JAWABAN AI" <${cleanEmail}>`,
+        from: `"JAWABAN AI" <azhardax94@gmail.com>`, // Nama tampilan di inbox
         to: email,
         subject: '🔑 Kode Pemulihan Akun Jawaban AI',
         html: `
