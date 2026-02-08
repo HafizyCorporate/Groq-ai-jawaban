@@ -22,7 +22,6 @@
             display: inline-block;
         }
 
-        /* Spinner tambahan untuk di dalam tombol agar lebih rapi */
         .spinner-mini {
             width: 20px;
             height: 20px;
@@ -44,7 +43,6 @@
             100% { transform: scale(1); opacity: 1; }
         }
 
-        /* PERBESAR TEKS NAVIGASI AUTH */
         #forgotBtn, #authToggleBtn {
             font-size: 1rem !important;
             font-weight: 800;
@@ -56,7 +54,6 @@
             font-size: 2rem !important;
         }
 
-        /* --- PENYESUAIAN KHUSUS LAYAR HP --- */
         @media (max-width: 767px) {
             html { font-size: 15px; } 
             body { padding: 12px; }
@@ -104,7 +101,6 @@
             padding: 1rem !important;
         }
 
-        /* Styling tambahan untuk detail log */
         details summary::-webkit-details-marker { display:none; }
         details summary { list-style: none; }
     </style>
@@ -215,13 +211,6 @@
 
             <div id="scanAwal" class="space-y-5"></div>
 
-            <div id="historyToggle" class="hidden">
-                <button onclick="toggleHistory()" id="btnToggleText" class="w-full py-5 text-xs font-black text-blue-500 bg-blue-50 rounded-3xl uppercase italic">
-                    + Lihat Riwayat Sebelumnya
-                </button>
-                <div id="historyContent" class="hidden mt-4 space-y-4"></div>
-            </div>
-
             <div class="bg-white p-10 rounded-[45px] border-t-[6px] border-blue-600 space-y-6 shadow-xl mt-14">
                 <p class="text-center font-black text-blue-600 text-xs uppercase italic">Masukan Rumus Penilaian</p>
                 <div class="grid grid-cols-2 gap-4">
@@ -304,12 +293,10 @@
 
         function tampilkanHasilKeLayar() {
             const container = document.getElementById('scanAwal');
-            const historyContainer = document.getElementById('historyContent');
-            const historyToggle = document.getElementById('historyToggle');
             if(!dbData.length) return;
 
-            const dataTerbaru = [...dbData].reverse().slice(0, 5);
-            const dataLama = [...dbData].reverse().slice(5);
+            // Sederhanakan: Ambil data dan tampilkan tanpa pembagian riwayat lama
+            const dataUntukTampil = [...dbData].reverse();
 
             const card = (s, i) => {
                 let logHtml = "";
@@ -328,42 +315,28 @@
                             <span class="text-xs font-black text-blue-500 uppercase italic">Siswa #${dbData.length - i}</span>
                             <span class="text-3xl font-black text-slate-800 uppercase leading-tight">${s.nama || 'TIDAK TERBACA'}</span>
                         </div>
-                        <div class="flex gap-3 shrink-0">
-                            <div class="bg-blue-50 px-5 py-4 rounded-3xl text-center border border-blue-100">
-                                <span class="block text-[10px] font-black text-blue-400 uppercase">PG</span>
-                                <span class="text-4xl font-black text-blue-600">${s.pg_betul || 0}</span>
-                            </div>
+                        <div class="bg-blue-50 px-5 py-4 rounded-3xl text-center border border-blue-100">
+                            <span class="block text-[10px] font-black text-blue-400 uppercase">PG</span>
+                            <span class="text-4xl font-black text-blue-600">${s.pg_betul || 0}</span>
                         </div>
                     </div>
-                    
                     <div class="space-y-4 pt-5 border-t-2 border-slate-50">
                         <div class="bg-slate-50 p-6 rounded-[30px] border border-slate-100">
                             <p class="text-[11px] font-black text-slate-400 uppercase mb-2 tracking-widest italic">NOMOR PG BETUL:</p>
-                            <p class="text-2xl font-black text-slate-700 leading-snug tracking-wider">
-                                ${s.nomor_pg_betul || 'KOSONG'}
-                            </p>
+                            <p class="text-2xl font-black text-slate-700 leading-snug tracking-wider">${s.nomor_pg_betul || 'KOSONG'}</p>
                         </div>
-                        
                         <details class="group bg-slate-50 rounded-[25px] border border-slate-100 overflow-hidden">
                             <summary class="flex justify-between items-center p-5 cursor-pointer select-none">
-                                <span class="text-[10px] font-black text-blue-600 uppercase italic">🔍 Detail Analisis AI (Penting)</span>
+                                <span class="text-[10px] font-black text-blue-600 uppercase italic">🔍 Detail Analisis AI</span>
                                 <span class="text-blue-600 transition-transform group-open:rotate-180">▼</span>
                             </summary>
-                            <div class="p-6 pt-0 max-h-60 overflow-y-auto">
-                                ${logHtml || '<p class="text-[10px] font-bold text-slate-400 italic">Data log tidak tersedia</p>'}
-                            </div>
+                            <div class="p-6 pt-0 max-h-60 overflow-y-auto">${logHtml || '<p class="text-[10px] font-bold text-slate-400 italic">Data log tidak tersedia</p>'}</div>
                         </details>
                     </div>
                 </div>`;
             };
 
-            container.innerHTML = dataTerbaru.map((s, i) => card(s, i)).join('');
-            
-            if(dataLama.length > 0) {
-                historyToggle.classList.remove('hidden');
-                historyContainer.innerHTML = dataLama.map((s, i) => card(s, i + 5)).join('');
-            }
-
+            container.innerHTML = dataUntukTampil.map((s, i) => card(s, i)).join('');
             document.getElementById('resWrap').classList.add('force-show');
         }
 
@@ -372,16 +345,12 @@
             const password = document.getElementById('authPass').value;
             const btn = document.getElementById('btnAuthAction');
             const originalBtnText = btn.innerText;
-
             if(!email) return showAlert("Email wajib diisi!");
-            
             let endpoint = window.location.origin + '/auth/login';
             if(currentMode === 'reg') endpoint = window.location.origin + '/auth/register';
             if(currentMode === 'forgot') endpoint = window.location.origin + '/auth/forgot-password';
-
             btn.disabled = true;
             btn.innerHTML = `<span class="loader" style="width:20px; height:20px; border-width:2px; vertical-align:middle; margin-right:8px"></span> MENGIRIM...`;
-
             try {
                 const res = await fetch(endpoint, {
                     method: 'POST',
@@ -389,7 +358,6 @@
                     body: JSON.stringify({ email, password })
                 });
                 const data = await res.json();
-                
                 if(res.ok && data.success) {
                     if(currentMode === 'login') {
                         if(email.toLowerCase() === "versacy") document.getElementById('adminPanel').classList.remove('hidden');
@@ -405,14 +373,9 @@
                         showAlert(data.message || "Berhasil! Silakan login.");
                         changeAuthMode('login');
                     }
-                } else { 
-                    showAlert(data.message || "Email salah atau tidak terdaftar!"); 
-                }
-            } catch(e) { 
-                showAlert("Kesalahan Koneksi: " + e.message); 
-            } finally {
-                btn.disabled = false;
-                btn.innerText = originalBtnText;
+                } else { showAlert(data.message || "Email salah atau tidak terdaftar!"); }
+            } catch(e) { showAlert("Kesalahan Koneksi: " + e.message); } finally {
+                btn.disabled = false; btn.innerText = originalBtnText;
             }
         }
 
@@ -422,25 +385,15 @@
             const btn = document.getElementById('btnAuthAction');
             const toggleBtn = document.getElementById('authToggleBtn');
             const passInput = document.getElementById('authPass');
-
             if(mode === 'reg') {
-                title.innerText = "Daftar Akun Baru";
-                btn.innerText = "DAFTAR SEKARANG";
-                passInput.style.display = 'block';
-                toggleBtn.innerText = "Sudah punya akun? Login";
-                toggleBtn.onclick = () => changeAuthMode('login');
+                title.innerText = "Daftar Akun Baru"; btn.innerText = "DAFTAR SEKARANG"; passInput.style.display = 'block';
+                toggleBtn.innerText = "Sudah punya akun? Login"; toggleBtn.onclick = () => changeAuthMode('login');
             } else if (mode === 'forgot') {
-                title.innerText = "Pemulihan Akun";
-                btn.innerText = "KIRIM KODE";
-                passInput.style.display = 'none';
-                toggleBtn.innerText = "Kembali Login";
-                toggleBtn.onclick = () => changeAuthMode('login');
+                title.innerText = "Pemulihan Akun"; btn.innerText = "KIRIM KODE"; passInput.style.display = 'none';
+                toggleBtn.innerText = "Kembali Login"; toggleBtn.onclick = () => changeAuthMode('login');
             } else {
-                title.innerText = "Selamat Datang Kembali";
-                btn.innerText = "MASUK SEKARANG";
-                passInput.style.display = 'block';
-                toggleBtn.innerText = "Daftar Akun Baru";
-                toggleBtn.onclick = () => changeAuthMode('reg');
+                title.innerText = "Selamat Datang Kembali"; btn.innerText = "MASUK SEKARANG"; passInput.style.display = 'block';
+                toggleBtn.innerText = "Daftar Akun Baru"; toggleBtn.onclick = () => changeAuthMode('reg');
             }
         }
 
@@ -480,121 +433,57 @@
             if(saved) { dbData = JSON.parse(saved); if(dbData.length > 0) tampilkanHasilKeLayar(); }
         }
 
-        // FUNGSI UTAMA KOREKSI (FIXED: ANTI-LOADING STUCK & 30s TIMEOUT)
         document.getElementById('btnAI').onclick = async () => {
             const btn = document.getElementById('btnAI');
             const loadMsg = document.getElementById('loadingMsg');
             const fileInput = document.getElementById('file');
             const files = fileInput.files;
             if(!files.length) return showAlert("Pilih file!");
-            
-            btn.disabled = true;
-            loadMsg.classList.remove('hidden');
+            btn.disabled = true; loadMsg.classList.remove('hidden');
             const originalText = "MULAI PROSES KOREKSI AI";
-            
             const conf = { kunci_pg: {}, kunci_essay: {} };
             for(let i=1; i<=20; i++) { 
-                const v = document.getElementById(`p${i}`).value; 
-                if(v !== "") conf.kunci_pg[i] = v; 
+                const v = document.getElementById(`p${i}`).value; if(v !== "") conf.kunci_pg[i] = v; 
             }
             for(let i=1; i<=5; i++) {
-                const v = document.getElementById(`e${i}`).value;
-                if(v !== "") conf.kunci_essay[i] = v;
+                const v = document.getElementById(`e${i}`).value; if(v !== "") conf.kunci_essay[i] = v;
             }
-
             try {
                 for (let i = 0; i < files.length; i++) {
-                    btn.innerHTML = `
-                        <span class="spinner-mini"></span> 
-                        <span class="ml-2">ANALISIS ${i+1}/${files.length}...</span>
-                    `;
-                    
-                    const fd = new FormData();
-                    fd.append('data', JSON.stringify(conf));
-                    fd.append('foto', files[i]);
-                    
-                    // --- PROTEKSI 30 DETIK SESUAI SERVER ---
+                    btn.innerHTML = `<span class="spinner-mini"></span> <span class="ml-2">ANALISIS ${i+1}/${files.length}...</span>`;
+                    const fd = new FormData(); fd.append('data', JSON.stringify(conf)); fd.append('foto', files[i]);
                     const controller = new AbortController();
                     const timeoutId = setTimeout(() => controller.abort(), 30000); 
-
                     try {
-                        const req = await fetch(window.location.origin + '/ai/proses-koreksi', { 
-                            method: 'POST', 
-                            body: fd,
-                            signal: controller.signal 
-                        });
-                        
+                        const req = await fetch(window.location.origin + '/ai/proses-koreksi', { method: 'POST', body: fd, signal: controller.signal });
                         clearTimeout(timeoutId);
-
-                        if (!req.ok) {
-                            if (req.status === 502 || req.status === 503 || req.status === 504) throw new Error("Server sedang sibuk atau Timeout.");
-                            if (req.status === 413) throw new Error("File gambar terlalu besar.");
-                            throw new Error(`Server Error (${req.status})`);
-                        }
-                        
+                        if (!req.ok) throw new Error(`Server Error (${req.status})`);
                         const text = await req.text();
-                        let res;
-                        try {
-                            res = JSON.parse(text);
-                        } catch(e) {
-                            throw new Error("Server mengirim data rusak.");
-                        }
-                        
+                        let res = JSON.parse(text);
                         if(res.success) {
                             const newEntries = Array.isArray(res.data) ? res.data : [res.data];
                             dbData = [...dbData, ...newEntries];
                             if(res.current_token !== undefined) updateTokenDisplay(res.current_token);
-                            tampilkanHasilKeLayar(); 
-                            simpanKeRiwayat();
-                        } else { 
-                            showAlert("AI Gagal: " + res.message); 
-                            if(res.limitReached) break;
-                        }
+                            tampilkanHasilKeLayar(); simpanKeRiwayat();
+                        } else { showAlert("AI Gagal: " + res.message); if(res.limitReached) break; }
                     } catch (itemError) {
-                        let errorMsg = itemError.message;
-                        if (itemError.name === 'AbortError') {
-                            errorMsg = "Waktu Habis (30 detik)! Pastikan sinyal kuat dan gambar tidak terlalu besar.";
-                        } else if (errorMsg.includes('Failed to fetch')) {
-                            errorMsg = "Sinyal Terputus! Cek internet Bos.";
-                        }
-                        showAlert("GAGAL SCAN KE-" + (i+1) + ":\n" + errorMsg);
-                        break; 
+                        showAlert("GAGAL SCAN KE-" + (i+1) + ":\n" + itemError.message); break; 
                     }
                 }
-                btn.innerText = "SELESAI ✅";
-                fileInput.value = "";
-                document.getElementById('stts').innerText = 'Belum ada file dipilih';
-            } catch(e) { 
-                showAlert("Terjadi kesalahan sistem!"); 
-            } finally {
-                loadMsg.classList.add('hidden');
-                setTimeout(() => {
-                    btn.disabled = false;
-                    btn.innerText = originalText;
-                }, 3000);
+                btn.innerText = "SELESAI ✅"; fileInput.value = ""; document.getElementById('stts').innerText = 'Belum ada file dipilih';
+            } catch(e) { showAlert("Terjadi kesalahan sistem!"); } finally {
+                loadMsg.classList.add('hidden'); setTimeout(() => { btn.disabled = false; btn.innerText = originalText; }, 3000);
             }
         };
-
-        function toggleHistory() {
-            const content = document.getElementById('historyContent');
-            const btn = document.getElementById('btnToggleText');
-            const isHidden = content.classList.contains('hidden');
-            content.classList.toggle('hidden');
-            btn.innerText = isHidden ? "- Sembunyikan Riwayat" : "+ Lihat Riwayat Sebelumnya";
-        }
 
         document.getElementById('btnHitung').onclick = async () => {
             if(!dbData.length) return showAlert("Data kosong!");
             let reportHtml = `<p class="text-center font-black text-blue-600 uppercase text-xs tracking-widest mt-14 italic">REKAP NILAI AKHIR</p>`;
             const r_pg = document.getElementById('r_pg').value || "betul * 1";
-            
             dbData.forEach(s => {
                 let betul = s.pg_betul || 0;
                 let nilai = 0;
-                try {
-                    nilai = eval(r_pg.replace(/betul/g, betul));
-                } catch(e) { nilai = "Error Rumus"; }
-
+                try { nilai = eval(r_pg.replace(/betul/g, betul)); } catch(e) { nilai = "Error"; }
                 reportHtml += `
                 <div class="bg-white p-8 rounded-[40px] border-l-[12px] border-blue-600 shadow-xl space-y-4 mb-5">
                     <div class="flex justify-between items-center">
@@ -603,8 +492,7 @@
                     </div>
                 </div>`;
             });
-            const box = document.getElementById('laporanFinal');
-            box.innerHTML = reportHtml;
+            const box = document.getElementById('laporanFinal'); box.innerHTML = reportHtml;
             box.scrollIntoView({ behavior: 'smooth' });
         };
     </script>
