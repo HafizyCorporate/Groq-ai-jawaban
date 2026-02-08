@@ -40,19 +40,25 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
                         "content": [
                             { 
                                 "type": "text", 
-                                "text": `ANDA ADALAH GURU PROFESIONAL. TUGAS: Koreksi LJK (PG & ESSAY).
+                                "text": `ANDA ADALAH GURU PROFESIONAL. TUGAS: Koreksi LJK (PG & ESSAY) secara akurat.
 
                                 INSTRUKSI PILIHAN GANDA (PG):
-                                1. **Pemisah Soal & Jawaban**: Fokus analisis HANYA pada area label huruf opsi (a, b, c, d).
-                                2. **Logika Coretan (X)**:
-                                   - Jawaban Siswa adalah huruf yang tertutup coretan PALING TEBAL, PEKAT, dan GELAP.
-                                   - **Filter Penghapus**: Jika ada coretan samar/abu-abu (bekas hapusan), JANGAN DIPILIH.
-                                
+                                1. **Analisis Tanda**: Siswa menandai jawaban dengan tanda SILANG (X), CENTANG (v), atau CORETAN TEBAL.
+                                2. **Identifikasi Huruf**: Cari huruf opsi (a, b, c, d) yang tertutup tinta paling pekat/dominan.
+                                3. **Abaikan Hapus**: Jika ada coretan samar/abu-abu (bekas hapusan), abaikan. Fokus pada tanda yang paling tegas.
+                                4. **Ketelitian**: Pastikan nomor soal sesuai dengan urutan di kertas.
+
                                 INSTRUKSI ESSAY:
                                 1. Baca tulisan tangan siswa. Bandingkan dengan Kunci: ${JSON.stringify(kunciEssay)}.
-                                2. Nyatakan BENAR jika mengandung INTI MAKNA yang sesuai.
+                                2. Nyatakan BENAR jika mengandung INTI MAKNA yang sesuai kunci.
 
-                                WAJIB OUTPUT JSON MURNI TANPA PREAMBLE/TEKS LAIN.` 
+                                WAJIB OUTPUT JSON MURNI:
+                                {
+                                  "nama_siswa": "Detect Nama dari kertas",
+                                  "jawaban_pg": {"1": "A", "2": "B", ...},
+                                  "analisis_essay": {"1": "BENAR/SALAH (Alasan)", ...},
+                                  "log_deteksi": "Penjelasan singkat tanda yang ditemukan (contoh: No 1 Centang di B)."
+                                }` 
                             },
                             { "type": "image_url", "image_url": { "url": `data:image/jpeg;base64,${base64}` } }
                         ]
@@ -69,12 +75,10 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
 
             const rawData = await response.json();
             
-            // Tambahan: Pengamanan parse JSON agar tidak crash jika AI "bermuka dua"
             let aiData;
             try {
                 aiData = JSON.parse(rawData.choices[0].message.content);
             } catch (e) {
-                // Jika gagal parse, cari bracket JSON secara manual
                 const content = rawData.choices[0].message.content;
                 const jsonMatch = content.match(/\{[\s\S]*\}/);
                 aiData = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
@@ -91,6 +95,7 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
             Object.keys(kunciPG).forEach(nomor => {
                 if (kunciPG[nomor] !== "") {
                     pgTotalKunci++;
+                    // Pembersihan string agar perbandingan lebih akurat
                     const jawabSiswa = (jawabanPG[nomor] || "KOSONG").toString().toUpperCase().trim();
                     const jawabKunci = kunciPG[nomor].toString().toUpperCase().trim();
                     
@@ -115,14 +120,13 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
             const totalSkor = Math.round((nilaiPG + nilaiES) * 10) / 10;
 
             results.push({ 
-                // Tambahan .trim() agar nama siswa bersih
                 nama: (aiData.nama_siswa || `Siswa ${index + 1}`).trim(), 
                 pg_betul: pgBetul,
                 pg_total: pgTotalKunci,
                 es_betul: esBetul,
                 nomor_pg_betul: rincianProses.filter(t => t.includes('✅')).map(t => t.split(':')[0].replace('No ', '')).join(', '),
                 log_detail: rincianProses,
-                info_ai: aiData.log_deteksi || "Tidak ada log visual.",
+                info_ai: aiData.log_deteksi || "Selesai dianalisis.",
                 nilai_akhir: totalSkor
             }); 
 
