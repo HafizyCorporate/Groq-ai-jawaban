@@ -90,7 +90,6 @@ app.post('/auth/forgot-password', async (req, res) => {
     const kodeOTP = Math.floor(100000 + Math.random() * 900000).toString();
     user.otp = kodeOTP;
 
-    // Perbaikan ByteString: Bersihkan API Key dari karakter non-ASCII (8206)
     const rawKey = process.env.BREVO_API_KEY || "";
     const apiKey = rawKey.replace(/[^\x00-\x7F]/g, "").trim();
 
@@ -108,7 +107,6 @@ app.post('/auth/forgot-password', async (req, res) => {
                 'content-type': 'application/json'
             },
             body: JSON.stringify({
-                // Perbaikan ByteString: Bersihkan email pengirim
                 sender: { name: "Gurubantuguru", email: "azhardax94@gmail.com".replace(/[^\x00-\x7F]/g, "").trim() },
                 to: [{ email: email.trim() }],
                 subject: '🔑 Kode Pemulihan Akun Jawaban AI',
@@ -120,10 +118,10 @@ app.post('/auth/forgot-password', async (req, res) => {
 
         if (response.ok) {
             console.log(`✅ OTP terkirim ke ${email}`);
-            res.json({ success: true, message: "Kode OTP telah dikirim ke email Anda." });
+            res.json({ success: true, message: "KODE TERKIRIM" });
         } else {
             console.error("❌ Brevo Reject:", resData);
-            res.status(500).json({ success: false, message: "Gagal mengirim email. Cek log Brevo." });
+            res.status(500).json({ success: false, message: "Gagal mengirim email." });
         }
     } catch (err) {
         console.error("❌ Fetch Brevo Error:", err);
@@ -133,20 +131,20 @@ app.post('/auth/forgot-password', async (req, res) => {
 
 app.post('/auth/verify-otp', async (req, res) => {
     const { email, otp, newPassword } = req.body;
-    const user = users.find(u => u.email === email);
+    const user = users.find(u => u.email === email.trim());
 
-    if (user && user.otp === otp && otp !== null) {
+    if (user && user.otp === otp.trim() && user.otp !== null) {
         const hashedPassword = await bcrypt.hash(newPassword, 10);
         user.password = hashedPassword;
         user.otp = null; 
-        res.json({ success: true, message: "Password berhasil diperbarui!" });
+        // Mengirim JSON success agar Dashboard bisa memberikan notif dan pindah ke login
+        res.json({ success: true, message: "Berhasil! Password diperbarui." });
     } else {
-        res.status(400).json({ success: false, message: "Kode OTP salah!" });
+        res.status(400).json({ success: false, message: "Kode OTP salah atau tidak berlaku!" });
     }
 });
 
 app.get('/', (req, res) => {
-    // Pastikan dashboard.html ada di folder 'views'
     res.sendFile(path.join(__dirname, 'views', 'dashboard.html'));
 });
 
@@ -160,9 +158,6 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
         }
 
         const settings = JSON.parse(req.body.data);
-        const kunciPG = settings.kunci_pg;
-        const kunciES = settings.kunci_essay;
-        let namaTerakhir = "Tidak Terbaca"; 
         const results = [];
 
         for (const file of req.files) {
@@ -181,7 +176,6 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
             });
             
             const aiData = JSON.parse(response.choices[0].message.content);
-            // ... (logika penilaian kamu tetap sama)
             results.push({ nama: aiData.nama_siswa || "Siswa", pg_betul: 0 }); 
         }
 
