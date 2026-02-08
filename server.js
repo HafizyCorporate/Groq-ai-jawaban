@@ -90,11 +90,10 @@ app.post('/auth/forgot-password', async (req, res) => {
     const kodeOTP = Math.floor(100000 + Math.random() * 900000).toString();
     user.otp = kodeOTP;
 
-    const rawKey = process.env.BREVO_API_KEY || "";
-    const apiKey = rawKey.replace(/[^\x00-\x7F]/g, "").trim();
+    const rawKey = (process.env.BREVO_API_KEY || "").replace(/[^\x00-\x7F]/g, "").trim();
 
-    if (!apiKey) {
-        console.error("❌ ERROR: BREVO_API_KEY kosong di env Railway!");
+    if (!rawKey) {
+        console.error("❌ ERROR: BREVO_API_KEY kosong!");
         return res.status(500).json({ success: false, message: "Konfigurasi Email Belum Siap!" });
     }
 
@@ -103,11 +102,11 @@ app.post('/auth/forgot-password', async (req, res) => {
             method: 'POST',
             headers: {
                 'accept': 'application/json',
-                'api-key': apiKey,
+                'api-key': rawKey,
                 'content-type': 'application/json'
             },
             body: JSON.stringify({
-                sender: { name: "Gurubantuguru", email: "azhardax94@gmail.com".replace(/[^\x00-\x7F]/g, "").trim() },
+                sender: { name: "Gurubantuguru", email: "azhardax94@gmail.com" },
                 to: [{ email: email.trim() }],
                 subject: '🔑 Kode Pemulihan Akun Jawaban AI',
                 htmlContent: `<div style="padding:20px; border:1px solid #ddd; text-align:center;"><h1>${kodeOTP}</h1><p>Kode Pemulihan Anda</p></div>`
@@ -115,7 +114,6 @@ app.post('/auth/forgot-password', async (req, res) => {
         });
 
         if (response.ok) {
-            console.log(`✅ OTP terkirim ke ${email}`);
             res.json({ success: true, message: "KODE TERKIRIM" });
         } else {
             res.status(500).json({ success: false, message: "Gagal mengirim email." });
@@ -144,7 +142,7 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'views', 'dashboard.html'));
 });
 
-// --- CORE AI ROUTE (REVISED FOR ACCURACY & ROW LOCK) ---
+// --- CORE AI ROUTE (REVISED: SEQUENTIAL & UNIVERSAL A-D) ---
 app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
     try {
         if (!req.session.userId) return res.status(401).json({ success: false, message: "Silakan login dulu!" });
@@ -158,7 +156,8 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
         const kunciPG = settings.kunci_pg; 
         const results = [];
 
-        for (const file of req.files) {
+        // Loop Sequential: Memproses satu per satu agar AI tetap fokus dan teliti
+        for (const [index, file] of req.files.entries()) {
             const base64 = file.buffer.toString("base64");
             const response = await groq.chat.completions.create({
                 "model": "meta-llama/llama-4-scout-17b-16e-instruct",
@@ -167,28 +166,20 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
                     "content": [
                         { 
                             "type": "text", 
-                            "text": `TUGAS: Koreksi LJK PAI (Analisis Berbasis Karakter & Baris Horizontal).
+                            "text": `TUGAS: Koreksi LJK (Pilihan Ganda A, B, C, D).
 
-INSTRUKSI SANGAT KETAT (ANTI-HALUSINASI):
-1. JANGAN PERNAH keluarkan opsi selain A, B, atau C. (Hanya ada 3 opsi).
-2. CARI JANGKAR TEKS (ANCHORING): Untuk menentukan jawaban, lihat coretan yang menimpa atau berada tepat di atas kata kunci berikut:
-   - No 8: Jika coretan di atas angka "99", jawabannya C.
-   - No 9: Jika coretan di atas kata "penyayang", jawabannya B.
-   - No 10: Jika coretan di atas kata "Ar-rohman", jawabannya C.
-   - No 12: Jika coretan di atas kata "Maha melihat", jawabannya A.
-3. LOGIKA BARIS: Jika kertas miring, tetap fokus pada nomor soal di sisi kiri. Coretan harus berada di baris horizontal yang sama dengan nomornya.
-4. ANALISIS PADAT TINTA: Bandingkan opsi A, B, dan C. Pilih yang memiliki kepadatan tinta merah/biru paling tinggi. Abaikan bayangan samar atau noise kamera.
+INSTRUKSI ANALISIS VISUAL UNIVERSAL:
+1. SCAN BARIS: Temukan nomor soal dan huruf opsi (a, b, c, d) di baris horizontal yang sama.
+2. DETEKSI CORETAN: Cari tanda silang, centang, atau coretan tebal yang menimpa huruf opsi.
+3. LOGIKA INPUT: Jawaban adalah huruf yang terkena coretan paling dominan. Jika huruf 'd.' tertutup coretan, maka jawabannya D.
+4. ABAIKAN NOISE: Jangan anggap bayangan atau teks soal sebagai jawaban. Fokus hanya pada coretan siswa terhadap posisi huruf opsi.
+5. DINAMIS: Akui keberadaan opsi D jika ada di gambar.
 
 WAJIB OUTPUT JSON: 
 {
   "nama_siswa": "Detect Nama Siswa", 
-  "jawaban_siswa": {"1": "B", "2": "B", "3": "B", "4": "A", "5": "A", "6": "B", "7": "B", "8": "C", "9": "B", "10": "C", "11": "C", "12": "A", "13": "B"},
-  "log_deteksi": {
-    "8": "Coretan merah tepat berada di atas angka 99 (Opsi C)",
-    "9": "Coretan merah tepat berada di atas kata penyayang (Opsi B)",
-    "10": "Coretan merah tepat berada di atas kata Ar-rohman (Opsi C)",
-    "12": "Coretan merah berada di baris teks Maha melihat (Opsi A)"
-  }
+  "jawaban_siswa": {"1": "A", "2": "D", "3": "B", "...": "..."},
+  "log_deteksi": "Penjelasan singkat proses deteksi"
 }` 
                         },
                         { "type": "image_url", "image_url": { "url": `data:image/jpeg;base64,${base64}` } }
@@ -200,7 +191,7 @@ WAJIB OUTPUT JSON:
             
             const aiData = JSON.parse(response.choices[0].message.content);
             const jawabanSiswa = aiData.jawaban_siswa || {};
-            const logAI = aiData.log_deteksi || {};
+            const logAI = aiData.log_deteksi || "Analisis otomatis";
             
             let pgBetul = 0;
             let listNomorBetul = [];
@@ -209,22 +200,22 @@ WAJIB OUTPUT JSON:
             Object.keys(kunciPG).forEach(nomor => {
                 const jawabSiswa = (jawabanSiswa[nomor] || "KOSONG").toUpperCase();
                 const jawabKunci = (kunciPG[nomor] || "").toUpperCase();
-                const keterangan = logAI[nomor] || "Analisis otomatis";
 
                 if (jawabSiswa === jawabKunci && jawabKunci !== "") {
                     pgBetul++;
                     listNomorBetul.push(nomor);
-                    rincianProses.push(`No ${nomor}: ✅ Benar (Siswa: ${jawabSiswa}, Info: ${keterangan})`);
+                    rincianProses.push(`No ${nomor}: ✅ Benar (Siswa: ${jawabSiswa})`);
                 } else {
-                    rincianProses.push(`No ${nomor}: ❌ Salah (Siswa: ${jawabSiswa}, Kunci: ${jawabKunci}, Info: ${keterangan})`);
+                    rincianProses.push(`No ${nomor}: ❌ Salah (Siswa: ${jawabSiswa}, Kunci: ${jawabKunci})`);
                 }
             });
 
             results.push({ 
-                nama: aiData.nama_siswa || "Siswa", 
+                nama: aiData.nama_siswa || `Siswa ${index + 1}`, 
                 pg_betul: pgBetul,
                 nomor_pg_betul: listNomorBetul.length > 0 ? listNomorBetul.join(', ') : "KOSONG",
-                log_detail: rincianProses 
+                log_detail: rincianProses,
+                info_ai: logAI
             }); 
         }
 
