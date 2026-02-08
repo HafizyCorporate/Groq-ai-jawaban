@@ -28,8 +28,7 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
     };
 
     /**
-     * MENGGUNAKAN MODEL SESUAI DAFTAR DI AI STUDIO KAMU
-     * Update: Menggunakan Gemini 2.5 Flash untuk stabilitas dan akurasi tinggi.
+     * UPDATE: Menggunakan Gemini 2.5 Flash sesuai pilihan di AI Studio Bos.
      */
     const model = genAI.getGenerativeModel({ 
         model: "gemini-2.5-flash" 
@@ -54,8 +53,8 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
             WAJIB OUTPUT JSON MURNI:
             {
               "nama_siswa": "Detect Nama dari kertas",
-              "jawaban_pg": {"1": "A", "2": "B", ...},
-              "analisis_essay": {"1": "BENAR/SALAH (Alasan)", ...},
+              "jawaban_pg": {"1": "A", "2": "B"},
+              "analisis_essay": {"1": "BENAR/SALAH (Alasan)"},
               "log_deteksi": "Jelaskan visual per nomor."
             }`;
 
@@ -70,8 +69,14 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
             const response = await result.response;
             const text = response.text();
             
-            const cleanJson = text.replace(/```json|```/g, "").trim();
-            const aiData = JSON.parse(cleanJson);
+            /** * PERBAIKAN DI SINI:
+             * Menggunakan Regex untuk mencari karakter { sampai } 
+             * agar teks tambahan dari Gemini 2.5 tidak merusak JSON.parse
+             */
+            const jsonMatch = text.match(/\{[\s\S]*\}/);
+            if (!jsonMatch) throw new Error("Format JSON tidak ditemukan dalam respon AI");
+            
+            const aiData = JSON.parse(jsonMatch[0]);
 
             const jawabanPG = aiData.jawaban_pg || {};
             const analES = aiData.analisis_essay || {};
@@ -121,8 +126,9 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
         } catch (err) {
             console.error("Detail Error:", err);
             results.push({ 
-                nama: `Error (File ${index + 1})`, 
+                nama: `GAGAL SCAN`, 
                 log_detail: [err.message],
+                info_ai: "Gagal memproses gambar. Coba pastikan foto tegak dan jelas.",
                 nilai_akhir: 0
             });
         }
