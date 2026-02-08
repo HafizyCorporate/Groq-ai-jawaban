@@ -298,7 +298,6 @@
             const dataLama = [...dbData].reverse().slice(5);
 
             const card = (s, i) => {
-                // Generate HTML untuk log detail jika ada
                 let logHtml = "";
                 if(s.log_detail && s.log_detail.length > 0) {
                     logHtml = s.log_detail.map(l => `
@@ -333,7 +332,7 @@
                         
                         <details class="group bg-slate-50 rounded-[25px] border border-slate-100 overflow-hidden">
                             <summary class="flex justify-between items-center p-5 cursor-pointer select-none">
-                                <span class="text-[10px] font-black text-blue-600 uppercase italic">Klik Lihat Detail Analisis AI</span>
+                                <span class="text-[10px] font-black text-blue-600 uppercase italic">🔍 Detail Analisis AI (Penting)</span>
                                 <span class="text-blue-600 transition-transform group-open:rotate-180">▼</span>
                             </summary>
                             <div class="p-6 pt-0 max-h-60 overflow-y-auto">
@@ -352,34 +351,6 @@
             }
 
             document.getElementById('resWrap').classList.add('force-show');
-        }
-
-        function changeAuthMode(mode) {
-            currentMode = mode;
-            const title = document.getElementById('authTitle');
-            const btn = document.getElementById('btnAuthAction');
-            const toggleBtn = document.getElementById('authToggleBtn');
-            const passInput = document.getElementById('authPass');
-
-            if(mode === 'reg') {
-                title.innerText = "Daftar Akun Baru";
-                btn.innerText = "DAFTAR SEKARANG";
-                passInput.style.display = 'block';
-                toggleBtn.innerText = "Sudah punya akun? Login";
-                toggleBtn.onclick = () => changeAuthMode('login');
-            } else if (mode === 'forgot') {
-                title.innerText = "Pemulihan Akun";
-                btn.innerText = "KIRIM KODE";
-                passInput.style.display = 'none';
-                toggleBtn.innerText = "Kembali Login";
-                toggleBtn.onclick = () => changeAuthMode('login');
-            } else {
-                title.innerText = "Selamat Datang Kembali";
-                btn.innerText = "MASUK SEKARANG";
-                passInput.style.display = 'block';
-                toggleBtn.innerText = "Daftar Akun Baru";
-                toggleBtn.onclick = () => changeAuthMode('reg');
-            }
         }
 
         async function submitAuth() {
@@ -431,18 +402,41 @@
             }
         }
 
+        function changeAuthMode(mode) {
+            currentMode = mode;
+            const title = document.getElementById('authTitle');
+            const btn = document.getElementById('btnAuthAction');
+            const toggleBtn = document.getElementById('authToggleBtn');
+            const passInput = document.getElementById('authPass');
+
+            if(mode === 'reg') {
+                title.innerText = "Daftar Akun Baru";
+                btn.innerText = "DAFTAR SEKARANG";
+                passInput.style.display = 'block';
+                toggleBtn.innerText = "Sudah punya akun? Login";
+                toggleBtn.onclick = () => changeAuthMode('login');
+            } else if (mode === 'forgot') {
+                title.innerText = "Pemulihan Akun";
+                btn.innerText = "KIRIM KODE";
+                passInput.style.display = 'none';
+                toggleBtn.innerText = "Kembali Login";
+                toggleBtn.onclick = () => changeAuthMode('login');
+            } else {
+                title.innerText = "Selamat Datang Kembali";
+                btn.innerText = "MASUK SEKARANG";
+                passInput.style.display = 'block';
+                toggleBtn.innerText = "Daftar Akun Baru";
+                toggleBtn.onclick = () => changeAuthMode('reg');
+            }
+        }
+
         async function submitVerifyOTP() {
             const email = document.getElementById('authEmail').value;
             const otp = document.getElementById('otpCode').value;
             const newPassword = document.getElementById('otpNewPass').value;
             const btn = document.querySelector("#otpModalOverlay button[onclick='submitVerifyOTP()']");
-
             if(!otp || !newPassword) return showAlert("Lengkapi kode dan password baru!");
-
-            const originalText = btn.innerText;
             btn.disabled = true;
-            btn.innerText = "SEDANG DIPROSES...";
-
             try {
                 const res = await fetch(window.location.origin + '/auth/verify-otp', {
                     method: 'POST',
@@ -450,45 +444,13 @@
                     body: JSON.stringify({ email: email.trim(), otp: otp.trim(), newPassword: newPassword })
                 });
                 const data = await res.json();
-                
                 if(data.success) {
                     document.getElementById('otpModalOverlay').classList.add('hidden');
-                    document.getElementById('otpCode').value = "";
-                    document.getElementById('otpNewPass').value = "";
                     showAlert("Berhasil! Password diperbarui. Silakan login.");
                     changeAuthMode('login');
-                } else {
-                    showAlert(data.message || "Kode OTP salah!");
-                }
-            } catch(e) {
-                showAlert("Gagal memverifikasi OTP");
-            } finally {
-                btn.disabled = false;
-                btn.innerText = originalText;
-            }
-        }
-
-        async function prosesTambahToken() {
-            const emailTarget = document.getElementById('targetEmail').value;
-            const jumlahToken = document.getElementById('paketToken').value;
-            if(!emailTarget) return showAlert("Isi email target!");
-            try {
-                const res = await fetch(window.location.origin + '/admin/tambah-token', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ emailTarget, jumlahToken })
-                });
-                const d = await res.json();
-                showAlert(d.message);
-            } catch(e) { showAlert("Gagal menambah token!"); }
-        }
-
-        function toggleHistory() {
-            const content = document.getElementById('historyContent');
-            const btn = document.getElementById('btnToggleText');
-            const isHidden = content.classList.contains('hidden');
-            content.classList.toggle('hidden');
-            btn.innerText = isHidden ? "- Sembunyikan Riwayat" : "+ Lihat Riwayat Sebelumnya";
+                } else { showAlert(data.message); }
+            } catch(e) { showAlert("Gagal verifikasi"); }
+            btn.disabled = false;
         }
 
         function updateTokenDisplay(val) {
@@ -504,74 +466,80 @@
             if(saved) { dbData = JSON.parse(saved); if(dbData.length > 0) tampilkanHasilKeLayar(); }
         }
 
+        // FUNGSI UTAMA KOREKSI (SEQUENTIAL PROCESSING)
         document.getElementById('btnAI').onclick = async () => {
             const btn = document.getElementById('btnAI');
             const files = document.getElementById('file').files;
             if(!files.length) return showAlert("Pilih file!");
-            btn.disabled = true;
-            btn.innerHTML = `<span class="loader"></span> MEMPROSES...`;
             
-            const conf = { kunci_pg: {}, kunci_essay: {} };
+            btn.disabled = true;
+            const conf = { kunci_pg: {} };
             for(let i=1; i<=20; i++) { 
                 const v = document.getElementById(`p${i}`).value; 
                 if(v !== "") conf.kunci_pg[i] = v; 
             }
-            for(let i=1; i<=5; i++) { 
-                const v = document.getElementById(`e${i}`).value; 
-                if(v) conf.kunci_essay[i] = v; 
-            }
 
             try {
                 for (let i = 0; i < files.length; i++) {
+                    btn.innerHTML = `<span class="loader"></span> ANALISIS ${i+1}/${files.length}...`;
                     const fd = new FormData();
                     fd.append('data', JSON.stringify(conf));
                     fd.append('foto', files[i]);
+                    
                     const req = await fetch(window.location.origin + '/ai/proses-koreksi', { method: 'POST', body: fd });
                     const res = await req.json();
+                    
                     if(res.success) {
                         dbData = [...dbData, ...(Array.isArray(res.data) ? res.data : [res.data])];
                         if(res.current_token !== undefined) updateTokenDisplay(res.current_token);
-                        tampilkanHasilKeLayar(); simpanKeRiwayat();
-                    } else { showAlert(res.message); break; }
+                        tampilkanHasilKeLayar(); 
+                        simpanKeRiwayat();
+                    } else { 
+                        showAlert(res.message); 
+                        break; 
+                    }
                 }
                 btn.innerText = "SELESAI ✅";
-            } catch(e) { showAlert("Gagal memproses file!"); }
-            btn.disabled = false;
+            } catch(e) { 
+                showAlert("Gagal memproses file!"); 
+            }
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.innerText = "MULAI PROSES KOREKSI AI";
+            }, 3000);
         };
+
+        function toggleHistory() {
+            const content = document.getElementById('historyContent');
+            const btn = document.getElementById('btnToggleText');
+            const isHidden = content.classList.contains('hidden');
+            content.classList.toggle('hidden');
+            btn.innerText = isHidden ? "- Sembunyikan Riwayat" : "+ Lihat Riwayat Sebelumnya";
+        }
 
         document.getElementById('btnHitung').onclick = async () => {
             if(!dbData.length) return showAlert("Data kosong!");
-            try {
-                const res = await fetch(window.location.origin + '/ai/hitung-rumus', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ 
-                        data: dbData, 
-                        rumus_pg: document.getElementById('r_pg').value, 
-                        rumus_es: document.getElementById('r_es').value 
-                    })
-                });
-                const json = await res.json();
-                const box = document.getElementById('laporanFinal');
-                let reportHtml = `<p class="text-center font-black text-blue-600 uppercase text-xs tracking-widest mt-14 italic">REKAP NILAI AKHIR</p>`;
-                json.hasil.forEach(s => {
-                    reportHtml += `
-                    <div class="bg-white p-8 rounded-[40px] border-l-[12px] border-blue-600 shadow-xl space-y-4 mb-5">
-                        <div class="flex justify-between items-center">
-                            <span class="text-2xl font-black text-slate-700 uppercase">${s.nama}</span>
-                            <span class="text-6xl font-black text-slate-900">${s.nilai_akhir}</span>
-                        </div>
-                        <div class="bg-slate-50 p-6 rounded-3xl border border-slate-100">
-                            <p class="text-xs font-black text-blue-500 uppercase tracking-widest mb-2 italic">RINCIAN NOMOR BETUL:</p>
-                            <p class="text-xl font-bold text-slate-600 leading-relaxed">
-                                <span class="text-blue-600">PG:</span> ${s.list_pg_betul?.join(', ') || '-'}
-                            </p>
-                        </div>
-                    </div>`;
-                });
-                box.innerHTML = reportHtml;
-                box.scrollIntoView({ behavior: 'smooth' });
-            } catch (e) { showAlert("Rumus tidak valid!"); }
+            let reportHtml = `<p class="text-center font-black text-blue-600 uppercase text-xs tracking-widest mt-14 italic">REKAP NILAI AKHIR</p>`;
+            const r_pg = document.getElementById('r_pg').value || "betul * 1";
+            
+            dbData.forEach(s => {
+                let betul = s.pg_betul || 0;
+                let nilai = 0;
+                try {
+                    nilai = eval(r_pg.replace(/betul/g, betul));
+                } catch(e) { nilai = "Error Rumus"; }
+
+                reportHtml += `
+                <div class="bg-white p-8 rounded-[40px] border-l-[12px] border-blue-600 shadow-xl space-y-4 mb-5">
+                    <div class="flex justify-between items-center">
+                        <span class="text-2xl font-black text-slate-700 uppercase">${s.nama}</span>
+                        <span class="text-6xl font-black text-slate-900">${nilai}</span>
+                    </div>
+                </div>`;
+            });
+            const box = document.getElementById('laporanFinal');
+            box.innerHTML = reportHtml;
+            box.scrollIntoView({ behavior: 'smooth' });
         };
     </script>
 </body>
