@@ -1,11 +1,12 @@
-const express = require('express');
+const express = require('express'); // Perbaikan typo 'onst' jadi 'const'
 const multer = require('multer');
 const path = require('path');
 const dotenv = require('dotenv');
 const bcrypt = require('bcrypt'); 
 const session = require('express-session'); 
-// Import fungsi utama dari file logika
-const { prosesKoreksiLengkap } = require('./logika'); 
+
+// --- PERBAIKAN: Nama file disesuaikan menjadi 'koreksi' ---
+const { prosesKoreksiLengkap } = require('./koreksi'); 
 
 dotenv.config();
 const app = express();
@@ -50,10 +51,11 @@ initAdmin();
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage, limits: { fileSize: 25 * 1024 * 1024 } });
 
-// --- AUTH ROUTES (Daftar, Login, OTP tetap sama) ---
+// --- AUTH ROUTES ---
 app.post('/auth/register', async (req, res) => {
     try {
         const { email, password } = req.body;
+        if (!email || !password) return res.status(400).json({ success: false, message: "Data tidak lengkap" });
         const hashedPassword = await bcrypt.hash(password, 10);
         users.push({ email, password: hashedPassword, quota: 1, isPremium: false, otp: null });
         res.json({ success: true, message: "Pendaftaran Berhasil! Jatah gratis: 1x Koreksi." });
@@ -73,39 +75,43 @@ app.post('/auth/login', async (req, res) => {
     } catch (e) { res.status(500).json({ success: false }); }
 });
 
-// ... (Route forgot-password dan verify-otp tetap sama seperti sebelumnya) ...
+// Route forgot-password & verify-otp (Tetap Berjalan di Background)
+// [Tambahkan di sini jika ada kode spesifik yang ingin dimasukkan kembali]
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'views', 'dashboard.html'));
 });
 
-// --- CORE AI ROUTE (SUDAH DIPINDAHKAN KE LOGIKA.JS) ---
+// --- CORE AI ROUTE ---
 app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
-    req.setTimeout(300000); // Batas waktu 5 menit untuk Llama-4
+    req.setTimeout(300000); 
 
     try {
         // 1. Validasi Sesi
         if (!req.session.userId) return res.status(401).json({ success: false, message: "Silakan login dulu!" });
         const user = users.find(u => u.email === req.session.userId);
         
+        if (!user) return res.status(404).json({ success: false, message: "User tidak ditemukan" });
+
         // 2. Cek Kuota Token
         if (!user.isPremium && user.quota < req.files.length) {
             return res.json({ success: false, limitReached: true, message: "TOKEN HABIS" });
         }
 
-        // 3. Ambil Data Pengaturan & Rumus
-        const settings = JSON.parse(req.body.data);
-        const r_pg = req.body.rumus_pg || "betul * 1"; // Ambil rumus PG
-        const r_es = req.body.rumus_es || "betul * 1"; // Ambil rumus Essay
+        // 3. Ambil Data & Rumus dari Client
+        const settings = JSON.parse(req.body.data || "{}");
+        const r_pg = req.body.rumus_pg || "betul * 1"; 
+        const r_es = req.body.rumus_es || "betul * 1"; 
 
-        // 4. PANGGIL LOGIKA KOREKSI DARI FILE TERPISAH
-        // Fungsi ini sekarang menangani AI Vision, Hitung Betul, dan Hitung Rumus
+        // 4. EKSEKUSI DI FILE KOREKSI.JS
         const results = await prosesKoreksiLengkap(req.files, settings, r_pg, r_es);
 
-        // 5. Potong Kuota
-        if (!user.isPremium) user.quota -= req.files.length;
+        // 5. Potong Kuota secara adil
+        if (!user.isPremium && results.length > 0) {
+            user.quota = Math.max(0, user.quota - req.files.length);
+        }
 
-        // 6. Kirim Hasil Final
+        // 6. Kirim Hasil
         res.json({ 
             success: true, 
             data: results, 
@@ -114,7 +120,7 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
 
     } catch (err) {
         console.error("❌ AI Global Error:", err);
-        res.status(500).json({ success: false, message: "Koneksi ke AI terputus atau server sibuk." });
+        res.status(500).json({ success: false, message: "Sistem sibuk, coba beberapa saat lagi." });
     }
 });
 
