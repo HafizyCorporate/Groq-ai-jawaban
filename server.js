@@ -6,7 +6,7 @@ const bcrypt = require('bcrypt');
 const session = require('express-session'); 
 
 // --- PERBAIKAN: Nama file disesuaikan menjadi 'koreksi' ---
-const { prosesKoreksiLengkap } = require('./koreksi'); 
+const { prosesKoreksiLengkap } = require('./routes/koreksi');
 
 dotenv.config();
 const app = express();
