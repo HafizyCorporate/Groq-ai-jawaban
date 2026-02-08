@@ -4,7 +4,6 @@ const path = require('path');
 const dotenv = require('dotenv');
 const Groq = require("groq-sdk");
 const bcrypt = require('bcrypt'); 
-const nodemailer = require('nodemailer'); 
 const session = require('express-session'); 
 
 dotenv.config();
@@ -67,7 +66,7 @@ app.post('/auth/login', async (req, res) => {
     }
 });
 
-// LOGIKA FORGOT PASSWORD - FINAL FIX (BREVO SMTP)
+// LOGIKA FORGOT PASSWORD - VERSI API BREVO (ANTI-BLOKIR)
 app.post('/auth/forgot-password', async (req, res) => {
     const { email } = req.body;
     const userExists = users.find(u => u.email === email);
@@ -76,56 +75,52 @@ app.post('/auth/forgot-password', async (req, res) => {
         return res.status(404).json({ success: false, message: "Email tidak terdaftar!" });
     }
 
-    // Mengambil data login dari Railway (a1d18a001@smtp-brevo.com & xsmtpsib...)
-    const cleanEmail = process.env.EMAIL_USER ? process.env.EMAIL_USER.trim() : "";
-    const cleanPass = process.env.EMAIL_PASS ? process.env.EMAIL_PASS.trim() : "";
+    const apiKey = process.env.BREVO_API_KEY;
 
-    // KONFIGURASI BREVO SESUAI DATA DASHBOARD KAMU
-    const transporter = nodemailer.createTransport({
-        host: 'smtp-relay.brevo.com',
-        port: 587, 
-        secure: false,
-        auth: { 
-            user: cleanEmail, 
-            pass: cleanPass 
-        },
-        tls: {
-            rejectUnauthorized: false
-        }
-    });
-
-    const mailOptions = {
-        from: `"JAWABAN AI" <azhardax94@gmail.com>`, // Nama tampilan di inbox
-        to: email,
-        subject: '🔑 Kode Pemulihan Akun Jawaban AI',
-        html: `
-            <div style="max-width: 500px; margin: auto; font-family: sans-serif; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden;">
-                <div style="background: linear-gradient(135deg, #2563eb, #7c3aed); padding: 30px; text-align: center; color: white;">
-                    <h1 style="margin: 0; font-size: 24px;">Jawaban AI</h1>
-                </div>
-                <div style="padding: 30px; background: white; color: #1e293b;">
-                    <p>Halo, <strong>${email}</strong>!</p>
-                    <p>Gunakan kode keamanan di bawah ini untuk meriset password Anda:</p>
-                    <div style="margin: 25px 0; padding: 20px; background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 12px; text-align: center;">
-                        <span style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #2563eb;">123456</span>
+    try {
+        const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+            method: 'POST',
+            headers: {
+                'accept': 'application/json',
+                'api-key': apiKey,
+                'content-type': 'application/json'
+            },
+            body: JSON.stringify({
+                sender: { name: "JAWABAN AI", email: "azhardax94@gmail.com" },
+                to: [{ email: email }],
+                subject: '🔑 Kode Pemulihan Akun Jawaban AI',
+                htmlContent: `
+                    <div style="max-width: 500px; margin: auto; font-family: sans-serif; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden;">
+                        <div style="background: linear-gradient(135deg, #2563eb, #7c3aed); padding: 30px; text-align: center; color: white;">
+                            <h1 style="margin: 0; font-size: 24px;">Jawaban AI</h1>
+                        </div>
+                        <div style="padding: 30px; background: white; color: #1e293b;">
+                            <p>Halo, <strong>${email}</strong>!</p>
+                            <p>Gunakan kode keamanan di bawah ini untuk meriset password Anda:</p>
+                            <div style="margin: 25px 0; padding: 20px; background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 12px; text-align: center;">
+                                <span style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #2563eb;">123456</span>
+                            </div>
+                            <p style="margin-top: 20px;">Silakan login menggunakan kode di atas atau hubungi <b>Admin Versacy</b> untuk bantuan lebih lanjut.</p>
+                            <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+                            <small style="color: #888;">Jika Anda tidak merasa meminta ini, abaikan email ini.</small>
+                        </div>
                     </div>
-                    <p style="font-size: 14px; color: #64748b;">Hubungi <b>Admin Versacy</b> jika Anda butuh bantuan.</p>
-                </div>
-            </div>
-        `
-    };
+                `
+            })
+        });
 
-    transporter.sendMail(mailOptions, (err, info) => {
-        if (err) {
-            console.error("❌ ERROR BREVO:", err.message);
-            return res.status(500).json({ 
-                success: false, 
-                message: "Koneksi Email Gagal! Cek Logs Railway." 
-            });
+        if (response.ok) {
+            console.log("✅ EMAIL TERKIRIM VIA API BREVO");
+            res.json({ success: true, message: "Instruksi dikirim ke email " + email });
+        } else {
+            const error = await response.json();
+            console.error("❌ ERROR API BREVO:", error);
+            res.status(500).json({ success: false, message: "Gagal mengirim email lewat API." });
         }
-        console.log("✅ EMAIL TERKIRIM VIA BREVO:", info.response);
-        res.json({ success: true, message: "Instruksi dikirim ke email " + email });
-    });
+    } catch (err) {
+        console.error("❌ FETCH ERROR:", err.message);
+        res.status(500).json({ success: false, message: "Gangguan koneksi ke server email." });
+    }
 });
 
 app.post('/admin/tambah-token', (req, res) => {
