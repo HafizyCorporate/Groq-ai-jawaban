@@ -495,6 +495,36 @@
             const box = document.getElementById('laporanFinal'); box.innerHTML = reportHtml;
             box.scrollIntoView({ behavior: 'smooth' });
         };
+
+        // --- FUNGSI ADMIN: TAMBAH TOKEN ---
+        async function prosesTambahToken() {
+            const emailTarget = document.getElementById('targetEmail').value;
+            const jumlahToken = document.getElementById('paketToken').value;
+            const btn = document.querySelector("#adminPanel button");
+            if(!emailTarget) return showAlert("Masukkan email user dulu!");
+            if(!confirm(`Kirim ${jumlahToken} token ke ${emailTarget}?`)) return;
+            const originalBtnText = btn.innerText;
+            btn.disabled = true;
+            btn.innerHTML = `<span class="spinner-mini"></span> MENGIRIM...`;
+            try {
+                const res = await fetch(window.location.origin + '/admin/add-token', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        adminEmail: "Versacy",
+                        targetEmail: emailTarget.trim(),
+                        amount: parseInt(jumlahToken)
+                    })
+                });
+                const data = await res.json();
+                if(data.success) {
+                    showAlert(`Berhasil! ${jumlahToken} token terkirim ke ${emailTarget}.`);
+                    document.getElementById('targetEmail').value = "";
+                } else { showAlert("Gagal: " + data.message); }
+            } catch(e) { showAlert("Kesalahan koneksi!"); } finally {
+                btn.disabled = false; btn.innerText = originalBtnText;
+            }
+        }
     </script>
 </body>
 </html>
