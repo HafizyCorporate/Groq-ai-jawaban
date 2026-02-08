@@ -1,9 +1,8 @@
 /**
- * FILE: logika.js / koreksi.js
+ * FILE: koreksi.js
  * TUGAS: Otak Analisis AI (via API) & Perhitungan Nilai
  */
 
-// Tidak perlu require("groq-sdk") lagi
 const dotenv = require('dotenv');
 dotenv.config();
 
@@ -12,7 +11,6 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
     const kunciEssay = settings.kunci_essay || {};
     const results = [];
 
-    // Helper untuk hitung rumus secara aman
     const hitungNilaiAkhir = (rumus, betul, total) => {
         if (!rumus) return 0;
         try {
@@ -29,7 +27,6 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
         try {
             const base64 = file.buffer.toString("base64");
             
-            // TAHAP 1: VISION AI MENGGUNAKAN FETCH API (LLAMA-4 MAVERICK)
             const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
                 method: 'POST',
                 headers: {
@@ -55,13 +52,7 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
                                 1. Baca tulisan tangan siswa. Bandingkan dengan Kunci: ${JSON.stringify(kunciEssay)}.
                                 2. Nyatakan BENAR jika mengandung INTI MAKNA yang sesuai.
 
-                                WAJIB OUTPUT JSON MURNI:
-                                {
-                                  "nama_siswa": "Detect Nama Siswa",
-                                  "jawaban_pg": {"1": "A", "2": "B", ...},
-                                  "analisis_essay": {"1": "BENAR/SALAH (Alasan)", ...},
-                                  "log_deteksi": "Penjelasan visual deteksi per nomor."
-                                }` 
+                                WAJIB OUTPUT JSON MURNI TANPA PREAMBLE/TEKS LAIN.` 
                             },
                             { "type": "image_url", "image_url": { "url": `data:image/jpeg;base64,${base64}` } }
                         ]
@@ -77,22 +68,31 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
             }
 
             const rawData = await response.json();
-            const aiData = JSON.parse(rawData.choices[0].message.content);
+            
+            // Tambahan: Pengamanan parse JSON agar tidak crash jika AI "bermuka dua"
+            let aiData;
+            try {
+                aiData = JSON.parse(rawData.choices[0].message.content);
+            } catch (e) {
+                // Jika gagal parse, cari bracket JSON secara manual
+                const content = rawData.choices[0].message.content;
+                const jsonMatch = content.match(/\{[\s\S]*\}/);
+                aiData = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
+            }
+
             const jawabanPG = aiData.jawaban_pg || {};
             const analES = aiData.analisis_essay || {};
             
-            // TAHAP 2: HITUNG BETUL/SALAH (LOGIKA CODING)
             let pgBetul = 0;
             let pgTotalKunci = 0;
             let esBetul = 0;
             let rincianProses = [];
 
-            // Cek PG
             Object.keys(kunciPG).forEach(nomor => {
                 if (kunciPG[nomor] !== "") {
                     pgTotalKunci++;
-                    const jawabSiswa = (jawabanPG[nomor] || "KOSONG").toUpperCase();
-                    const jawabKunci = kunciPG[nomor].toUpperCase();
+                    const jawabSiswa = (jawabanPG[nomor] || "KOSONG").toString().toUpperCase().trim();
+                    const jawabKunci = kunciPG[nomor].toString().toUpperCase().trim();
                     
                     if (jawabSiswa === jawabKunci) {
                         pgBetul++;
@@ -103,7 +103,6 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
                 }
             });
 
-            // Cek Essay
             Object.keys(kunciEssay).forEach(no => {
                 const status = analES[no] || "SALAH";
                 const isBenar = status.toUpperCase().includes("BENAR");
@@ -111,25 +110,29 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
                 rincianProses.push(`Essay ${no}: ${isBenar ? "✅" : "❌"} ${status}`);
             });
 
-            // TAHAP 3: HITUNG NILAI AKHIR BERDASARKAN RUMUS
             const nilaiPG = hitungNilaiAkhir(rumusPG, pgBetul, pgTotalKunci);
             const nilaiES = hitungNilaiAkhir(rumusES, esBetul, Object.keys(kunciEssay).length);
             const totalSkor = Math.round((nilaiPG + nilaiES) * 10) / 10;
 
             results.push({ 
-                nama: aiData.nama_siswa || `Siswa ${index + 1}`, 
+                // Tambahan .trim() agar nama siswa bersih
+                nama: (aiData.nama_siswa || `Siswa ${index + 1}`).trim(), 
                 pg_betul: pgBetul,
                 pg_total: pgTotalKunci,
                 es_betul: esBetul,
-                nomor_pg_betul: rincianProses.filter(t => t.includes('✅')).map(t => t.split(':')[0]).join(', '),
+                nomor_pg_betul: rincianProses.filter(t => t.includes('✅')).map(t => t.split(':')[0].replace('No ', '')).join(', '),
                 log_detail: rincianProses,
-                info_ai: aiData.log_deteksi,
+                info_ai: aiData.log_deteksi || "Tidak ada log visual.",
                 nilai_akhir: totalSkor
             }); 
 
         } catch (err) {
             console.error("Detail Error:", err);
-            results.push({ nama: "Error Scan", log_detail: [err.message] });
+            results.push({ 
+                nama: `Error (File ${index + 1})`, 
+                log_detail: [err.message],
+                nilai_akhir: 0
+            });
         }
     }
     return results;
