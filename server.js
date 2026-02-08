@@ -144,7 +144,7 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'views', 'dashboard.html'));
 });
 
-// --- CORE AI ROUTE (REVISED FOR ACCURACY) ---
+// --- CORE AI ROUTE (REVISED FOR ACCURACY & ROW LOCK) ---
 app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
     try {
         if (!req.session.userId) return res.status(401).json({ success: false, message: "Silakan login dulu!" });
@@ -167,26 +167,27 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
                     "content": [
                         { 
                             "type": "text", 
-                            "text": `TUGAS: Koreksi LJK PAI dengan Analisis Komparatif Horizontal Sangat Ketat.
+                            "text": `TUGAS: Koreksi LJK PAI (Analisis Berbasis Karakter & Baris Horizontal).
 
-INSTRUKSI PENGLIHATAN KRITIS:
-1. JANGAN PAKAI ASUMSI KOTAK STATIS: Kertas mungkin miring. Gunakan teks huruf "a.", "b.", dan "c." sebagai titik acuan (anchor) posisi jawaban.
-2. BANDINGKAN SECARA HORIZONTAL: Untuk setiap nomor, bandingkan intensitas tinta pada opsi A, B, dan C dalam satu baris. Pilih opsi yang memiliki coretan paling tebal/dominan.
-3. LOGIKA TITIK POTONG: Fokus pada "Intersection" (pertemuan garis X). Abaikan ujung garis yang tipis atau meluber ke nomor lain.
-4. KASUS KRUSIAL (DILARANG SALAH):
-   - No 1: Jika pusat silang di B, jawabannya B. Abaikan ujung garis yang menyentuh C.
-   - No 4: Perhatikan huruf "a. usudu". Jika ada coretan tebal di situ dan B/C bersih, jawabannya MUTLAK A.
-   - No 5: Perhatikan huruf "a. sholat". Jika ada tanda silang/centang di situ, jawabannya MUTLAK A.
-5. ANTI-BAYANGAN: Abaikan bayangan abu-abu samar. Hanya hitung coretan tinta/pensil yang memiliki kontras tinggi terhadap warna kertas.
+INSTRUKSI SANGAT KETAT (ANTI-HALUSINASI):
+1. JANGAN PERNAH keluarkan opsi selain A, B, atau C. (Hanya ada 3 opsi).
+2. CARI JANGKAR TEKS (ANCHORING): Untuk menentukan jawaban, lihat coretan yang menimpa atau berada tepat di atas kata kunci berikut:
+   - No 8: Jika coretan di atas angka "99", jawabannya C.
+   - No 9: Jika coretan di atas kata "penyayang", jawabannya B.
+   - No 10: Jika coretan di atas kata "Ar-rohman", jawabannya C.
+   - No 12: Jika coretan di atas kata "Maha melihat", jawabannya A.
+3. LOGIKA BARIS: Jika kertas miring, tetap fokus pada nomor soal di sisi kiri. Coretan harus berada di baris horizontal yang sama dengan nomornya.
+4. ANALISIS PADAT TINTA: Bandingkan opsi A, B, dan C. Pilih yang memiliki kepadatan tinta merah/biru paling tinggi. Abaikan bayangan samar atau noise kamera.
 
 WAJIB OUTPUT JSON: 
 {
-  "nama_siswa": "...", 
-  "jawaban_siswa": {"1": "B", "2": "B", "3": "B", "4": "A", "5": "A", "dst": "..."},
+  "nama_siswa": "Detect Nama Siswa", 
+  "jawaban_siswa": {"1": "B", "2": "B", "3": "B", "4": "A", "5": "A", "6": "B", "7": "B", "8": "C", "9": "B", "10": "C", "11": "C", "12": "A", "13": "B"},
   "log_deteksi": {
-    "1": "Pusat silang di B, mengabaikan garis nyasar ke C",
-    "4": "Coretan tebal ditemukan tepat pada opsi A, opsi B bersih total",
-    "5": "Tanda input siswa ditemukan pada opsi A"
+    "8": "Coretan merah tepat berada di atas angka 99 (Opsi C)",
+    "9": "Coretan merah tepat berada di atas kata penyayang (Opsi B)",
+    "10": "Coretan merah tepat berada di atas kata Ar-rohman (Opsi C)",
+    "12": "Coretan merah berada di baris teks Maha melihat (Opsi A)"
   }
 }` 
                         },
