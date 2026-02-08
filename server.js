@@ -142,7 +142,7 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'views', 'dashboard.html'));
 });
 
-// --- CORE AI ROUTE (ULTIMATE PRECISION: A-D, MULTI-INK, ESSAY ANALYZER) ---
+// --- CORE AI ROUTE (DYNAMIC TEXT-BASED DETECTION & KEYWORD ESSAY) ---
 app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
     try {
         if (!req.session.userId) return res.status(401).json({ success: false, message: "Silakan login dulu!" });
@@ -168,22 +168,24 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
                             "type": "text", 
                             "text": `ANDA ADALAH GURU PROFESIONAL DENGAN KETELITIAN TINGGI. TUGAS: Koreksi LJK.
 
-INSTRUKSI ANALISIS VISUAL (WAJIB):
-1. **Pilihan Ganda (A, B, C, D)**:
-   - Deteksi coretan dari PENSIL, PULPEN, atau TINTA MERAH.
-   - **FILTER KETAT**: Bedakan coretan TEBAL (jawaban nyata) dengan coretan TIPIS (bekas hapusan/ragu-ragu). JANGAN membaca bekas hapusan sebagai jawaban.
-   - Jika satu nomor memiliki dua coretan, pilih yang paling tebal dan dominan.
-2. **Essay**: 
-   - Baca tulisan tangan siswa. Bandingkan dengan Kunci Essay: ${JSON.stringify(kunciEssay)}.
-   - Berikan status BENAR jika jawaban siswa mengandung kata kunci utama atau memiliki inti makna yang mendekati kunci jawaban.
-   - Berikan status SALAH jika jawaban melenceng jauh dari kata kunci.
+INSTRUKSI ANALISIS VISUAL & TEKS (WAJIB TELITI):
+1. **Pilihan Ganda (A-D)**:
+   - JANGAN mengandalkan posisi absolut (kiri/kanan) karena letak opsi bisa tidak beraturan.
+   - BACA teks opsi satu per satu (a., b., c., d.).
+   - Cari coretan PALING TEBAL (Pensil, Pulpen, atau Tinta Merah) yang menutupi atau berada tepat di samping huruf opsi.
+   - **FILTER KETAT**: Bedakan coretan TEBAL (jawaban nyata) dengan coretan TIPIS/BEKAS HAPUSAN. Bekas hapusan yang masih terlihat samar WAJIB DIABAIKAN.
+2. **Essay (Analisis Kata Kunci)**: 
+   - Baca tulisan tangan siswa secara seksama.
+   - Bandingkan dengan Kunci Essay: ${JSON.stringify(kunciEssay)}.
+   - Jika jawaban mengandung KATA KUNCI utama atau memiliki INTI MAKNA yang mendekati kunci jawaban, nyatakan BENAR.
+   - Jika jawaban melenceng jauh dari kata kunci, nyatakan SALAH.
 
 WAJIB OUTPUT JSON: 
 {
   "nama_siswa": "Detect Nama Siswa", 
-  "jawaban_pg": {"1": "A", "2": "D", "3": "B", "...": "..."},
-  "analisis_essay": {"1": "BENAR/SALAH (Alasan singkat)", "...": "..."},
-  "log_deteksi": "Jelaskan proses Anda membedakan coretan tebal dan tipis di foto ini"
+  "jawaban_pg": {"1": "A", "2": "C", ...},
+  "analisis_essay": {"1": "BENAR/SALAH (Alasan berdasar kata kunci)", ...},
+  "log_deteksi": "Jelaskan proses Anda membedakan coretan tebal dan tipis serta identifikasi huruf opsi di foto ini"
 }` 
                         },
                         { "type": "image_url", "image_url": { "url": `data:image/jpeg;base64,${base64}` } }
@@ -196,13 +198,12 @@ WAJIB OUTPUT JSON:
             const aiData = JSON.parse(response.choices[0].message.content);
             const jawabanPG = aiData.jawaban_pg || {};
             const analES = aiData.analisis_essay || {};
-            const logAI = aiData.log_deteksi || "Analisis Maverick Selesai";
             
             let pgBetul = 0;
             let listNomorBetul = [];
             let rincianProses = [];
 
-            // Evaluasi Pilihan Ganda (A-D)
+            // Evaluasi PG
             Object.keys(kunciPG).forEach(nomor => {
                 const jawabSiswa = (jawabanPG[nomor] || "KOSONG").toUpperCase();
                 const jawabKunci = (kunciPG[nomor] || "").toUpperCase();
@@ -219,7 +220,7 @@ WAJIB OUTPUT JSON:
             // Evaluasi Essay
             Object.keys(kunciEssay).forEach(no => {
                 const status = analES[no] || "SALAH";
-                rincianProses.push(`Essay ${no}: ${status.includes("BENAR") ? "✅" : "❌"} ${status}`);
+                rincianProses.push(`Essay ${no}: ${status.toUpperCase().includes("BENAR") ? "✅" : "❌"} ${status}`);
             });
 
             results.push({ 
@@ -227,7 +228,7 @@ WAJIB OUTPUT JSON:
                 pg_betul: pgBetul,
                 nomor_pg_betul: listNomorBetul.length > 0 ? listNomorBetul.join(', ') : "KOSONG",
                 log_detail: rincianProses,
-                info_ai: logAI
+                info_ai: aiData.log_deteksi
             }); 
         }
 
@@ -235,7 +236,7 @@ WAJIB OUTPUT JSON:
         res.json({ success: true, data: results, current_token: user.isPremium ? "UNLIMITED" : user.quota });
     } catch (err) {
         console.error("❌ AI Process Error:", err);
-        res.status(500).json({ success: false, message: "Gagal memproses gambar. Pastikan koneksi stabil." });
+        res.status(500).json({ success: false, message: "Gagal memproses gambar. Pastikan gambar jelas." });
     }
 });
 
