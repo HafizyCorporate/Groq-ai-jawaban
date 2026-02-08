@@ -1,6 +1,6 @@
 /**
  * FILE: koreksi.js
- * TUGAS: Otak Analisis AI (via Google Gemini) & Perhitungan Nilai
+ * TUGAS: Otak Analisis AI (via Gemini 1.5 Pro) & Perhitungan Nilai
  */
 
 const { GoogleGenerativeAI } = require("@google/generative-ai");
@@ -28,13 +28,12 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
     };
 
     /**
-     * PERBAIKAN FATAL: 
-     * Memaksa apiVersion ke 'v1' dan menggunakan nama model standar 'gemini-1.5-flash'.
-     * Ini untuk menghindari error 404 (Not Found) yang sering muncul di v1beta.
+     * PERBAIKAN: Menggunakan Gemini 1.5 Pro via v1beta
+     * v1beta seringkali lebih stabil untuk akun Free Tier yang baru migrasi.
      */
     const model = genAI.getGenerativeModel(
-        { model: "gemini-1.5-flash" },
-        { apiVersion: "v1" }
+        { model: "gemini-1.5-pro" },
+        { apiVersion: "v1beta" }
     );
 
     for (const [index, file] of files.entries()) {
@@ -46,19 +45,19 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
 
             ATURAN DETEKSI (WAJIB):
             1. **Fokus Interaksi Tinta**: Cari coretan manual (X, centang, atau coretan tebal). Jawaban siswa adalah huruf opsi (a, b, c, atau d) yang SECARA FISIK TERTUTUP atau TERTINDIH oleh tinta tersebut.
-            2. **Identifikasi Huruf di Bawah Tinta**: Jika Anda melihat coretan, lihat karakter huruf apa yang ada tepat di bawahnya. Jika huruf 'a' tertutup tinta, jawabannya ADALAH 'A'.
-            3. **Non-Asumsi Layout**: Jangan berasumsi opsi selalu berjajar horizontal. Cari huruf yang tertindih di area setiap nomor soal.
-            4. **Deteksi Multi-Alat**: Pilih coretan yang paling TEBAL dan KONTRAS (Pulpen/Pensil). Abaikan bekas hapusan.
+            2. **Identifikasi Huruf di Bawah Tinta**: Jika Anda melihat coretan, lihat karakter huruf apa yang ada tepat di bawahnya.
+            3. **Non-Asumsi Layout**: Cari huruf yang tertindih di area setiap nomor soal.
+            4. **Deteksi Multi-Alat**: Pilih coretan yang paling TEBAL. Abaikan bekas hapusan.
 
             INSTRUKSI ESSAY:
             - Bandingkan dengan Kunci: ${JSON.stringify(kunciEssay)}. Nyatakan BENAR jika inti maknanya sama.
 
-            WAJIB OUTPUT JSON MURNI:
+            WAJIB OUTPUT JSON MURNI (TANPA BACKTICKS):
             {
               "nama_siswa": "Detect Nama dari kertas",
               "jawaban_pg": {"1": "A", "2": "B", ...},
               "analisis_essay": {"1": "BENAR/SALAH (Alasan)", ...},
-              "log_deteksi": "Jelaskan visual per nomor (Contoh: No 4 coretan tangan menutupi huruf 'a')."
+              "log_deteksi": "Jelaskan visual per nomor."
             }`;
 
             const imagePart = {
@@ -68,12 +67,11 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
                 }
             };
 
-            // Memanggil API Gemini 1.5 Flash
             const result = await model.generateContent([prompt, imagePart]);
             const response = await result.response;
             const text = response.text();
             
-            // Membersihkan response agar JSON valid
+            // Membersihkan response JSON
             const cleanJson = text.replace(/```json|```/g, "").trim();
             const aiData = JSON.parse(cleanJson);
 
@@ -85,7 +83,6 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
             let esBetul = 0;
             let rincianProses = [];
 
-            // Evaluasi Pilihan Ganda
             Object.keys(kunciPG).forEach(nomor => {
                 if (kunciPG[nomor] !== "") {
                     pgTotalKunci++;
@@ -101,7 +98,6 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
                 }
             });
 
-            // Evaluasi Essay
             Object.keys(kunciEssay).forEach(no => {
                 const status = analES[no] || "SALAH";
                 const isBenar = status.toUpperCase().includes("BENAR");
