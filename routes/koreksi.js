@@ -29,10 +29,10 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
 
     /**
      * MENGGUNAKAN MODEL SESUAI DAFTAR DI AI STUDIO KAMU
-     * Kita pilih Gemini 3 Flash Preview untuk kecepatan Vision yang luar biasa.
+     * Update: Menggunakan Gemini 2.5 Flash untuk stabilitas dan akurasi tinggi.
      */
     const model = genAI.getGenerativeModel({ 
-        model: "gemini-3-flash-preview" 
+        model: "gemini-2.5-flash" 
     });
 
     for (const [index, file] of files.entries()) {
