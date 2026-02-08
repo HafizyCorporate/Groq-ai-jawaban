@@ -40,16 +40,18 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
                         "content": [
                             { 
                                 "type": "text", 
-                                "text": `ANDA ADALAH GURU SUPER TELITI. TUGAS: Koreksi LJK dengan Akurasi Koordinat Tinggi.
+                                "text": `ANDA ADALAH GURU SUPER TELITI DENGAN AKURASI KOORDINAT TINGGI. 
+                                TUGAS: Koreksi LJK dengan membandingkan tinta pada Area A, B, C, dan D.
 
-                                ATURAN DETEKSI KETAT:
-                                1. **Cari Label Opsi**: Temukan posisi huruf "a.", "b.", dan "c." secara fisik di setiap baris nomor.
-                                2. **Cek Tumpang Tindih**: Jawaban siswa HANYA sah jika coretan (X/centang) menindih huruf opsi atau teks di sampingnya.
-                                3. **Kasus Spesifik (Nomor 4 & 5)**: 
-                                   - Pada nomor 4 dan 5, jika coretan berada di paling kiri (menutupi huruf 'a.' atau teks setelahnya), jawabannya adalah 'A'.
-                                   - JANGAN menyimpulkan 'B' atau 'C' jika area huruf 'b.' dan 'c.' di baris tersebut bersih tanpa coretan.
-                                4. **Deteksi Multi-Alat**: Siswa menggunakan Pensil/Pulpen/Spidol. Fokus pada tanda tambahan yang tidak ada di cetakan asli soal.
-                                5. **Filter Bekas Hapus**: Abaikan bayangan samar. Pilih tanda yang paling kontras dan tebal.
+                                ATURAN DETEKSI KETAT (MATA ELANG):
+                                1. **Metode Area Horizontal**: Setiap baris soal memiliki 4 zona potensial: Area-A, Area-B, Area-C, dan Area-D.
+                                2. **Cek Tumpang Tindih**: Jawaban HANYA sah jika coretan (X/centang/bulat) benar-benar menindih huruf opsi (a, b, c, atau d) atau teks pilihannya.
+                                3. **Logika Perbandingan**: 
+                                   - Jika Area-A ada tinta tebal dan Area B, C, D bersih, maka JAWABAN ADALAH 'A'.
+                                   - Jika Area-D (paling kanan) ada tinta tebal dan area lainnya bersih, maka JAWABAN ADALAH 'D'.
+                                4. **Kasus Spesifik (Nomor 4 & 5)**: 
+                                   - Fokus pada Area-A. Jika ada tanda merah/hitam di sana, jangan pilih opsi lain.
+                                5. **Deteksi Multi-Alat**: Siswa menggunakan Pensil/Pulpen/Spidol. Abaikan bayangan samar atau bekas hapusan. Pilih yang paling KONTRAS.
 
                                 INSTRUKSI ESSAY:
                                 - Bandingkan dengan Kunci: ${JSON.stringify(kunciEssay)}. Nyatakan BENAR jika inti maknanya sama.
@@ -59,7 +61,7 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
                                   "nama_siswa": "Detect Nama dari kertas",
                                   "jawaban_pg": {"1": "A", "2": "B", ...},
                                   "analisis_essay": {"1": "BENAR/SALAH (Alasan)", ...},
-                                  "log_deteksi": "Contoh: No 4 coretan jelas menutupi huruf a, maka jawabannya A."
+                                  "log_deteksi": "Wajib jelaskan visual per nomor (Contoh: No 4 coretan tebal di Area-A, area B, C, D bersih total)."
                                 }` 
                             },
                             { "type": "image_url", "image_url": { "url": `data:image/jpeg;base64,${base64}` } }
