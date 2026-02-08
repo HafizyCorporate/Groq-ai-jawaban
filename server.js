@@ -16,7 +16,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
 app.use(session({
-    secret: 'kunci-rahasia-llama4',
+    secret: 'kunci-rahasia-llama4-maverick',
     resave: false,
     saveUninitialized: false,
     cookie: { maxAge: 24 * 60 * 60 * 1000 }
@@ -142,7 +142,7 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'views', 'dashboard.html'));
 });
 
-// --- CORE AI ROUTE (REVISED: SEQUENTIAL & UNIVERSAL A-D) ---
+// --- CORE AI ROUTE (REVISED: MAVERICK MODEL, PENSIL/PULPEN DETECTION & ESSAY ANALYZER) ---
 app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
     try {
         if (!req.session.userId) return res.status(401).json({ success: false, message: "Silakan login dulu!" });
@@ -153,33 +153,36 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
         }
 
         const settings = JSON.parse(req.body.data);
-        const kunciPG = settings.kunci_pg; 
+        const kunciPG = settings.kunci_pg || {}; 
+        const kunciEssay = settings.kunci_essay || {};
         const results = [];
 
-        // Loop Sequential: Memproses satu per satu agar AI tetap fokus dan teliti
         for (const [index, file] of req.files.entries()) {
             const base64 = file.buffer.toString("base64");
             const response = await groq.chat.completions.create({
-                "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+                "model": "meta-llama/llama-4-maverick-17b-128e-instruct",
                 "messages": [{
                     "role": "user",
                     "content": [
                         { 
                             "type": "text", 
-                            "text": `TUGAS: Koreksi LJK (Pilihan Ganda A, B, C, D).
+                            "text": `ANDA ADALAH GURU PROFESIONAL DENGAN KETELITIAN TINGGI. 
 
-INSTRUKSI ANALISIS VISUAL UNIVERSAL:
-1. SCAN BARIS: Temukan nomor soal dan huruf opsi (a, b, c, d) di baris horizontal yang sama.
-2. DETEKSI CORETAN: Cari tanda silang, centang, atau coretan tebal yang menimpa huruf opsi.
-3. LOGIKA INPUT: Jawaban adalah huruf yang terkena coretan paling dominan. Jika huruf 'd.' tertutup coretan, maka jawabannya D.
-4. ABAIKAN NOISE: Jangan anggap bayangan atau teks soal sebagai jawaban. Fokus hanya pada coretan siswa terhadap posisi huruf opsi.
-5. DINAMIS: Akui keberadaan opsi D jika ada di gambar.
+TUGAS ANALISIS VISUAL:
+1. **Pilihan Ganda (PG)**: Deteksi coretan (Silang, Bulat, Centang) dari pensil, pulpen, atau tinta merah. 
+   - **PENTING**: Bedakan coretan tebal (jawaban dipilih) dengan coretan tipis (bekas hapusan/ragu-ragu). Ambil yang paling dominan/tebal.
+   - Opsi: A (kiri), B (tengah), C (kanan).
+2. **Essay**: Baca tulisan tangan siswa. Bandingkan dengan Kunci Essay: ${JSON.stringify(kunciEssay)}.
+   - Berikan nilai BENAR jika jawaban siswa mengandung kata kunci utama atau memiliki makna yang mendekati kunci jawaban.
+   - Berikan nilai SALAH jika jawaban melenceng jauh.
+3. **OCR Teliti**: Jangan menebak jika gambar tidak jelas.
 
 WAJIB OUTPUT JSON: 
 {
   "nama_siswa": "Detect Nama Siswa", 
-  "jawaban_siswa": {"1": "A", "2": "D", "3": "B", "...": "..."},
-  "log_deteksi": "Penjelasan singkat proses deteksi"
+  "jawaban_pg": {"1": "B", "2": "A", ...},
+  "analisis_essay": {"1": "BENAR/SALAH (Alasan singkat)", "2": "..."},
+  "log_deteksi": "Catatan tentang ketebalan coretan atau kata kunci essay yang ditemukan"
 }` 
                         },
                         { "type": "image_url", "image_url": { "url": `data:image/jpeg;base64,${base64}` } }
@@ -190,15 +193,17 @@ WAJIB OUTPUT JSON:
             });
             
             const aiData = JSON.parse(response.choices[0].message.content);
-            const jawabanSiswa = aiData.jawaban_siswa || {};
-            const logAI = aiData.log_deteksi || "Analisis otomatis";
+            const jawabanPG = aiData.jawaban_pg || {};
+            const analES = aiData.analisis_essay || {};
+            const logAI = aiData.log_deteksi || "Analisis Berhasil";
             
             let pgBetul = 0;
             let listNomorBetul = [];
             let rincianProses = [];
 
+            // Koreksi PG
             Object.keys(kunciPG).forEach(nomor => {
-                const jawabSiswa = (jawabanSiswa[nomor] || "KOSONG").toUpperCase();
+                const jawabSiswa = (jawabanPG[nomor] || "KOSONG").toUpperCase();
                 const jawabKunci = (kunciPG[nomor] || "").toUpperCase();
 
                 if (jawabSiswa === jawabKunci && jawabKunci !== "") {
@@ -208,6 +213,12 @@ WAJIB OUTPUT JSON:
                 } else {
                     rincianProses.push(`No ${nomor}: ❌ Salah (Siswa: ${jawabSiswa}, Kunci: ${jawabKunci})`);
                 }
+            });
+
+            // Tambahkan Analisis Essay ke Rincian
+            Object.keys(kunciEssay).forEach(no => {
+                const status = analES[no] || "SALAH";
+                rincianProses.push(`Essay ${no}: ${status.includes("BENAR") ? "✅" : "❌"} ${status}`);
             });
 
             results.push({ 
