@@ -27,9 +27,11 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
         } catch (e) { return 0; }
     };
 
-    // MENGGUNAKAN MODEL TERBAIK UNTUK VISION/OCR
-    // Gemini 1.5 Flash dioptimalkan untuk kecepatan dan pemahaman gambar yang detail
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    // PERBAIKAN: Menggunakan nama model "-latest" untuk menghindari Error 404
+    // Gemini 1.5 Flash tetap berada di kuota Free Tier (100x/hari)
+    const model = genAI.getGenerativeModel({ 
+        model: "gemini-1.5-flash-latest" 
+    });
 
     for (const [index, file] of files.entries()) {
         try {
