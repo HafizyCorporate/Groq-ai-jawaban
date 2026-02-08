@@ -114,13 +114,10 @@ app.post('/auth/forgot-password', async (req, res) => {
             })
         });
 
-        const resData = await response.json();
-
         if (response.ok) {
             console.log(`✅ OTP terkirim ke ${email}`);
             res.json({ success: true, message: "KODE TERKIRIM" });
         } else {
-            console.error("❌ Brevo Reject:", resData);
             res.status(500).json({ success: false, message: "Gagal mengirim email." });
         }
     } catch (err) {
@@ -137,7 +134,6 @@ app.post('/auth/verify-otp', async (req, res) => {
         const hashedPassword = await bcrypt.hash(newPassword, 10);
         user.password = hashedPassword;
         user.otp = null; 
-        // Mengirim JSON success agar Dashboard bisa memberikan notif dan pindah ke login
         res.json({ success: true, message: "Berhasil! Password diperbarui." });
     } else {
         res.status(400).json({ success: false, message: "Kode OTP salah atau tidak berlaku!" });
@@ -158,6 +154,7 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
         }
 
         const settings = JSON.parse(req.body.data);
+        const kunciPG = settings.kunci_pg; 
         const results = [];
 
         for (const file of req.files) {
@@ -167,7 +164,21 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
                 "messages": [{
                     "role": "user",
                     "content": [
-                        { "type": "text", "text": `Output JSON: {"nama_siswa": "", "jawaban_pg_terdeteksi": {"1": "A"}, "essay_detail": [{"no": 1, "betul": true}]}` },
+                        { 
+                            "type": "text", 
+                            "text": `Analisis lembar soal ini dengan ketelitian tinggi:
+                            1. Identifikasi Nama Siswa.
+                            2. Cari coretan (X, Silang, Lingkaran, Centang) pada opsi A, B, atau C.
+                            3. Deteksi coretan meskipun BURAM, memakai PENSIL abu-abu, atau tinta MERAH/HITAM/BIRU.
+                            4. Berikan alasan deteksi untuk setiap nomor di 'log_deteksi'.
+                            
+                            WAJIB JSON: 
+                            {
+                              "nama_siswa": "...", 
+                              "jawaban_siswa": {"1": "A", "2": "C"},
+                              "log_deteksi": {"1": "Coretan merah jelas", "2": "Arsiran pensil tipis"}
+                            }` 
+                        },
                         { "type": "image_url", "image_url": { "url": `data:image/jpeg;base64,${base64}` } }
                     ]
                 }],
@@ -176,14 +187,40 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
             });
             
             const aiData = JSON.parse(response.choices[0].message.content);
-            results.push({ nama: aiData.nama_siswa || "Siswa", pg_betul: 0 }); 
+            const jawabanSiswa = aiData.jawaban_siswa || {};
+            const logAI = aiData.log_deteksi || {};
+            
+            let pgBetul = 0;
+            let listNomorBetul = [];
+            let rincianProses = [];
+
+            Object.keys(kunciPG).forEach(nomor => {
+                const jawabSiswa = (jawabanSiswa[nomor] || "KOSONG").toUpperCase();
+                const jawabKunci = (kunciPG[nomor] || "").toUpperCase();
+                const keterangan = logAI[nomor] || "Tidak terdeteksi";
+
+                if (jawabSiswa === jawabKunci && jawabKunci !== "") {
+                    pgBetul++;
+                    listNomorBetul.push(nomor);
+                    rincianProses.push(`No ${nomor}: ✅ Benar (Siswa: ${jawabSiswa}, Info: ${keterangan})`);
+                } else {
+                    rincianProses.push(`No ${nomor}: ❌ Salah (Siswa: ${jawabSiswa}, Kunci: ${jawabKunci}, Info: ${keterangan})`);
+                }
+            });
+
+            results.push({ 
+                nama: aiData.nama_siswa || "Siswa", 
+                pg_betul: pgBetul,
+                nomor_pg_betul: listNomorBetul.length > 0 ? listNomorBetul.join(', ') : "KOSONG",
+                log_detail: rincianProses 
+            }); 
         }
 
         if (!user.isPremium) user.quota -= req.files.length;
         res.json({ success: true, data: results, current_token: user.isPremium ? "UNLIMITED" : user.quota });
     } catch (err) {
         console.error("❌ AI Process Error:", err);
-        res.status(500).json({ success: false, message: err.message });
+        res.status(500).json({ success: false, message: "Gagal memproses gambar." });
     }
 });
 
