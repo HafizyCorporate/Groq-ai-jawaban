@@ -31,6 +31,18 @@
             100% { transform: scale(1); opacity: 1; }
         }
 
+        /* PERBESAR TEKS NAVIGASI AUTH */
+        #forgotBtn, #authToggleBtn {
+            font-size: 1rem !important;
+            font-weight: 800;
+        }
+
+        .otp-input {
+            letter-spacing: 0.5rem;
+            text-align: center;
+            font-size: 2rem !important;
+        }
+
         /* --- PENYESUAIAN KHUSUS LAYAR HP --- */
         @media (max-width: 767px) {
             html { font-size: 15px; } 
@@ -91,6 +103,22 @@
         </div>
     </div>
 
+    <div id="otpModalOverlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[210] hidden flex items-center justify-center p-6">
+        <div class="bg-white w-full max-w-md rounded-[40px] p-8 shadow-2xl modal-animate border border-slate-100">
+            <div class="text-center mb-6">
+                <div class="text-6xl mb-4">📧</div>
+                <h3 class="text-2xl font-black uppercase text-slate-800">Verifikasi Kode</h3>
+                <p class="text-slate-500 font-bold">Masukkan kode 6 digit dari email & password baru</p>
+            </div>
+            <div class="space-y-4">
+                <input type="text" id="otpCode" placeholder="000000" maxlength="6" class="otp-input w-full p-5 bg-slate-50 rounded-2xl font-black border border-slate-100 outline-none focus:border-blue-400">
+                <input type="password" id="otpNewPass" placeholder="Password Baru" class="w-full p-5 bg-slate-50 rounded-2xl text-lg font-bold border border-slate-100 outline-none focus:border-blue-400">
+                <button onclick="submitVerifyOTP()" class="w-full bg-blue-600 text-white font-black py-6 rounded-[30px] text-sm uppercase shadow-xl active:scale-95 transition">GANTI PASSWORD</button>
+                <button onclick="document.getElementById('otpModalOverlay').classList.add('hidden')" class="w-full text-slate-400 font-black py-2 text-xs uppercase">Batal</button>
+            </div>
+        </div>
+    </div>
+
     <div id="tokenBadge" class="fixed top-4 right-4 z-[110] hidden">
         <div class="bg-white/90 backdrop-blur-md border border-blue-100 px-6 py-4 rounded-full shadow-xl flex items-center gap-3">
             <span class="text-xs font-black text-slate-400 uppercase italic">Token:</span>
@@ -107,8 +135,8 @@
                 <input type="password" id="authPass" placeholder="Password" class="w-full p-6 bg-slate-50 rounded-2xl text-lg font-bold border border-slate-100 outline-none focus:border-blue-400">
                 <button id="btnAuthAction" onclick="submitAuth()" class="w-full bg-[#0f172a] text-white font-black py-7 rounded-[30px] text-sm uppercase shadow-xl active:scale-95 transition">MASUK SEKARANG</button>
                 <div class="flex justify-between px-2 text-xs font-bold uppercase">
-                    <button id="forgotBtn" onclick="changeAuthMode('forgot')" class="text-slate-400">Lupa?</button>
-                    <button id="authToggleBtn" onclick="changeAuthMode('reg')" class="text-blue-600">Daftar Akun</button>
+                    <button id="forgotBtn" onclick="changeAuthMode('forgot')" class="text-slate-400 hover:text-slate-600">Lupa?</button>
+                    <button id="authToggleBtn" onclick="changeAuthMode('reg')" class="text-blue-600 hover:text-blue-800">Daftar Akun</button>
                 </div>
             </div>
         </div>
@@ -350,7 +378,6 @@
             if(currentMode === 'reg') endpoint = '/auth/register';
             if(currentMode === 'forgot') endpoint = '/auth/forgot-password';
 
-            // --- LOADING STATE & JAM PASIR ---
             btn.disabled = true;
             btn.innerHTML = `<span class="loader" style="width:20px; height:20px; border-width:2px; vertical-align:middle; margin-right:8px"></span> MENGIRIM...`;
             if(currentMode === 'forgot') btn.innerText = "⏳ TUNGGU SEBENTAR...";
@@ -372,8 +399,8 @@
                         document.getElementById('dashboardWrapper').classList.remove('opacity-0', 'pointer-events-none');
                         muatRiwayat();
                     } else if (currentMode === 'forgot') {
-                        showAlert("KODE TERKIRIM! ✅\n\nSilakan cek kotak masuk atau folder spam email: " + email);
-                        changeAuthMode('login');
+                        // BUKA MODAL OTP
+                        document.getElementById('otpModalOverlay').classList.remove('hidden');
                     } else {
                         showAlert(data.message || "Berhasil! Silakan cek email/login.");
                         changeAuthMode('login');
@@ -386,6 +413,33 @@
             } finally {
                 btn.disabled = false;
                 btn.innerText = originalBtnText;
+            }
+        }
+
+        async function submitVerifyOTP() {
+            const email = document.getElementById('authEmail').value;
+            const otp = document.getElementById('otpCode').value;
+            const newPassword = document.getElementById('otpNewPass').value;
+
+            if(!otp || !newPassword) return showAlert("Lengkapi kode dan password baru!");
+
+            try {
+                const res = await fetch('/auth/verify-otp', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ email, otp, newPassword })
+                });
+                const data = await res.json();
+                
+                if(data.success) {
+                    document.getElementById('otpModalOverlay').classList.add('hidden');
+                    showAlert("Berhasil! Password diperbarui. Silakan login.");
+                    changeAuthMode('login');
+                } else {
+                    showAlert(data.message || "Kode OTP salah!");
+                }
+            } catch(e) {
+                showAlert("Gagal memverifikasi OTP!");
             }
         }
 
