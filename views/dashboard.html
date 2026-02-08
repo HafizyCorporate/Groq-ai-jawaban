@@ -421,19 +421,30 @@
             const email = document.getElementById('authEmail').value;
             const otp = document.getElementById('otpCode').value;
             const newPassword = document.getElementById('otpNewPass').value;
+            const btn = document.querySelector("#otpModalOverlay button[onclick='submitVerifyOTP()']");
 
             if(!otp || !newPassword) return showAlert("Lengkapi kode dan password baru!");
+
+            const originalText = btn.innerText;
+            btn.disabled = true;
+            btn.innerText = "SEDANG DIPROSES...";
 
             try {
                 const res = await fetch(window.location.origin + '/auth/verify-otp', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ email, otp, newPassword })
+                    body: JSON.stringify({ 
+                        email: email.trim(), 
+                        otp: otp.trim(), 
+                        newPassword: newPassword 
+                    })
                 });
                 const data = await res.json();
                 
                 if(data.success) {
                     document.getElementById('otpModalOverlay').classList.add('hidden');
+                    document.getElementById('otpCode').value = "";
+                    document.getElementById('otpNewPass').value = "";
                     showAlert("Berhasil! Password diperbarui. Silakan login.");
                     changeAuthMode('login');
                 } else {
@@ -441,6 +452,9 @@
                 }
             } catch(e) {
                 showAlert("Gagal memverifikasi OTP: " + e.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = originalText;
             }
         }
 
