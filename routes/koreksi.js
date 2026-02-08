@@ -27,8 +27,10 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
         } catch (e) { return 0; }
     };
 
-    // Pakai model Flash karena paling cepat dan akurat untuk deteksi gambar (Vision)
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    // PERBAIKAN: Menambahkan apiVersion 'v1' agar tidak error 404 di lingkungan tertentu
+    const model = genAI.getGenerativeModel({ 
+        model: "gemini-1.5-flash" 
+    }, { apiVersion: 'v1' });
 
     for (const [index, file] of files.entries()) {
         try {
