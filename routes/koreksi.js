@@ -27,11 +27,15 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
         } catch (e) { return 0; }
     };
 
-    // PERBAIKAN: Menggunakan nama model "-latest" untuk menghindari Error 404
-    // Gemini 1.5 Flash tetap berada di kuota Free Tier (100x/hari)
-    const model = genAI.getGenerativeModel({ 
-        model: "gemini-1.5-flash-latest" 
-    });
+    /**
+     * PERBAIKAN FATAL: 
+     * Memaksa apiVersion ke 'v1' dan menggunakan nama model standar 'gemini-1.5-flash'.
+     * Ini untuk menghindari error 404 (Not Found) yang sering muncul di v1beta.
+     */
+    const model = genAI.getGenerativeModel(
+        { model: "gemini-1.5-flash" },
+        { apiVersion: "v1" }
+    );
 
     for (const [index, file] of files.entries()) {
         try {
