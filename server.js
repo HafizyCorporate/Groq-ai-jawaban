@@ -142,7 +142,7 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'views', 'dashboard.html'));
 });
 
-// --- CORE AI ROUTE (REVISED: MAVERICK MODEL, PENSIL/PULPEN DETECTION & ESSAY ANALYZER) ---
+// --- CORE AI ROUTE (ULTIMATE PRECISION: A-D, MULTI-INK, ESSAY ANALYZER) ---
 app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
     try {
         if (!req.session.userId) return res.status(401).json({ success: false, message: "Silakan login dulu!" });
@@ -166,23 +166,24 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
                     "content": [
                         { 
                             "type": "text", 
-                            "text": `ANDA ADALAH GURU PROFESIONAL DENGAN KETELITIAN TINGGI. 
+                            "text": `ANDA ADALAH GURU PROFESIONAL DENGAN KETELITIAN TINGGI. TUGAS: Koreksi LJK.
 
-TUGAS ANALISIS VISUAL:
-1. **Pilihan Ganda (PG)**: Deteksi coretan (Silang, Bulat, Centang) dari pensil, pulpen, atau tinta merah. 
-   - **PENTING**: Bedakan coretan tebal (jawaban dipilih) dengan coretan tipis (bekas hapusan/ragu-ragu). Ambil yang paling dominan/tebal.
-   - Opsi: A (kiri), B (tengah), C (kanan).
-2. **Essay**: Baca tulisan tangan siswa. Bandingkan dengan Kunci Essay: ${JSON.stringify(kunciEssay)}.
-   - Berikan nilai BENAR jika jawaban siswa mengandung kata kunci utama atau memiliki makna yang mendekati kunci jawaban.
-   - Berikan nilai SALAH jika jawaban melenceng jauh.
-3. **OCR Teliti**: Jangan menebak jika gambar tidak jelas.
+INSTRUKSI ANALISIS VISUAL (WAJIB):
+1. **Pilihan Ganda (A, B, C, D)**:
+   - Deteksi coretan dari PENSIL, PULPEN, atau TINTA MERAH.
+   - **FILTER KETAT**: Bedakan coretan TEBAL (jawaban nyata) dengan coretan TIPIS (bekas hapusan/ragu-ragu). JANGAN membaca bekas hapusan sebagai jawaban.
+   - Jika satu nomor memiliki dua coretan, pilih yang paling tebal dan dominan.
+2. **Essay**: 
+   - Baca tulisan tangan siswa. Bandingkan dengan Kunci Essay: ${JSON.stringify(kunciEssay)}.
+   - Berikan status BENAR jika jawaban siswa mengandung kata kunci utama atau memiliki inti makna yang mendekati kunci jawaban.
+   - Berikan status SALAH jika jawaban melenceng jauh dari kata kunci.
 
 WAJIB OUTPUT JSON: 
 {
   "nama_siswa": "Detect Nama Siswa", 
-  "jawaban_pg": {"1": "B", "2": "A", ...},
-  "analisis_essay": {"1": "BENAR/SALAH (Alasan singkat)", "2": "..."},
-  "log_deteksi": "Catatan tentang ketebalan coretan atau kata kunci essay yang ditemukan"
+  "jawaban_pg": {"1": "A", "2": "D", "3": "B", "...": "..."},
+  "analisis_essay": {"1": "BENAR/SALAH (Alasan singkat)", "...": "..."},
+  "log_deteksi": "Jelaskan proses Anda membedakan coretan tebal dan tipis di foto ini"
 }` 
                         },
                         { "type": "image_url", "image_url": { "url": `data:image/jpeg;base64,${base64}` } }
@@ -195,13 +196,13 @@ WAJIB OUTPUT JSON:
             const aiData = JSON.parse(response.choices[0].message.content);
             const jawabanPG = aiData.jawaban_pg || {};
             const analES = aiData.analisis_essay || {};
-            const logAI = aiData.log_deteksi || "Analisis Berhasil";
+            const logAI = aiData.log_deteksi || "Analisis Maverick Selesai";
             
             let pgBetul = 0;
             let listNomorBetul = [];
             let rincianProses = [];
 
-            // Koreksi PG
+            // Evaluasi Pilihan Ganda (A-D)
             Object.keys(kunciPG).forEach(nomor => {
                 const jawabSiswa = (jawabanPG[nomor] || "KOSONG").toUpperCase();
                 const jawabKunci = (kunciPG[nomor] || "").toUpperCase();
@@ -215,7 +216,7 @@ WAJIB OUTPUT JSON:
                 }
             });
 
-            // Tambahkan Analisis Essay ke Rincian
+            // Evaluasi Essay
             Object.keys(kunciEssay).forEach(no => {
                 const status = analES[no] || "SALAH";
                 rincianProses.push(`Essay ${no}: ${status.includes("BENAR") ? "✅" : "❌"} ${status}`);
@@ -234,7 +235,7 @@ WAJIB OUTPUT JSON:
         res.json({ success: true, data: results, current_token: user.isPremium ? "UNLIMITED" : user.quota });
     } catch (err) {
         console.error("❌ AI Process Error:", err);
-        res.status(500).json({ success: false, message: "Gagal memproses gambar." });
+        res.status(500).json({ success: false, message: "Gagal memproses gambar. Pastikan koneksi stabil." });
     }
 });
 
