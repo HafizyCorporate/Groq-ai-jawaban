@@ -142,9 +142,8 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'views', 'dashboard.html'));
 });
 
-// --- CORE AI ROUTE (DYNAMIC TEXT-BASED DETECTION & KEYWORD ESSAY) ---
+// --- CORE AI ROUTE (REVISI: LOGIKA TEBAL-TIPIS & BATAS SOAL-JAWABAN) ---
 app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
-    // Set timeout agar tidak gantung jika gambar diproses lama
     req.setTimeout(180000); 
 
     try {
@@ -169,32 +168,34 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
                     "content": [
                         { 
                             "type": "text", 
-                            "text": `### PERINTAH KOREKSI PROFESIONAL (SOP) ###
+                            "text": `ANDA ADALAH GURU PROFESIONAL. TUGAS: Koreksi LJK (PG & ESSAY).
 
-1. **ANALISIS PILIHAN GANDA (A-D)**:
-   - JANGAN gunakan posisi kiri/kanan sebagai patokan tetap.
-   - BACA teks opsi satu per satu (a., b., c., d.) pada baris soal.
-   - Cari coretan PALING TEBAL dan GELAP (Tinta/Pensil).
-   - ABAIKAN sisa hapusan atau coretan samar (Ghosting). Jika coretan tipis, anggap bukan jawaban.
+INSTRUKSI PILIHAN GANDA (PG):
+1. **Pemisah Soal & Jawaban**: Identifikasi bahwa kalimat pertanyaan berakhir dan area jawaban dimulai ketika Anda menemukan label opsi (a., b., c., d.). Fokus hanya pada area huruf opsi tersebut.
+2. **Identifikasi Huruf**: Cari huruf "a.", "b.", "c.", "d." secara spesifik. JANGAN gunakan koordinat posisi tetap.
+3. **Logika Coretan (X)**:
+   - Bandingkan intensitas tinta pada huruf a, b, c, dan d dalam satu nomor.
+   - Jawaban Siswa adalah huruf yang tertutup coretan PALING TEBAL, PEKAT, dan GELAP.
+   - **Filter Penghapus**: Jika ada huruf dengan coretan samar/abu-abu/tipis (bekas hapusan), itu WAJIB DIANGGAP BATAL/TIDAK DIPILIH.
+   - Huruf yang paling kotor oleh tinta pekat menunjukkan pilihan akhir siswa.
 
-2. **ANALISIS ESSAY**:
-   - Gunakan Kunci: ${JSON.stringify(kunciEssay)}.
-   - Jika jawaban siswa mengandung INTI MAKNA atau KATA KUNCI yang sama, nyatakan BENAR.
+INSTRUKSI ESSAY:
+1. Baca tulisan tangan pada area Essay. Bandingkan dengan Kunci: ${JSON.stringify(kunciEssay)}.
+2. Nyatakan BENAR jika mengandung KATA KUNCI utama atau INTI MAKNA yang sesuai.
 
 WAJIB OUTPUT JSON MURNI:
 {
   "nama_siswa": "Detect Nama",
-  "jawaban_pg": {"1": "A", "2": "C", ...},
+  "jawaban_pg": {"1": "A", "2": "B", ...},
   "analisis_essay": {"1": "BENAR/SALAH (Alasan singkat)", ...},
-  "log_deteksi": "Jelaskan alasan visual pemilihan jawaban"
+  "log_deteksi": "Jelaskan proses membedakan coretan tebal/samar per nomor."
 }` 
                         },
                         { "type": "image_url", "image_url": { "url": `data:image/jpeg;base64,${base64}` } }
                     ]
                 }],
                 "response_format": { "type": "json_object" },
-                "temperature": 0.1, // Disesuaikan sedikit agar lebih luwes membaca tulisan tangan
-                "max_tokens": 2048
+                "temperature": 0
             });
             
             const aiData = JSON.parse(response.choices[0].message.content);
@@ -205,11 +206,9 @@ WAJIB OUTPUT JSON MURNI:
             let listNomorBetul = [];
             let rincianProses = [];
 
-            // Evaluasi PG
             Object.keys(kunciPG).forEach(nomor => {
                 const jawabSiswa = (jawabanPG[nomor] || "KOSONG").toUpperCase();
                 const jawabKunci = (kunciPG[nomor] || "").toUpperCase();
-
                 if (jawabSiswa === jawabKunci && jawabKunci !== "") {
                     pgBetul++;
                     listNomorBetul.push(nomor);
@@ -219,7 +218,6 @@ WAJIB OUTPUT JSON MURNI:
                 }
             });
 
-            // Evaluasi Essay
             Object.keys(kunciEssay).forEach(no => {
                 const status = analES[no] || "SALAH";
                 rincianProses.push(`Essay ${no}: ${status.toUpperCase().includes("BENAR") ? "✅" : "❌"} ${status}`);
@@ -238,7 +236,7 @@ WAJIB OUTPUT JSON MURNI:
         res.json({ success: true, data: results, current_token: user.isPremium ? "UNLIMITED" : user.quota });
     } catch (err) {
         console.error("❌ AI Process Error:", err);
-        res.status(500).json({ success: false, message: "AI sedang sibuk atau gambar terlalu berat. Silakan coba lagi." });
+        res.status(500).json({ success: false, message: "AI sedang sibuk. Silakan coba lagi." });
     }
 });
 
