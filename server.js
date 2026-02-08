@@ -66,7 +66,7 @@ app.post('/auth/login', async (req, res) => {
     }
 });
 
-// LOGIKA FORGOT PASSWORD - VERSI API BREVO (ANTI-BLOKIR & STABIL)
+// LOGIKA FORGOT PASSWORD - VERSI RESEND (GANTI DARI BREVO)
 app.post('/auth/forgot-password', async (req, res) => {
     const { email } = req.body;
     const userExists = users.find(u => u.email === email);
@@ -75,26 +75,25 @@ app.post('/auth/forgot-password', async (req, res) => {
         return res.status(404).json({ success: false, message: "Email tidak terdaftar!" });
     }
 
-    const apiKey = process.env.BREVO_API_KEY;
+    const resendApiKey = process.env.RESEND_API_KEY;
 
-    if (!apiKey) {
-        console.error("❌ ERROR: BREVO_API_KEY tidak ditemukan di Variables Railway!");
-        return res.status(500).json({ success: false, message: "Konfigurasi API Key Hilang!" });
+    if (!resendApiKey) {
+        console.error("❌ ERROR: RESEND_API_KEY tidak ditemukan di Variables Railway!");
+        return res.status(500).json({ success: false, message: "Konfigurasi Email Belum Siap!" });
     }
 
     try {
-        const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+        const response = await fetch('https://api.resend.com/emails', {
             method: 'POST',
             headers: {
-                'accept': 'application/json',
-                'api-key': apiKey.trim(), // Membersihkan spasi liar secara otomatis
-                'content-type': 'application/json'
+                'Authorization': `Bearer ${resendApiKey.trim()}`,
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                sender: { name: "JAWABAN AI", email: "azhardax94@gmail.com" },
-                to: [{ email: email }],
+                from: 'Jawaban AI <onboarding@resend.dev>',
+                to: email,
                 subject: '🔑 Kode Pemulihan Akun Jawaban AI',
-                htmlContent: `
+                html: `
                     <div style="max-width: 500px; margin: auto; font-family: sans-serif; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden;">
                         <div style="background: linear-gradient(135deg, #2563eb, #7c3aed); padding: 30px; text-align: center; color: white;">
                             <h1 style="margin: 0; font-size: 24px;">Jawaban AI</h1>
@@ -117,11 +116,11 @@ app.post('/auth/forgot-password', async (req, res) => {
         const result = await response.json();
 
         if (response.ok) {
-            console.log("✅ EMAIL TERKIRIM VIA API BREVO:", result);
+            console.log("✅ EMAIL TERKIRIM VIA RESEND:", result);
             res.json({ success: true, message: "Instruksi dikirim ke email " + email });
         } else {
-            console.error("❌ ERROR API BREVO:", result);
-            res.status(500).json({ success: false, message: "Gagal mengirim email lewat API." });
+            console.error("❌ ERROR RESEND:", result);
+            res.status(500).json({ success: false, message: "Gagal mengirim email lewat Resend." });
         }
     } catch (err) {
         console.error("❌ FETCH ERROR:", err.message);
