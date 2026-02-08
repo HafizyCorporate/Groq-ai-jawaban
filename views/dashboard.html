@@ -466,7 +466,7 @@
             if(saved) { dbData = JSON.parse(saved); if(dbData.length > 0) tampilkanHasilKeLayar(); }
         }
 
-        // FUNGSI UTAMA KOREKSI (FIXED: ANTI-LOADING STUCK)
+        // FUNGSI UTAMA KOREKSI (FIXED: ANTI-LOADING STUCK & 10s TIMEOUT)
         document.getElementById('btnAI').onclick = async () => {
             const btn = document.getElementById('btnAI');
             const fileInput = document.getElementById('file');
@@ -494,12 +494,32 @@
                     fd.append('data', JSON.stringify(conf));
                     fd.append('foto', files[i]);
                     
+                    // --- PROTEKSI KILAT 10 DETIK & DETEKSI ERROR ---
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 10000); 
+
                     try {
-                        const req = await fetch(window.location.origin + '/ai/proses-koreksi', { method: 'POST', body: fd });
+                        const req = await fetch(window.location.origin + '/ai/proses-koreksi', { 
+                            method: 'POST', 
+                            body: fd,
+                            signal: controller.signal 
+                        });
                         
-                        if (!req.ok) throw new Error("Koneksi Server Bermasalah");
+                        clearTimeout(timeoutId);
+
+                        if (!req.ok) {
+                            if (req.status === 502 || req.status === 503) throw new Error("Server Railway sedang penuh (Overload).");
+                            if (req.status === 413) throw new Error("File gambar terlalu besar untuk dikirim.");
+                            throw new Error(`Server Error (${req.status})`);
+                        }
                         
-                        const res = await req.json();
+                        const text = await req.text();
+                        let res;
+                        try {
+                            res = JSON.parse(text);
+                        } catch(e) {
+                            throw new Error("Server mengirim data rusak (Bukan JSON).");
+                        }
                         
                         if(res.success) {
                             const newEntries = Array.isArray(res.data) ? res.data : [res.data];
@@ -508,13 +528,18 @@
                             tampilkanHasilKeLayar(); 
                             simpanKeRiwayat();
                         } else { 
-                            showAlert(res.message); 
+                            showAlert("AI Gagal: " + res.message); 
                             if(res.limitReached) break;
                         }
                     } catch (itemError) {
-                        console.error("Gagal pada item ke-" + i, itemError);
-                        showAlert("Gagal memproses gambar ke-" + (i+1) + ". Pastikan sinyal stabil.");
-                        break;
+                        let errorMsg = itemError.message;
+                        if (itemError.name === 'AbortError') {
+                            errorMsg = "Waktu Habis (10 detik)! Koneksi Bos atau Server lemot.";
+                        } else if (errorMsg.includes('Failed to fetch')) {
+                            errorMsg = "Sinyal Terputus! Cek internet Bos.";
+                        }
+                        showAlert("GAGAL SCAN KE-" + (i+1) + ":\n" + errorMsg);
+                        break; 
                     }
                 }
                 btn.innerText = "SELESAI ✅";
