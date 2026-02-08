@@ -466,47 +466,68 @@
             if(saved) { dbData = JSON.parse(saved); if(dbData.length > 0) tampilkanHasilKeLayar(); }
         }
 
-        // FUNGSI UTAMA KOREKSI (SEQUENTIAL PROCESSING)
+        // FUNGSI UTAMA KOREKSI (FIXED: ANTI-LOADING STUCK)
         document.getElementById('btnAI').onclick = async () => {
             const btn = document.getElementById('btnAI');
-            const files = document.getElementById('file').files;
+            const fileInput = document.getElementById('file');
+            const files = fileInput.files;
             if(!files.length) return showAlert("Pilih file!");
             
             btn.disabled = true;
-            const conf = { kunci_pg: {} };
+            const originalText = "MULAI PROSES KOREKSI AI";
+            
+            const conf = { kunci_pg: {}, kunci_essay: {} };
             for(let i=1; i<=20; i++) { 
                 const v = document.getElementById(`p${i}`).value; 
                 if(v !== "") conf.kunci_pg[i] = v; 
             }
+            for(let i=1; i<=5; i++) {
+                const v = document.getElementById(`e${i}`).value;
+                if(v !== "") conf.kunci_essay[i] = v;
+            }
 
             try {
                 for (let i = 0; i < files.length; i++) {
-                    btn.innerHTML = `<span class="loader"></span> ANALISIS ${i+1}/${files.length}...`;
+                    btn.innerHTML = `<span class="loader" style="width:20px; height:20px; border-width:3px; vertical-align:middle; margin-right:10px"></span> ANALISIS ${i+1}/${files.length}...`;
+                    
                     const fd = new FormData();
                     fd.append('data', JSON.stringify(conf));
                     fd.append('foto', files[i]);
                     
-                    const req = await fetch(window.location.origin + '/ai/proses-koreksi', { method: 'POST', body: fd });
-                    const res = await req.json();
-                    
-                    if(res.success) {
-                        dbData = [...dbData, ...(Array.isArray(res.data) ? res.data : [res.data])];
-                        if(res.current_token !== undefined) updateTokenDisplay(res.current_token);
-                        tampilkanHasilKeLayar(); 
-                        simpanKeRiwayat();
-                    } else { 
-                        showAlert(res.message); 
-                        break; 
+                    try {
+                        const req = await fetch(window.location.origin + '/ai/proses-koreksi', { method: 'POST', body: fd });
+                        
+                        if (!req.ok) throw new Error("Koneksi Server Bermasalah");
+                        
+                        const res = await req.json();
+                        
+                        if(res.success) {
+                            const newEntries = Array.isArray(res.data) ? res.data : [res.data];
+                            dbData = [...dbData, ...newEntries];
+                            if(res.current_token !== undefined) updateTokenDisplay(res.current_token);
+                            tampilkanHasilKeLayar(); 
+                            simpanKeRiwayat();
+                        } else { 
+                            showAlert(res.message); 
+                            if(res.limitReached) break;
+                        }
+                    } catch (itemError) {
+                        console.error("Gagal pada item ke-" + i, itemError);
+                        showAlert("Gagal memproses gambar ke-" + (i+1) + ". Pastikan sinyal stabil.");
+                        break;
                     }
                 }
                 btn.innerText = "SELESAI ✅";
+                fileInput.value = "";
+                document.getElementById('stts').innerText = 'Belum ada file dipilih';
             } catch(e) { 
-                showAlert("Gagal memproses file!"); 
+                showAlert("Terjadi kesalahan sistem!"); 
+            } finally {
+                setTimeout(() => {
+                    btn.disabled = false;
+                    btn.innerText = originalText;
+                }, 3000);
             }
-            setTimeout(() => {
-                btn.disabled = false;
-                btn.innerText = "MULAI PROSES KOREKSI AI";
-            }, 3000);
         };
 
         function toggleHistory() {
