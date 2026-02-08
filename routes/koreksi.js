@@ -40,30 +40,26 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
                         "content": [
                             { 
                                 "type": "text", 
-                                "text": `ANDA ADALAH GURU PROFESIONAL YANG SANGAT TELITI. TUGAS: Koreksi LJK (PG & ESSAY).
+                                "text": `ANDA ADALAH GURU SUPER TELITI. TUGAS: Koreksi LJK dengan Akurasi Koordinat Tinggi.
 
-                                INSTRUKSI KHUSUS DETEKSI (PENTING!):
-                                1. **Deteksi Multi-Alat Tulis**: Siswa mungkin menjawab menggunakan PENSIL, PULPEN (HITAM/BIRU/MERAH), atau SPIDOL.
-                                2. **Metode Baris-demi-Baris**: Lakukan scan pada setiap nomor soal satu per satu secara vertikal (1 sampai 13).
-                                3. **Analisis Koordinat Opsi**: Perhatikan bahwa setiap huruf opsi (a, b, c) diikuti oleh teks/angka. 
-                                   - Contoh No 1: Huruf 'b.' diikuti angka '30'. Jika coretan menutupi angka '30', maka jawabannya MUTLAK 'B'.
-                                   - JANGAN menyimpulkan 'C' jika huruf 'c.' dan angka di sebelahnya bersih dari tinta.
-                                4. **Logika Kontras**: Fokus pada coretan tambahan (X, centang, atau lingkaran) yang menimpa huruf/teks opsi. Pilih yang paling TEBAL dan JELAS. Abaikan bekas hapusan samar.
-
-                                INSTRUKSI PILIHAN GANDA (PG):
-                                - Analisis tanda SILANG (X), CENTANG (v), atau CORETAN yang menutupi opsi.
-                                - Pastikan nomor soal (1-13) sesuai urutan di kertas.
+                                ATURAN DETEKSI KETAT:
+                                1. **Cari Label Opsi**: Temukan posisi huruf "a.", "b.", dan "c." secara fisik di setiap baris nomor.
+                                2. **Cek Tumpang Tindih**: Jawaban siswa HANYA sah jika coretan (X/centang) menindih huruf opsi atau teks di sampingnya.
+                                3. **Kasus Spesifik (Nomor 4 & 5)**: 
+                                   - Pada nomor 4 dan 5, jika coretan berada di paling kiri (menutupi huruf 'a.' atau teks setelahnya), jawabannya adalah 'A'.
+                                   - JANGAN menyimpulkan 'B' atau 'C' jika area huruf 'b.' dan 'c.' di baris tersebut bersih tanpa coretan.
+                                4. **Deteksi Multi-Alat**: Siswa menggunakan Pensil/Pulpen/Spidol. Fokus pada tanda tambahan yang tidak ada di cetakan asli soal.
+                                5. **Filter Bekas Hapus**: Abaikan bayangan samar. Pilih tanda yang paling kontras dan tebal.
 
                                 INSTRUKSI ESSAY:
-                                - Bandingkan jawaban dengan Kunci: ${JSON.stringify(kunciEssay)}.
-                                - Nyatakan BENAR jika mengandung INTI MAKNA yang sesuai.
+                                - Bandingkan dengan Kunci: ${JSON.stringify(kunciEssay)}. Nyatakan BENAR jika inti maknanya sama.
 
                                 WAJIB OUTPUT JSON MURNI:
                                 {
                                   "nama_siswa": "Detect Nama dari kertas",
                                   "jawaban_pg": {"1": "A", "2": "B", ...},
                                   "analisis_essay": {"1": "BENAR/SALAH (Alasan)", ...},
-                                  "log_deteksi": "Jelaskan deteksi per nomor (Contoh: No 1: Huruf B dan angka di sampingnya tertutup coretan tebal, opsi C bersih)."
+                                  "log_deteksi": "Contoh: No 4 coretan jelas menutupi huruf a, maka jawabannya A."
                                 }` 
                             },
                             { "type": "image_url", "image_url": { "url": `data:image/jpeg;base64,${base64}` } }
