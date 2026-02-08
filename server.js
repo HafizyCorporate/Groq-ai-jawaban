@@ -144,7 +144,7 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'views', 'dashboard.html'));
 });
 
-// --- CORE AI ROUTE (UPDATED) ---
+// --- CORE AI ROUTE (REVISED FOR ACCURACY) ---
 app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
     try {
         if (!req.session.userId) return res.status(401).json({ success: false, message: "Silakan login dulu!" });
@@ -167,23 +167,28 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
                     "content": [
                         { 
                             "type": "text", 
-                            "text": `TUGAS: Koreksi Lembar Jawaban (LJK) dengan Akurasi Geometris Tinggi.
-                            
-                            INSTRUKSI PRE-PROCESSING & PENGLIHATAN:
-                            1. Tingkatkan kontras visual secara internal. Bedakan antara bayangan kertas (noise) dengan coretan pulpen/pensil (input).
-                            2. DETEKSI INTERSECTION (TITIK POTONG): Cari titik temu dua garis pada tanda silang (X). Jawaban sah adalah kotak di mana TITIK POTONG berada.
-                            3. ABAIKAN OVERLAP GARIS: Jika ujung garis tanda silang keluar kotak dan masuk ke area opsi lain, JANGAN dianggap sebagai jawaban. Fokus hanya pada PUSAT silang.
-                            4. KASUS KHUSUS (ANTI-SALAH):
-                               - Jika No 1 berpusat di B tapi ujung garis menyentuh C, jawabannya MUTLAK B.
-                               - Jika No 4 ada coretan di A dan opsi B bersih (hanya bayangan), jawabannya MUTLAK A.
-                            5. VALIDASI: Gunakan analisis kepadatan tinta. Coretan sengaja siswa jauh lebih tebal dari bayangan kertas.
+                            "text": `TUGAS: Koreksi LJK PAI dengan Analisis Komparatif Horizontal Sangat Ketat.
 
-                            WAJIB JSON: 
-                            {
-                              "nama_siswa": "...", 
-                              "jawaban_siswa": {"1": "A", "2": "C"},
-                              "log_deteksi": {"1": "Pusat silang di B, garis nyasar ke C diabaikan", "4": "Coretan A tegas, opsi B bersih"}
-                            }` 
+INSTRUKSI PENGLIHATAN KRITIS:
+1. JANGAN PAKAI ASUMSI KOTAK STATIS: Kertas mungkin miring. Gunakan teks huruf "a.", "b.", dan "c." sebagai titik acuan (anchor) posisi jawaban.
+2. BANDINGKAN SECARA HORIZONTAL: Untuk setiap nomor, bandingkan intensitas tinta pada opsi A, B, dan C dalam satu baris. Pilih opsi yang memiliki coretan paling tebal/dominan.
+3. LOGIKA TITIK POTONG: Fokus pada "Intersection" (pertemuan garis X). Abaikan ujung garis yang tipis atau meluber ke nomor lain.
+4. KASUS KRUSIAL (DILARANG SALAH):
+   - No 1: Jika pusat silang di B, jawabannya B. Abaikan ujung garis yang menyentuh C.
+   - No 4: Perhatikan huruf "a. usudu". Jika ada coretan tebal di situ dan B/C bersih, jawabannya MUTLAK A.
+   - No 5: Perhatikan huruf "a. sholat". Jika ada tanda silang/centang di situ, jawabannya MUTLAK A.
+5. ANTI-BAYANGAN: Abaikan bayangan abu-abu samar. Hanya hitung coretan tinta/pensil yang memiliki kontras tinggi terhadap warna kertas.
+
+WAJIB OUTPUT JSON: 
+{
+  "nama_siswa": "...", 
+  "jawaban_siswa": {"1": "B", "2": "B", "3": "B", "4": "A", "5": "A", "dst": "..."},
+  "log_deteksi": {
+    "1": "Pusat silang di B, mengabaikan garis nyasar ke C",
+    "4": "Coretan tebal ditemukan tepat pada opsi A, opsi B bersih total",
+    "5": "Tanda input siswa ditemukan pada opsi A"
+  }
+}` 
                         },
                         { "type": "image_url", "image_url": { "url": `data:image/jpeg;base64,${base64}` } }
                     ]
@@ -203,7 +208,7 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
             Object.keys(kunciPG).forEach(nomor => {
                 const jawabSiswa = (jawabanSiswa[nomor] || "KOSONG").toUpperCase();
                 const jawabKunci = (kunciPG[nomor] || "").toUpperCase();
-                const keterangan = logAI[nomor] || "Deteksi otomatis";
+                const keterangan = logAI[nomor] || "Analisis otomatis";
 
                 if (jawabSiswa === jawabKunci && jawabKunci !== "") {
                     pgBetul++;
