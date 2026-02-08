@@ -54,6 +54,12 @@
             font-size: 2rem !important;
         }
 
+        /* Gaya Khusus Pesan Peringatan Merah */
+        .notice-red {
+            background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%);
+            border-left: 6px solid #e53e3e;
+        }
+
         @media (max-width: 767px) {
             html { font-size: 15px; } 
             body { padding: 12px; }
@@ -173,6 +179,16 @@
                 </select>
                 <button onclick="prosesTambahToken()" class="w-full bg-blue-600 text-white font-black py-5 rounded-2xl text-xs uppercase">Tambah Token</button>
             </div>
+        </div>
+
+        <div class="notice-red p-6 rounded-[30px] shadow-sm border border-red-200">
+            <div class="flex items-center gap-3 mb-2">
+                <span class="text-2xl">⚠️</span>
+                <p class="text-xs font-black text-red-600 uppercase tracking-widest italic leading-none">PENTING: PERHATIKAN URUTAN</p>
+            </div>
+            <p class="text-[13px] font-bold text-red-500 leading-relaxed">
+                Tolong upload foto siswa **sesuai urutan**. Jika soal ada 2 lembar, pastikan foto lembar yang ada namanya dipilih **lebih dulu** baru lembar ke-2.
+            </p>
         </div>
 
         <div class="upload-section grid grid-cols-2 gap-4">
@@ -312,7 +328,7 @@
                 <div class="bg-white p-8 rounded-[40px] border-2 border-slate-50 shadow-md space-y-6">
                     <div class="flex justify-between items-start">
                         <div class="flex flex-col overflow-hidden">
-                            <span class="text-xs font-black text-blue-500 uppercase italic">Siswa #${dbData.length - i}</span>
+                            <span class="text-xs font-black text-blue-500 uppercase italic">Hasil Scan</span>
                             <span class="text-3xl font-black text-slate-800 uppercase leading-tight">${s.nama || 'TIDAK TERBACA'}</span>
                         </div>
                         <div class="bg-blue-50 px-5 py-4 rounded-3xl text-center border border-blue-100">
@@ -433,14 +449,18 @@
             if(saved) { dbData = JSON.parse(saved); if(dbData.length > 0) tampilkanHasilKeLayar(); }
         }
 
+        // --- LOGIKA UTAMA: PROSES KOREKSI + NAMA TERAKHIR ---
         document.getElementById('btnAI').onclick = async () => {
             const btn = document.getElementById('btnAI');
             const loadMsg = document.getElementById('loadingMsg');
             const fileInput = document.getElementById('file');
             const files = fileInput.files;
             if(!files.length) return showAlert("Pilih file!");
-            btn.disabled = true; loadMsg.classList.remove('hidden');
+            
+            btn.disabled = true; 
+            loadMsg.classList.remove('hidden');
             const originalText = "MULAI PROSES KOREKSI AI";
+            
             const conf = { kunci_pg: {}, kunci_essay: {} };
             for(let i=1; i<=20; i++) { 
                 const v = document.getElementById(`p${i}`).value; if(v !== "") conf.kunci_pg[i] = v; 
@@ -448,31 +468,58 @@
             for(let i=1; i<=5; i++) {
                 const v = document.getElementById(`e${i}`).value; if(v !== "") conf.kunci_essay[i] = v;
             }
+
+            // Variabel Penahan Nama
+            let namaTerakhir = "TIDAK DIKENAL";
+
             try {
                 for (let i = 0; i < files.length; i++) {
                     btn.innerHTML = `<span class="spinner-mini"></span> <span class="ml-2">ANALISIS ${i+1}/${files.length}...</span>`;
-                    const fd = new FormData(); fd.append('data', JSON.stringify(conf)); fd.append('foto', files[i]);
+                    const fd = new FormData(); 
+                    fd.append('data', JSON.stringify(conf)); 
+                    fd.append('foto', files[i]);
+                    
                     const controller = new AbortController();
                     const timeoutId = setTimeout(() => controller.abort(), 30000); 
+                    
                     try {
                         const req = await fetch(window.location.origin + '/ai/proses-koreksi', { method: 'POST', body: fd, signal: controller.signal });
                         clearTimeout(timeoutId);
                         if (!req.ok) throw new Error(`Server Error (${req.status})`);
                         const text = await req.text();
                         let res = JSON.parse(text);
+
                         if(res.success) {
-                            const newEntries = Array.isArray(res.data) ? res.data : [res.data];
-                            dbData = [...dbData, ...newEntries];
+                            let itemData = res.data;
+                            
+                            // JIKA NAMA KOSONG/TANDA '-', PAKAI NAMA SEBELUMNYA
+                            if(!itemData.nama || itemData.nama === "-" || itemData.nama === "" || itemData.nama.includes("TIDAK")) {
+                                itemData.nama = namaTerakhir;
+                            } else {
+                                namaTerakhir = itemData.nama; // Simpan nama baru jika ada
+                            }
+
+                            dbData.push(itemData);
                             if(res.current_token !== undefined) updateTokenDisplay(res.current_token);
-                            tampilkanHasilKeLayar(); simpanKeRiwayat();
-                        } else { showAlert("AI Gagal: " + res.message); if(res.limitReached) break; }
+                            tampilkanHasilKeLayar(); 
+                            simpanKeRiwayat();
+                        } else { 
+                            showAlert("AI Gagal: " + res.message); 
+                            if(res.limitReached) break; 
+                        }
                     } catch (itemError) {
-                        showAlert("GAGAL SCAN KE-" + (i+1) + ":\n" + itemError.message); break; 
+                        showAlert("GAGAL SCAN KE-" + (i+1) + ":\n" + itemError.message); 
+                        break; 
                     }
                 }
-                btn.innerText = "SELESAI ✅"; fileInput.value = ""; document.getElementById('stts').innerText = 'Belum ada file dipilih';
-            } catch(e) { showAlert("Terjadi kesalahan sistem!"); } finally {
-                loadMsg.classList.add('hidden'); setTimeout(() => { btn.disabled = false; btn.innerText = originalText; }, 3000);
+                btn.innerText = "SELESAI ✅"; 
+                fileInput.value = ""; 
+                document.getElementById('stts').innerText = 'Belum ada file dipilih';
+            } catch(e) { 
+                showAlert("Terjadi kesalahan sistem!"); 
+            } finally {
+                loadMsg.classList.add('hidden'); 
+                setTimeout(() => { btn.disabled = false; btn.innerText = originalText; }, 3000);
             }
         };
 
@@ -480,8 +527,18 @@
             if(!dbData.length) return showAlert("Data kosong!");
             let reportHtml = `<p class="text-center font-black text-blue-600 uppercase text-xs tracking-widest mt-14 italic">REKAP NILAI AKHIR</p>`;
             const r_pg = document.getElementById('r_pg').value || "betul * 1";
+            
+            // LOGIKA GROUPING BERDASARKAN NAMA SAAT HITUNG AKHIR
+            const groupedData = {};
             dbData.forEach(s => {
-                let betul = s.pg_betul || 0;
+                if(!groupedData[s.nama]) {
+                    groupedData[s.nama] = { nama: s.nama, pg_betul: 0 };
+                }
+                groupedData[s.nama].pg_betul += (s.pg_betul || 0);
+            });
+
+            Object.values(groupedData).forEach(s => {
+                let betul = s.pg_betul;
                 let nilai = 0;
                 try { nilai = eval(r_pg.replace(/betul/g, betul)); } catch(e) { nilai = "Error"; }
                 reportHtml += `
@@ -496,7 +553,6 @@
             box.scrollIntoView({ behavior: 'smooth' });
         };
 
-        // --- FUNGSI ADMIN: TAMBAH TOKEN ---
         async function prosesTambahToken() {
             const emailTarget = document.getElementById('targetEmail').value;
             const jumlahToken = document.getElementById('paketToken').value;
