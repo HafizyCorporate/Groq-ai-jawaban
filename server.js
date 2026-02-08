@@ -35,7 +35,8 @@ async function initAdmin() {
             email: adminUser, 
             password: hashedPassword, 
             quota: 999999, 
-            isPremium: true 
+            isPremium: true,
+            otp: null // Tambahan untuk admin
         });
         console.log("✅ Admin Versacy Berhasil Didaftarkan");
     }
@@ -50,7 +51,8 @@ app.post('/auth/register', async (req, res) => {
     try {
         const { email, password } = req.body;
         const hashedPassword = await bcrypt.hash(password, 10);
-        users.push({ email, password: hashedPassword, quota: 1, isPremium: false });
+        // Menambahkan properti otp: null saat daftar
+        users.push({ email, password: hashedPassword, quota: 1, isPremium: false, otp: null });
         res.json({ success: true, message: "Pendaftaran Berhasil! Jatah gratis: 1x Koreksi." });
     } catch (e) { res.status(500).json({ success: false }); }
 });
@@ -66,68 +68,87 @@ app.post('/auth/login', async (req, res) => {
     }
 });
 
-// LOGIKA FORGOT PASSWORD - VERSI RESEND (GANTI DARI BREVO)
+// LOGIKA FORGOT PASSWORD - DENGAN OTP ACAK & PENYIMPANAN DATA
 app.post('/auth/forgot-password', async (req, res) => {
     const { email } = req.body;
-    const userExists = users.find(u => u.email === email);
+    const user = users.find(u => u.email === email);
     
-    if (!userExists) {
+    if (!user) {
         return res.status(404).json({ success: false, message: "Email tidak terdaftar!" });
     }
 
-    const resendApiKey = process.env.RESEND_API_KEY;
+    // Buat OTP acak 6 digit
+    const kodeOTP = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    // SIMPAN OTP ke data user tersebut agar bisa dicek nanti
+    user.otp = kodeOTP;
 
-    if (!resendApiKey) {
-        console.error("❌ ERROR: RESEND_API_KEY tidak ditemukan di Variables Railway!");
+    const apiKey = process.env.BREVO_API_KEY;
+
+    if (!apiKey) {
+        console.error("❌ ERROR: BREVO_API_KEY kosong!");
         return res.status(500).json({ success: false, message: "Konfigurasi Email Belum Siap!" });
     }
 
     try {
-        const response = await fetch('https://api.resend.com/emails', {
+        const response = await fetch('https://api.brevo.com/v3/smtp/email', {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${resendApiKey.trim()}`,
-                'Content-Type': 'application/json'
+                'accept': 'application/json',
+                'api-key': apiKey.trim(),
+                'content-type': 'application/json'
             },
             body: JSON.stringify({
-                from: 'Jawaban AI <onboarding@resend.dev>',
-                to: email,
+                sender: { name: "Gurubantuguru", email: "azhardax94@gmail.com" },
+                to: [{ email: email }],
                 subject: '🔑 Kode Pemulihan Akun Jawaban AI',
-                html: `
+                htmlContent: `
                     <div style="max-width: 500px; margin: auto; font-family: sans-serif; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden;">
                         <div style="background: linear-gradient(135deg, #2563eb, #7c3aed); padding: 30px; text-align: center; color: white;">
                             <h1 style="margin: 0; font-size: 24px;">Jawaban AI</h1>
                         </div>
                         <div style="padding: 30px; background: white; color: #1e293b;">
-                            <p>Halo, <strong>${email}</strong>!</p>
+                            <p>Halo!</p>
                             <p>Gunakan kode keamanan di bawah ini untuk meriset password Anda:</p>
                             <div style="margin: 25px 0; padding: 20px; background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 12px; text-align: center;">
-                                <span style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #2563eb;">123456</span>
+                                <span style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #2563eb;">${kodeOTP}</span>
                             </div>
-                            <p style="margin-top: 20px;">Silakan login menggunakan kode di atas atau hubungi <b>Admin Versacy</b> untuk bantuan lebih lanjut.</p>
+                            <p>Kode ini berlaku untuk sekali pakai.</p>
                             <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-                            <small style="color: #888;">Jika Anda tidak merasa meminta ini, abaikan email ini.</small>
+                            <small style="color: #888;">Jika Anda tidak meminta ini, silakan abaikan.</small>
                         </div>
                     </div>
                 `
             })
         });
 
-        const result = await response.json();
-
         if (response.ok) {
-            console.log("✅ EMAIL TERKIRIM VIA RESEND:", result);
-            res.json({ success: true, message: "Instruksi dikirim ke email " + email });
+            console.log(`✅ OTP ${kodeOTP} disimpan & terkirim ke ${email}`);
+            res.json({ success: true, message: "Kode OTP telah dikirim ke email Anda." });
         } else {
-            console.error("❌ ERROR RESEND:", result);
-            res.status(500).json({ success: false, message: "Gagal mengirim email lewat Resend." });
+            res.status(500).json({ success: false, message: "Gagal mengirim email." });
         }
     } catch (err) {
-        console.error("❌ FETCH ERROR:", err.message);
-        res.status(500).json({ success: false, message: "Gangguan koneksi ke server email." });
+        res.status(500).json({ success: false, message: "Kesalahan server." });
     }
 });
 
+// ROUTE BARU: VERIFIKASI OTP & GANTI PASSWORD
+app.post('/auth/verify-otp', async (req, res) => {
+    const { email, otp, newPassword } = req.body;
+    const user = users.find(u => u.email === email);
+
+    if (user && user.otp === otp && otp !== null) {
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        user.password = hashedPassword;
+        user.otp = null; // Hapus OTP setelah berhasil digunakan
+        res.json({ success: true, message: "Password berhasil diperbarui! Silakan login." });
+    } else {
+        res.status(400).json({ success: false, message: "Kode OTP salah atau sudah kedaluwarsa!" });
+    }
+});
+
+// --- LANJUTAN KODE (ADMIN & AI PROSES TETAP SAMA) ---
 app.post('/admin/tambah-token', (req, res) => {
     if (req.session.userId !== "Versacy") return res.status(403).json({ success: false });
     const { emailTarget, jumlahToken } = req.body;
@@ -144,26 +165,18 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'views', 'dashboard.html'));
 });
 
-// --- BAGIAN KOREKSI AI ---
 app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
     try {
         if (!req.session.userId) return res.status(401).json({ success: false, message: "Silakan login dulu!" });
         const user = users.find(u => u.email === req.session.userId);
-
         if (!user.isPremium && user.quota < req.files.length) {
-            return res.json({ 
-                success: false, 
-                limitReached: true, 
-                message: "MAAF TOKEN ANDA HABIS\nsilahkan\nHubungi Admin\nWhatsapp 082240400388" 
-            });
+            return res.json({ success: false, limitReached: true, message: "MAAF TOKEN ANDA HABIS\nsilahkan\nHubungi Admin\nWhatsapp 082240400388" });
         }
-
         const settings = JSON.parse(req.body.data);
         const kunciPG = settings.kunci_pg;
         const kunciES = settings.kunci_essay;
         let namaTerakhir = "Tidak Terbaca"; 
         const results = [];
-
         for (const file of req.files) {
             const base64 = file.buffer.toString("base64");
             const response = await groq.chat.completions.create({
@@ -178,12 +191,10 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
                 "response_format": { "type": "json_object" },
                 "temperature": 0
             });
-
             const aiData = JSON.parse(response.choices[0].message.content);
             if (aiData.nama_siswa && aiData.nama_siswa.toUpperCase() !== "KOSONG") {
                 namaTerakhir = aiData.nama_siswa;
             }
-
             let pg_betul_list = [];
             for (let n in kunciPG) {
                 if (aiData.jawaban_pg_terdeteksi && aiData.jawaban_pg_terdeteksi[n] === kunciPG[n]) {
@@ -191,7 +202,6 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
                 }
             }
             pg_betul_list.sort((a, b) => a - b);
-
             let es_betul_list = [];
             let es_betul_count = 0;
             if (aiData.essay_detail) {
@@ -202,7 +212,6 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
                     }
                 });
             }
-
             results.push({
                 nama: namaTerakhir,
                 pg_betul: pg_betul_list.length,
@@ -215,14 +224,8 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
                 es_detail: aiData.essay_detail || []
             });
         }
-
         if (!user.isPremium) user.quota -= req.files.length;
-
-        res.json({ 
-            success: true, 
-            data: results, 
-            current_token: user.isPremium ? "UNLIMITED" : user.quota 
-        });
+        res.json({ success: true, data: results, current_token: user.isPremium ? "UNLIMITED" : user.quota });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
     }
