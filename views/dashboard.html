@@ -5,6 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Koreksi Jawaban AI</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script src="https://unpkg.com/docx@7.1.0/build/index.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
     <link href="https://fonts.googleapis.com/css2?family=Plus_Jakarta_Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
         /* UKURAN DASAR (KOMPUTER/TABLET) */
@@ -245,12 +252,19 @@
                 <button id="btnHitung" class="w-full bg-blue-600 text-white font-black py-7 rounded-[30px] text-sm uppercase shadow-lg">HITUNG NILAI AKHIR</button>
             </div>
 
+            <div id="exportMenu" class="hidden grid grid-cols-3 gap-2 px-2">
+                <button onclick="exportWord()" class="bg-blue-100 text-blue-700 py-4 rounded-2xl text-[10px] font-black uppercase border border-blue-200">DOCX</button>
+                <button onclick="exportPDF()" class="bg-red-100 text-red-700 py-4 rounded-2xl text-[10px] font-black uppercase border border-red-200">PDF</button>
+                <button onclick="exportExcel()" class="bg-emerald-100 text-emerald-700 py-4 rounded-2xl text-[10px] font-black uppercase border border-emerald-200">EXCEL</button>
+            </div>
+
             <div id="laporanFinal" class="space-y-6 pb-40"></div>
         </div>
     </div>
 
     <script>
         let dbData = [];
+        let exportData = []; // Data untuk proses ekspor
         let currentMode = 'login';
         let currentToken = 0;
 
@@ -394,11 +408,11 @@
         }
 
         function changeAuthMode(mode) {
-            currentMode = mode;
             const title = document.getElementById('authTitle');
             const btn = document.getElementById('btnAuthAction');
             const toggleBtn = document.getElementById('authToggleBtn');
             const passInput = document.getElementById('authPass');
+            currentMode = mode;
             if(mode === 'reg') {
                 title.innerText = "Daftar Akun Baru"; btn.innerText = "DAFTAR SEKARANG"; passInput.style.display = 'block';
                 toggleBtn.innerText = "Sudah punya akun? Login"; toggleBtn.onclick = () => changeAuthMode('login');
@@ -439,7 +453,6 @@
             document.getElementById('valToken').innerText = currentToken;
         }
 
-        // LOGIKA BARU UNTUK TRIGGER UPLOAD & LIMIT 10
         function triggerUpload(type) {
             const input = document.getElementById('file');
             if (type === 'camera') {
@@ -543,6 +556,7 @@
             let reportHtml = `<p class="text-center font-black text-blue-600 uppercase text-xs tracking-widest mt-14 italic">REKAP NILAI AKHIR</p>`;
             const r_pg = document.getElementById('r_pg').value || "betul * 1";
             const groupedData = {};
+            
             dbData.forEach(s => {
                 if(!groupedData[s.nama]) {
                     groupedData[s.nama] = { nama: s.nama, pg_betul: 0 };
@@ -550,10 +564,16 @@
                 groupedData[s.nama].pg_betul += (s.pg_betul || 0);
             });
 
+            exportData = []; // Reset data ekspor
+            let no = 1;
+
             Object.values(groupedData).forEach(s => {
                 let betul = s.pg_betul;
                 let nilai = 0;
-                try { nilai = eval(r_pg.replace(/betul/g, betul)); } catch(e) { nilai = "Error"; }
+                try { nilai = eval(r_pg.replace(/betul/g, betul)); } catch(e) { nilai = 0; }
+                
+                exportData.push({ no: no++, nama: s.nama, betul: betul, nilai: nilai });
+
                 reportHtml += `
                 <div class="bg-white p-8 rounded-[40px] border-l-[12px] border-blue-600 shadow-xl space-y-4 mb-5">
                     <div class="flex justify-between items-center">
@@ -562,9 +582,72 @@
                     </div>
                 </div>`;
             });
-            const box = document.getElementById('laporanFinal'); box.innerHTML = reportHtml;
+            
+            const box = document.getElementById('laporanFinal'); 
+            box.innerHTML = reportHtml;
+            document.getElementById('exportMenu').classList.remove('hidden'); // Tampilkan menu export
             box.scrollIntoView({ behavior: 'smooth' });
         };
+
+        // --- FUNGSI EKSPOR ---
+
+        async function exportWord() {
+            const { Document, Packer, Paragraph, Table, TableRow, TableCell, WidthType, AlignmentType, HeadingLevel } = docx;
+            const rows = [
+                new TableRow({
+                    children: ["NO", "NAMA SISWA", "BETUL", "NILAI"].map(h => 
+                        new TableCell({ children: [new Paragraph({ text: h, bold: true, alignment: AlignmentType.CENTER })] })
+                    )
+                })
+            ];
+            exportData.forEach(d => {
+                rows.push(new TableRow({
+                    children: [
+                        new TableCell({ children: [new Paragraph({ text: d.no.toString(), alignment: AlignmentType.CENTER })] }),
+                        new TableCell({ children: [new Paragraph({ text: d.nama.toUpperCase() })] }),
+                        new TableCell({ children: [new Paragraph({ text: d.betul.toString(), alignment: AlignmentType.CENTER })] }),
+                        new TableCell({ children: [new Paragraph({ text: d.nilai.toString(), alignment: AlignmentType.CENTER })] }),
+                    ]
+                }));
+            });
+            const doc = new Document({
+                sections: [{
+                    children: [
+                        new Paragraph({ text: "LAPORAN NILAI SISWA", heading: HeadingLevel.HEADING_1, alignment: AlignmentType.CENTER }),
+                        new Paragraph({ text: "Dicetak pada: " + new Date().toLocaleString(), alignment: AlignmentType.CENTER }),
+                        new Paragraph({ text: "" }),
+                        new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: rows })
+                    ]
+                }]
+            });
+            const blob = await Packer.toBlob(doc);
+            saveAs(blob, "Laporan_Nilai.docx");
+        }
+
+        function exportPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.setFontSize(18);
+            doc.text("LAPORAN NILAI SISWA", 105, 15, { align: "center" });
+            doc.setFontSize(10);
+            doc.text("Tanggal: " + new Date().toLocaleString(), 105, 22, { align: "center" });
+            const body = exportData.map(d => [d.no, d.nama.toUpperCase(), d.betul, d.nilai]);
+            doc.autoTable({
+                head: [['NO', 'NAMA SISWA', 'BETUL', 'NILAI']],
+                body: body,
+                startY: 30,
+                theme: 'grid',
+                headStyles: { fillStyle: [15, 23, 42] }
+            });
+            doc.save("Laporan_Nilai.pdf");
+        }
+
+        function exportExcel() {
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Nilai");
+            XLSX.writeFile(wb, "Laporan_Nilai.xlsx");
+        }
 
         async function prosesTambahToken() {
             const emailTarget = document.getElementById('targetEmail').value;
