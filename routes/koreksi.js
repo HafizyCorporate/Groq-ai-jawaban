@@ -40,24 +40,28 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
                         "content": [
                             { 
                                 "type": "text", 
-                                "text": `ANDA ADALAH GURU PROFESIONAL. TUGAS: Koreksi LJK (PG & ESSAY) secara akurat.
+                                "text": `ANDA ADALAH GURU PROFESIONAL YANG SANGAT TELITI. TUGAS: Koreksi LJK (PG & ESSAY).
+
+                                INSTRUKSI KHUSUS DETEKSI (PENTING!):
+                                1. **Deteksi Multi-Alat Tulis**: Siswa mungkin menjawab menggunakan PENSIL, PULPEN (HITAM/BIRU/MERAH), atau SPIDOL.
+                                2. **Logika Kontras**: Fokus pada coretan tambahan (X, centang, atau lingkaran) yang menimpa huruf opsi (a, b, atau c). 
+                                3. **Prioritas Kepekatan**: Jika ada bekas hapusan (samar), JANGAN DIPILIH. Pilih coretan yang paling TEBAL dan JELAS menutupi huruf.
+                                4. **Akurasi Posisi**: Pastikan coretan benar-benar berada di atas huruf pilihan. Jika huruf 'b' dicoret/dicentang secara tegas dan 'a' bersih, maka jawabannya adalah 'B'.
 
                                 INSTRUKSI PILIHAN GANDA (PG):
-                                1. **Analisis Tanda**: Siswa menandai jawaban dengan tanda SILANG (X), CENTANG (v), atau CORETAN TEBAL.
-                                2. **Identifikasi Huruf**: Cari huruf opsi (a, b, c, d) yang tertutup tinta paling pekat/dominan.
-                                3. **Abaikan Hapus**: Jika ada coretan samar/abu-abu (bekas hapusan), abaikan. Fokus pada tanda yang paling tegas.
-                                4. **Ketelitian**: Pastikan nomor soal sesuai dengan urutan di kertas.
+                                - Analisis tanda SILANG (X), CENTANG (v), atau CORETAN yang menutupi opsi.
+                                - Pastikan nomor soal (1-13) sesuai urutan di kertas.
 
                                 INSTRUKSI ESSAY:
-                                1. Baca tulisan tangan siswa. Bandingkan dengan Kunci: ${JSON.stringify(kunciEssay)}.
-                                2. Nyatakan BENAR jika mengandung INTI MAKNA yang sesuai kunci.
+                                - Bandingkan jawaban dengan Kunci: ${JSON.stringify(kunciEssay)}.
+                                - Nyatakan BENAR jika mengandung INTI MAKNA yang sesuai.
 
                                 WAJIB OUTPUT JSON MURNI:
                                 {
                                   "nama_siswa": "Detect Nama dari kertas",
                                   "jawaban_pg": {"1": "A", "2": "B", ...},
                                   "analisis_essay": {"1": "BENAR/SALAH (Alasan)", ...},
-                                  "log_deteksi": "Penjelasan singkat tanda yang ditemukan (contoh: No 1 Centang di B)."
+                                  "log_deteksi": "Jelaskan deteksi per nomor (Contoh: No 1: Huruf B tertutup coretan pensil tebal)."
                                 }` 
                             },
                             { "type": "image_url", "image_url": { "url": `data:image/jpeg;base64,${base64}` } }
@@ -95,7 +99,6 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
             Object.keys(kunciPG).forEach(nomor => {
                 if (kunciPG[nomor] !== "") {
                     pgTotalKunci++;
-                    // Pembersihan string agar perbandingan lebih akurat
                     const jawabSiswa = (jawabanPG[nomor] || "KOSONG").toString().toUpperCase().trim();
                     const jawabKunci = kunciPG[nomor].toString().toUpperCase().trim();
                     
@@ -126,7 +129,7 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
                 es_betul: esBetul,
                 nomor_pg_betul: rincianProses.filter(t => t.includes('✅')).map(t => t.split(':')[0].replace('No ', '')).join(', '),
                 log_detail: rincianProses,
-                info_ai: aiData.log_deteksi || "Selesai dianalisis.",
+                info_ai: aiData.log_deteksi || "Analisis selesai.",
                 nilai_akhir: totalSkor
             }); 
 
