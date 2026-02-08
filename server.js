@@ -67,7 +67,7 @@ app.post('/auth/login', async (req, res) => {
     }
 });
 
-// LOGIKA FORGOT PASSWORD - VERSI JALUR TOL (OPTIMASI POOLING)
+// LOGIKA FORGOT PASSWORD - VERSI BREVO (JALUR ALTERNATIF PORT 2525)
 app.post('/auth/forgot-password', async (req, res) => {
     const { email } = req.body;
     const userExists = users.find(u => u.email === email);
@@ -77,54 +77,53 @@ app.post('/auth/forgot-password', async (req, res) => {
     }
 
     const cleanEmail = process.env.EMAIL_USER ? process.env.EMAIL_USER.trim() : "";
-    const cleanPass = process.env.EMAIL_PASS ? process.env.EMAIL_PASS.replace(/\s+/g, '') : "";
+    const cleanPass = process.env.EMAIL_PASS ? process.env.EMAIL_PASS.trim() : "";
 
-    // KONFIGURASI JALUR TOL (MENGGUNAKAN SERVICE & POOL)
+    // KONFIGURASI BREVO PORT 2525 (MENGATASI CONNECTION TIMEOUT)
     const transporter = nodemailer.createTransport({
-        service: 'gmail',
-        pool: true,             // Menggunakan koneksi berkelanjutan
-        maxConnections: 1,      // Menghindari spamming ke server Google
+        host: 'smtp-relay.brevo.com',
+        port: 2525, 
+        secure: false,
         auth: { 
             user: cleanEmail, 
             pass: cleanPass 
         },
         tls: {
             rejectUnauthorized: false
-        },
-        connectionTimeout: 30000, // Menambah waktu tunggu ke 30 detik
-        greetingTimeout: 30000
+        }
     });
 
     const mailOptions = {
         from: `"JAWABAN AI" <${cleanEmail}>`,
         to: email,
-        subject: 'Reset Password JAWABAN AI',
+        subject: '🔑 Kode Pemulihan Akun Jawaban AI',
         html: `
-            <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-                <h2 style="color: #2563eb;">Pemulihan Akun JAWABAN AI</h2>
-                <p>Halo,</p>
-                <p>Kami menerima permintaan untuk pemulihan password akun Anda.</p>
-                <div style="background: #f1f5f9; padding: 15px; border-radius: 8px; font-size: 18px; font-weight: bold; text-align: center;">
-                    Kode Sementara: 123456
+            <div style="max-width: 500px; margin: auto; font-family: sans-serif; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden;">
+                <div style="background: linear-gradient(135deg, #2563eb, #7c3aed); padding: 30px; text-align: center; color: white;">
+                    <h1 style="margin: 0; font-size: 24px;">Jawaban AI</h1>
                 </div>
-                <p style="margin-top: 20px;">Silakan login menggunakan kode di atas atau hubungi <b>Admin Versacy</b> untuk bantuan lebih lanjut.</p>
-                <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-                <small style="color: #888;">Jika Anda tidak merasa meminta ini, abaikan email ini.</small>
+                <div style="padding: 30px; background: white; color: #1e293b;">
+                    <p>Halo, <strong>${email}</strong>!</p>
+                    <p>Gunakan kode keamanan di bawah ini untuk meriset password Anda:</p>
+                    <div style="margin: 25px 0; padding: 20px; background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 12px; text-align: center;">
+                        <span style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #2563eb;">123456</span>
+                    </div>
+                    <p style="font-size: 14px; color: #64748b;">Hubungi <b>Admin Versacy</b> jika Anda butuh bantuan.</p>
+                </div>
             </div>
         `
     };
 
     transporter.sendMail(mailOptions, (err, info) => {
         if (err) {
-            console.error("❌ ERROR NODEMAILER:", err.message);
+            console.error("❌ ERROR BREVO:", err.message);
             return res.status(500).json({ 
                 success: false, 
-                message: "Error Server / Koneksi Gagal!" 
+                message: "Koneksi Email Gagal! Cek Logs Railway." 
             });
         }
-        console.log("✅ EMAIL TERKIRIM:", info.response);
+        console.log("✅ EMAIL TERKIRIM VIA BREVO:", info.response);
         res.json({ success: true, message: "Instruksi dikirim ke email " + email });
-        transporter.close(); // Tutup koneksi pool setelah selesai
     });
 });
 
