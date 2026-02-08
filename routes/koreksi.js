@@ -7,7 +7,7 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 const dotenv = require('dotenv');
 dotenv.config();
 
-// Gunakan API Key yang kamu simpan di .env
+// Inisialisasi Google AI dengan API Key dari .env
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
@@ -27,10 +27,9 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
         } catch (e) { return 0; }
     };
 
-    // PERBAIKAN: Menambahkan apiVersion 'v1' agar tidak error 404 di lingkungan tertentu
-    const model = genAI.getGenerativeModel({ 
-        model: "gemini-1.5-flash" 
-    }, { apiVersion: 'v1' });
+    // MENGGUNAKAN MODEL TERBAIK UNTUK VISION/OCR
+    // Gemini 1.5 Flash dioptimalkan untuk kecepatan dan pemahaman gambar yang detail
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     for (const [index, file] of files.entries()) {
         try {
@@ -40,15 +39,15 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
             TUGAS: Koreksi LJK dengan metode Identifikasi Tumpang Tindih (Overlay).
 
             ATURAN DETEKSI (WAJIB):
-            1. **Fokus Interaksi Tinta**: Abaikan posisi relatif (kiri/kanan). Jawaban siswa adalah huruf opsi (a, b, c, atau d) yang SECARA FISIK TERTUTUP atau TERTINDIH oleh coretan manual (X, centang, atau coretan tebal).
-            2. **Identifikasi Huruf di Bawah Tinta**: Jika Anda melihat coretan tangan, lihat huruf karakter apa yang ada tepat di bawah coretan tersebut. Jika huruf 'a' tertutup tinta, maka jawabannya ADALAH 'A'.
-            3. **Non-Asumsi Layout**: Jangan berasumsi opsi selalu sejajar. Bisa saja opsi 'c' atau 'd' berada di bawah 'a' atau 'b'. Selalu cari huruf yang tertindih tinta di setiap nomor soal.
-            4. **Deteksi Multi-Alat**: Pilih coretan yang paling TEBAL dan KONTRAS. Abaikan bekas hapusan.
+            1. **Fokus Interaksi Tinta**: Cari coretan manual (X, centang, atau coretan tebal). Jawaban siswa adalah huruf opsi (a, b, c, atau d) yang SECARA FISIK TERTUTUP atau TERTINDIH oleh tinta tersebut.
+            2. **Identifikasi Huruf di Bawah Tinta**: Jika Anda melihat coretan, lihat karakter huruf apa yang ada tepat di bawahnya. Jika huruf 'a' tertutup tinta, jawabannya ADALAH 'A'.
+            3. **Non-Asumsi Layout**: Jangan berasumsi opsi selalu berjajar horizontal. Cari huruf yang tertindih di area setiap nomor soal.
+            4. **Deteksi Multi-Alat**: Pilih coretan yang paling TEBAL dan KONTRAS (Pulpen/Pensil). Abaikan bekas hapusan.
 
             INSTRUKSI ESSAY:
             - Bandingkan dengan Kunci: ${JSON.stringify(kunciEssay)}. Nyatakan BENAR jika inti maknanya sama.
 
-            WAJIB OUTPUT JSON MURNI (TANPA TEKS LAIN):
+            WAJIB OUTPUT JSON MURNI:
             {
               "nama_siswa": "Detect Nama dari kertas",
               "jawaban_pg": {"1": "A", "2": "B", ...},
@@ -63,12 +62,12 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
                 }
             };
 
-            // Memanggil API Gemini
+            // Memanggil API Gemini 1.5 Flash
             const result = await model.generateContent([prompt, imagePart]);
             const response = await result.response;
             const text = response.text();
             
-            // Membersihkan response dari markdown jika ada
+            // Membersihkan response agar JSON valid
             const cleanJson = text.replace(/```json|```/g, "").trim();
             const aiData = JSON.parse(cleanJson);
 
