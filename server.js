@@ -144,6 +144,9 @@ app.get('/', (req, res) => {
 
 // --- CORE AI ROUTE (DYNAMIC TEXT-BASED DETECTION & KEYWORD ESSAY) ---
 app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
+    // Set timeout agar tidak gantung jika gambar diproses lama
+    req.setTimeout(180000); 
+
     try {
         if (!req.session.userId) return res.status(401).json({ success: false, message: "Silakan login dulu!" });
         const user = users.find(u => u.email === req.session.userId);
@@ -166,33 +169,32 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
                     "content": [
                         { 
                             "type": "text", 
-                            "text": `ANDA ADALAH GURU PROFESIONAL DENGAN KETELITIAN TINGGI. TUGAS: Koreksi LJK.
+                            "text": `### PERINTAH KOREKSI PROFESIONAL (SOP) ###
 
-INSTRUKSI ANALISIS VISUAL & TEKS (WAJIB TELITI):
-1. **Pilihan Ganda (A-D)**:
-   - JANGAN mengandalkan posisi absolut (kiri/kanan) karena letak opsi bisa tidak beraturan.
-   - BACA teks opsi satu per satu (a., b., c., d.).
-   - Cari coretan PALING TEBAL (Pensil, Pulpen, atau Tinta Merah) yang menutupi atau berada tepat di samping huruf opsi.
-   - **FILTER KETAT**: Bedakan coretan TEBAL (jawaban nyata) dengan coretan TIPIS/BEKAS HAPUSAN. Bekas hapusan yang masih terlihat samar WAJIB DIABAIKAN.
-2. **Essay (Analisis Kata Kunci)**: 
-   - Baca tulisan tangan siswa secara seksama.
-   - Bandingkan dengan Kunci Essay: ${JSON.stringify(kunciEssay)}.
-   - Jika jawaban mengandung KATA KUNCI utama atau memiliki INTI MAKNA yang mendekati kunci jawaban, nyatakan BENAR.
-   - Jika jawaban melenceng jauh dari kata kunci, nyatakan SALAH.
+1. **ANALISIS PILIHAN GANDA (A-D)**:
+   - JANGAN gunakan posisi kiri/kanan sebagai patokan tetap.
+   - BACA teks opsi satu per satu (a., b., c., d.) pada baris soal.
+   - Cari coretan PALING TEBAL dan GELAP (Tinta/Pensil).
+   - ABAIKAN sisa hapusan atau coretan samar (Ghosting). Jika coretan tipis, anggap bukan jawaban.
 
-WAJIB OUTPUT JSON: 
+2. **ANALISIS ESSAY**:
+   - Gunakan Kunci: ${JSON.stringify(kunciEssay)}.
+   - Jika jawaban siswa mengandung INTI MAKNA atau KATA KUNCI yang sama, nyatakan BENAR.
+
+WAJIB OUTPUT JSON MURNI:
 {
-  "nama_siswa": "Detect Nama Siswa", 
+  "nama_siswa": "Detect Nama",
   "jawaban_pg": {"1": "A", "2": "C", ...},
-  "analisis_essay": {"1": "BENAR/SALAH (Alasan berdasar kata kunci)", ...},
-  "log_deteksi": "Jelaskan proses Anda membedakan coretan tebal dan tipis serta identifikasi huruf opsi di foto ini"
+  "analisis_essay": {"1": "BENAR/SALAH (Alasan singkat)", ...},
+  "log_deteksi": "Jelaskan alasan visual pemilihan jawaban"
 }` 
                         },
                         { "type": "image_url", "image_url": { "url": `data:image/jpeg;base64,${base64}` } }
                     ]
                 }],
                 "response_format": { "type": "json_object" },
-                "temperature": 0
+                "temperature": 0.1, // Disesuaikan sedikit agar lebih luwes membaca tulisan tangan
+                "max_tokens": 2048
             });
             
             const aiData = JSON.parse(response.choices[0].message.content);
@@ -236,7 +238,7 @@ WAJIB OUTPUT JSON:
         res.json({ success: true, data: results, current_token: user.isPremium ? "UNLIMITED" : user.quota });
     } catch (err) {
         console.error("❌ AI Process Error:", err);
-        res.status(500).json({ success: false, message: "Gagal memproses gambar. Pastikan gambar jelas." });
+        res.status(500).json({ success: false, message: "AI sedang sibuk atau gambar terlalu berat. Silakan coba lagi." });
     }
 });
 
