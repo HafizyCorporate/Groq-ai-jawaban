@@ -142,7 +142,7 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'views', 'dashboard.html'));
 });
 
-// --- CORE AI ROUTE (REVISI: LOGIKA TEBAL-TIPIS & BATAS SOAL-JAWABAN) ---
+// --- CORE AI ROUTE (MODEL: LLAMA-4-SCOUT-17B-16E) ---
 app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
     req.setTimeout(180000); 
 
@@ -162,7 +162,7 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
         for (const [index, file] of req.files.entries()) {
             const base64 = file.buffer.toString("base64");
             const response = await groq.chat.completions.create({
-                "model": "meta-llama/llama-4-maverick-17b-128e-instruct",
+                "model": "meta-llama/llama-4-scout-17b-16e-instruct",
                 "messages": [{
                     "role": "user",
                     "content": [
@@ -171,24 +171,24 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
                             "text": `ANDA ADALAH GURU PROFESIONAL. TUGAS: Koreksi LJK (PG & ESSAY).
 
 INSTRUKSI PILIHAN GANDA (PG):
-1. **Pemisah Soal & Jawaban**: Identifikasi bahwa kalimat pertanyaan berakhir dan area jawaban dimulai ketika Anda menemukan label opsi (a., b., c., d.). Fokus hanya pada area huruf opsi tersebut.
-2. **Identifikasi Huruf**: Cari huruf "a.", "b.", "c.", "d." secara spesifik. JANGAN gunakan koordinat posisi tetap.
+1. **Pemisah Soal & Jawaban**: Kalimat pertanyaan berakhir saat label opsi (a., b., c., d.) muncul. Fokus analisis HANYA pada area label huruf opsi tersebut.
+2. **Identifikasi Huruf**: BACA huruf "a.", "b.", "c.", "d." secara spesifik. JANGAN gunakan koordinat posisi tetap.
 3. **Logika Coretan (X)**:
-   - Bandingkan intensitas tinta pada huruf a, b, c, dan d dalam satu nomor.
+   - Bandingkan intensitas tinta pada huruf a, b, c, dan d.
    - Jawaban Siswa adalah huruf yang tertutup coretan PALING TEBAL, PEKAT, dan GELAP.
-   - **Filter Penghapus**: Jika ada huruf dengan coretan samar/abu-abu/tipis (bekas hapusan), itu WAJIB DIANGGAP BATAL/TIDAK DIPILIH.
-   - Huruf yang paling kotor oleh tinta pekat menunjukkan pilihan akhir siswa.
+   - **Filter Penghapus**: Jika ada coretan yang terlihat samar/abu-abu/tipis (bekas hapusan), JANGAN DIPILIH. Itu tanda jawaban dibatalkan.
+   - Huruf yang paling "kotor" oleh tinta tebal menunjukkan pilihan akhir siswa.
 
 INSTRUKSI ESSAY:
-1. Baca tulisan tangan pada area Essay. Bandingkan dengan Kunci: ${JSON.stringify(kunciEssay)}.
-2. Nyatakan BENAR jika mengandung KATA KUNCI utama atau INTI MAKNA yang sesuai.
+1. Baca tulisan tangan siswa. Bandingkan dengan Kunci: ${JSON.stringify(kunciEssay)}.
+2. Nyatakan BENAR jika mengandung INTI MAKNA yang sesuai kunci jawaban.
 
 WAJIB OUTPUT JSON MURNI:
 {
-  "nama_siswa": "Detect Nama",
+  "nama_siswa": "Detect Nama Siswa",
   "jawaban_pg": {"1": "A", "2": "B", ...},
-  "analisis_essay": {"1": "BENAR/SALAH (Alasan singkat)", ...},
-  "log_deteksi": "Jelaskan proses membedakan coretan tebal/samar per nomor."
+  "analisis_essay": {"1": "BENAR/SALAH (Alasan)", ...},
+  "log_deteksi": "Penjelasan visual deteksi tebal/samar per nomor."
 }` 
                         },
                         { "type": "image_url", "image_url": { "url": `data:image/jpeg;base64,${base64}` } }
@@ -236,7 +236,7 @@ WAJIB OUTPUT JSON MURNI:
         res.json({ success: true, data: results, current_token: user.isPremium ? "UNLIMITED" : user.quota });
     } catch (err) {
         console.error("❌ AI Process Error:", err);
-        res.status(500).json({ success: false, message: "AI sedang sibuk. Silakan coba lagi." });
+        res.status(500).json({ success: false, message: "Kesalahan pada model Llama-4 Scout. Coba lagi." });
     }
 });
 
