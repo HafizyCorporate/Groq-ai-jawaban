@@ -48,7 +48,7 @@ async function initAdmin() {
 initAdmin();
 
 const storage = multer.memoryStorage();
-const upload = multer({ storage: storage, limits: { fileSize: 20 * 1024 * 1024 } });
+const upload = multer({ storage: storage, limits: { fileSize: 25 * 1024 * 1024 } });
 
 // --- AUTH ROUTES ---
 app.post('/auth/register', async (req, res) => {
@@ -144,7 +144,7 @@ app.get('/', (req, res) => {
 
 // --- CORE AI ROUTE (MODEL: LLAMA-4-SCOUT-17B-16E) ---
 app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
-    req.setTimeout(180000); 
+    req.setTimeout(300000); 
 
     try {
         if (!req.session.userId) return res.status(401).json({ success: false, message: "Silakan login dulu!" });
@@ -160,15 +160,17 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
         const results = [];
 
         for (const [index, file] of req.files.entries()) {
-            const base64 = file.buffer.toString("base64");
-            const response = await groq.chat.completions.create({
-                "model": "meta-llama/llama-4-scout-17b-16e-instruct",
-                "messages": [{
-                    "role": "user",
-                    "content": [
-                        { 
-                            "type": "text", 
-                            "text": `ANDA ADALAH GURU PROFESIONAL. TUGAS: Koreksi LJK (PG & ESSAY).
+            try {
+                const base64 = file.buffer.toString("base64");
+                
+                const response = await groq.chat.completions.create({
+                    "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+                    "messages": [{
+                        "role": "user",
+                        "content": [
+                            { 
+                                "type": "text", 
+                                "text": `ANDA ADALAH GURU PROFESIONAL. TUGAS: Koreksi LJK (PG & ESSAY).
 
 INSTRUKSI PILIHAN GANDA (PG):
 1. **Pemisah Soal & Jawaban**: Kalimat pertanyaan berakhir saat label opsi (a., b., c., d.) muncul. Fokus analisis HANYA pada area label huruf opsi tersebut.
@@ -190,53 +192,63 @@ WAJIB OUTPUT JSON MURNI:
   "analisis_essay": {"1": "BENAR/SALAH (Alasan)", ...},
   "log_deteksi": "Penjelasan visual deteksi tebal/samar per nomor."
 }` 
-                        },
-                        { "type": "image_url", "image_url": { "url": `data:image/jpeg;base64,${base64}` } }
-                    ]
-                }],
-                "response_format": { "type": "json_object" },
-                "temperature": 0
-            });
-            
-            const aiData = JSON.parse(response.choices[0].message.content);
-            const jawabanPG = aiData.jawaban_pg || {};
-            const analES = aiData.analisis_essay || {};
-            
-            let pgBetul = 0;
-            let listNomorBetul = [];
-            let rincianProses = [];
+                            },
+                            { "type": "image_url", "image_url": { "url": `data:image/jpeg;base64,${base64}` } }
+                        ]
+                    }],
+                    "response_format": { "type": "json_object" },
+                    "temperature": 0
+                });
+                
+                const aiData = JSON.parse(response.choices[0].message.content);
+                const jawabanPG = aiData.jawaban_pg || {};
+                const analES = aiData.analisis_essay || {};
+                
+                let pgBetul = 0;
+                let listNomorBetul = [];
+                let rincianProses = [];
 
-            Object.keys(kunciPG).forEach(nomor => {
-                const jawabSiswa = (jawabanPG[nomor] || "KOSONG").toUpperCase();
-                const jawabKunci = (kunciPG[nomor] || "").toUpperCase();
-                if (jawabSiswa === jawabKunci && jawabKunci !== "") {
-                    pgBetul++;
-                    listNomorBetul.push(nomor);
-                    rincianProses.push(`No ${nomor}: ✅ Benar (Siswa: ${jawabSiswa})`);
-                } else {
-                    rincianProses.push(`No ${nomor}: ❌ Salah (Siswa: ${jawabSiswa}, Kunci: ${jawabKunci})`);
-                }
-            });
+                Object.keys(kunciPG).forEach(nomor => {
+                    const jawabSiswa = (jawabanPG[nomor] || "KOSONG").toUpperCase();
+                    const jawabKunci = (kunciPG[nomor] || "").toUpperCase();
+                    if (jawabSiswa === jawabKunci && jawabKunci !== "") {
+                        pgBetul++;
+                        listNomorBetul.push(nomor);
+                        rincianProses.push(`No ${nomor}: ✅ Benar (Siswa: ${jawabSiswa})`);
+                    } else {
+                        rincianProses.push(`No ${nomor}: ❌ Salah (Siswa: ${jawabSiswa}, Kunci: ${jawabKunci})`);
+                    }
+                });
 
-            Object.keys(kunciEssay).forEach(no => {
-                const status = analES[no] || "SALAH";
-                rincianProses.push(`Essay ${no}: ${status.toUpperCase().includes("BENAR") ? "✅" : "❌"} ${status}`);
-            });
+                Object.keys(kunciEssay).forEach(no => {
+                    const status = analES[no] || "SALAH";
+                    rincianProses.push(`Essay ${no}: ${status.toUpperCase().includes("BENAR") ? "✅" : "❌"} ${status}`);
+                });
 
-            results.push({ 
-                nama: aiData.nama_siswa || `Siswa ${index + 1}`, 
-                pg_betul: pgBetul,
-                nomor_pg_betul: listNomorBetul.length > 0 ? listNomorBetul.join(', ') : "KOSONG",
-                log_detail: rincianProses,
-                info_ai: aiData.log_deteksi
-            }); 
+                results.push({ 
+                    nama: aiData.nama_siswa || `Siswa ${index + 1}`, 
+                    pg_betul: pgBetul,
+                    nomor_pg_betul: listNomorBetul.length > 0 ? listNomorBetul.join(', ') : "KOSONG",
+                    log_detail: rincianProses,
+                    info_ai: aiData.log_deteksi
+                }); 
+            } catch (perFileError) {
+                console.error(`❌ Error pada file ke-${index + 1}:`, perFileError);
+                results.push({ 
+                    nama: `Error (File ${index + 1})`, 
+                    pg_betul: 0,
+                    nomor_pg_betul: "GAGAL",
+                    log_detail: ["AI gagal memproses gambar ini. Coba foto lebih jelas."],
+                    info_ai: "Gagal memproses gambar."
+                });
+            }
         }
 
         if (!user.isPremium) user.quota -= req.files.length;
         res.json({ success: true, data: results, current_token: user.isPremium ? "UNLIMITED" : user.quota });
     } catch (err) {
-        console.error("❌ AI Process Error:", err);
-        res.status(500).json({ success: false, message: "Kesalahan pada model Llama-4 Scout. Coba lagi." });
+        console.error("❌ AI Global Error:", err);
+        res.status(500).json({ success: false, message: "Koneksi ke AI terputus. Coba lagi beberapa saat." });
     }
 });
 
