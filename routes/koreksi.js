@@ -1,6 +1,6 @@
 /**
  * FILE: koreksi.js
- * TUGAS: Otak Analisis AI (via Gemini 1.5 Pro) & Perhitungan Nilai
+ * TUGAS: Otak Analisis AI (via Gemini 1.5 Flash-002) & Perhitungan Nilai
  */
 
 const { GoogleGenerativeAI } = require("@google/generative-ai");
@@ -28,13 +28,13 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
     };
 
     /**
-     * PERBAIKAN: Menggunakan Gemini 1.5 Pro via v1beta
-     * v1beta seringkali lebih stabil untuk akun Free Tier yang baru migrasi.
+     * PERBAIKAN FINAL: Menggunakan gemini-1.5-flash-002.
+     * Versi rilis spesifik ini adalah yang paling stabil untuk OCR/Vision saat ini
+     * dan biasanya tersedia di semua region tanpa error 404.
      */
-    const model = genAI.getGenerativeModel(
-        { model: "gemini-1.5-pro" },
-        { apiVersion: "v1beta" }
-    );
+    const model = genAI.getGenerativeModel({ 
+        model: "gemini-1.5-flash-002" 
+    });
 
     for (const [index, file] of files.entries()) {
         try {
@@ -71,7 +71,6 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
             const response = await result.response;
             const text = response.text();
             
-            // Membersihkan response JSON
             const cleanJson = text.replace(/```json|```/g, "").trim();
             const aiData = JSON.parse(cleanJson);
 
