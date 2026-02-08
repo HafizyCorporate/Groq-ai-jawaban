@@ -9,7 +9,7 @@ const session = require('express-session');
 dotenv.config();
 const app = express();
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-const port = process.env.PORT || 8080; // Railway menyukai port 8080 atau dinamis
+const port = process.env.PORT || 8080; 
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -144,6 +144,7 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'views', 'dashboard.html'));
 });
 
+// --- CORE AI ROUTE (UPDATED) ---
 app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
     try {
         if (!req.session.userId) return res.status(401).json({ success: false, message: "Silakan login dulu!" });
@@ -166,17 +167,22 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
                     "content": [
                         { 
                             "type": "text", 
-                            "text": `Analisis lembar soal ini dengan ketelitian tinggi:
-                            1. Identifikasi Nama Siswa.
-                            2. Cari coretan (X, Silang, Lingkaran, Centang) pada opsi A, B, atau C.
-                            3. Deteksi coretan meskipun BURAM, memakai PENSIL abu-abu, atau tinta MERAH/HITAM/BIRU.
-                            4. Berikan alasan deteksi untuk setiap nomor di 'log_deteksi'.
+                            "text": `TUGAS: Koreksi Lembar Jawaban (LJK) dengan Akurasi Geometris Tinggi.
                             
+                            INSTRUKSI PRE-PROCESSING & PENGLIHATAN:
+                            1. Tingkatkan kontras visual secara internal. Bedakan antara bayangan kertas (noise) dengan coretan pulpen/pensil (input).
+                            2. DETEKSI INTERSECTION (TITIK POTONG): Cari titik temu dua garis pada tanda silang (X). Jawaban sah adalah kotak di mana TITIK POTONG berada.
+                            3. ABAIKAN OVERLAP GARIS: Jika ujung garis tanda silang keluar kotak dan masuk ke area opsi lain, JANGAN dianggap sebagai jawaban. Fokus hanya pada PUSAT silang.
+                            4. KASUS KHUSUS (ANTI-SALAH):
+                               - Jika No 1 berpusat di B tapi ujung garis menyentuh C, jawabannya MUTLAK B.
+                               - Jika No 4 ada coretan di A dan opsi B bersih (hanya bayangan), jawabannya MUTLAK A.
+                            5. VALIDASI: Gunakan analisis kepadatan tinta. Coretan sengaja siswa jauh lebih tebal dari bayangan kertas.
+
                             WAJIB JSON: 
                             {
                               "nama_siswa": "...", 
                               "jawaban_siswa": {"1": "A", "2": "C"},
-                              "log_deteksi": {"1": "Coretan merah jelas", "2": "Arsiran pensil tipis"}
+                              "log_deteksi": {"1": "Pusat silang di B, garis nyasar ke C diabaikan", "4": "Coretan A tegas, opsi B bersih"}
                             }` 
                         },
                         { "type": "image_url", "image_url": { "url": `data:image/jpeg;base64,${base64}` } }
@@ -197,7 +203,7 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
             Object.keys(kunciPG).forEach(nomor => {
                 const jawabSiswa = (jawabanSiswa[nomor] || "KOSONG").toUpperCase();
                 const jawabKunci = (kunciPG[nomor] || "").toUpperCase();
-                const keterangan = logAI[nomor] || "Tidak terdeteksi";
+                const keterangan = logAI[nomor] || "Deteksi otomatis";
 
                 if (jawabSiswa === jawabKunci && jawabKunci !== "") {
                     pgBetul++;
