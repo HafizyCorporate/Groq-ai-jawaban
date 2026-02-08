@@ -66,7 +66,7 @@ app.post('/auth/login', async (req, res) => {
     }
 });
 
-// LOGIKA FORGOT PASSWORD - VERSI API BREVO (ANTI-BLOKIR)
+// LOGIKA FORGOT PASSWORD - VERSI API BREVO (ANTI-BLOKIR & STABIL)
 app.post('/auth/forgot-password', async (req, res) => {
     const { email } = req.body;
     const userExists = users.find(u => u.email === email);
@@ -77,12 +77,17 @@ app.post('/auth/forgot-password', async (req, res) => {
 
     const apiKey = process.env.BREVO_API_KEY;
 
+    if (!apiKey) {
+        console.error("❌ ERROR: BREVO_API_KEY tidak ditemukan di Variables Railway!");
+        return res.status(500).json({ success: false, message: "Konfigurasi API Key Hilang!" });
+    }
+
     try {
         const response = await fetch('https://api.brevo.com/v3/smtp/email', {
             method: 'POST',
             headers: {
                 'accept': 'application/json',
-                'api-key': apiKey,
+                'api-key': apiKey.trim(), // Membersihkan spasi liar secara otomatis
                 'content-type': 'application/json'
             },
             body: JSON.stringify({
@@ -109,12 +114,13 @@ app.post('/auth/forgot-password', async (req, res) => {
             })
         });
 
+        const result = await response.json();
+
         if (response.ok) {
-            console.log("✅ EMAIL TERKIRIM VIA API BREVO");
+            console.log("✅ EMAIL TERKIRIM VIA API BREVO:", result);
             res.json({ success: true, message: "Instruksi dikirim ke email " + email });
         } else {
-            const error = await response.json();
-            console.error("❌ ERROR API BREVO:", error);
+            console.error("❌ ERROR API BREVO:", result);
             res.status(500).json({ success: false, message: "Gagal mengirim email lewat API." });
         }
     } catch (err) {
