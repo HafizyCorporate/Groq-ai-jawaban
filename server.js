@@ -5,7 +5,7 @@ const dotenv = require('dotenv');
 const bcrypt = require('bcrypt'); 
 const session = require('express-session'); 
 
-// --- PEMANGGILAN FILE KOREKSI.JS (Pastikan file ini sudah versi Gemini) ---
+// --- PEMANGGILAN FILE KOREKSI.JS (Menggunakan Gemini 3/2.5) ---
 const { prosesKoreksiLengkap } = require('./routes/koreksi');
 
 dotenv.config();
@@ -49,9 +49,12 @@ async function initAdmin() {
 initAdmin();
 
 const storage = multer.memoryStorage();
-const upload = multer({ storage: storage, limits: { fileSize: 25 * 1024 * 1024 } });
+const upload = multer({ 
+    storage: storage, 
+    limits: { fileSize: 25 * 1024 * 1024 } // Kapasitas 25MB agar gambar LJK jernih
+});
 
-// --- AUTH ROUTES (TIDAK BERUBAH) ---
+// --- AUTH ROUTES ---
 app.post('/auth/register', async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -79,14 +82,19 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'views', 'dashboard.html'));
 });
 
-// --- CORE AI ROUTE (SUDAH TERSAMBUNG KE GEMINI VIA KOREKSI.JS) ---
+// --- CORE AI ROUTE (Sistem Koreksi LJK Gemini) ---
 app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
-    req.setTimeout(300000); 
+    req.setTimeout(300000); // Timeout 5 menit untuk proses AI yang berat
 
     try {
         if (!req.session.userId) return res.status(401).json({ success: false, message: "Silakan login dulu!" });
-        const user = users.find(u => u.email === req.session.userId);
         
+        // --- TAMBAHAN: Validasi keberadaan file agar tidak crash ---
+        if (!req.files || req.files.length === 0) {
+            return res.status(400).json({ success: false, message: "Mohon unggah foto LJK terlebih dahulu!" });
+        }
+
+        const user = users.find(u => u.email === req.session.userId);
         if (!user) return res.status(404).json({ success: false, message: "User tidak ditemukan" });
 
         if (!user.isPremium && user.quota < req.files.length) {
@@ -97,8 +105,17 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
         const r_pg = req.body.rumus_pg || "betul * 1"; 
         const r_es = req.body.rumus_es || "betul * 1"; 
 
-        // Pemanggilan tetap sama, namun isinya di koreksi.js sekarang menggunakan Gemini
+        // Pemanggilan fungsi di koreksi.js yang sudah menggunakan Gemini 3/2.5
         const results = await prosesKoreksiLengkap(req.files, settings, r_pg, r_es);
+
+        // --- TAMBAHAN: Cek jika AI mengembalikan error (seperti kuota habis) ---
+        if (results.length > 0 && results[0].nama.includes("Error")) {
+            return res.status(500).json({ 
+                success: false, 
+                message: "AI sedang sibuk atau kuota harian habis.",
+                detail: results[0].log_detail[0]
+            });
+        }
 
         if (!user.isPremium && results.length > 0) {
             user.quota = Math.max(0, user.quota - req.files.length);
@@ -111,8 +128,13 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
         });
 
     } catch (err) {
+        // --- TAMBAHAN: Log error yang lebih detail ---
         console.error("❌ AI Global Error:", err);
-        res.status(500).json({ success: false, message: "Sistem sibuk, coba beberapa saat lagi." });
+        res.status(500).json({ 
+            success: false, 
+            message: "Terjadi kesalahan pada sistem AI.",
+            error_code: err.message 
+        });
     }
 });
 
