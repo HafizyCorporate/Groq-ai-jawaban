@@ -28,10 +28,11 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
     };
 
     /**
-     * UPDATE: Menggunakan Gemini 2.5 Flash sesuai pilihan di AI Studio Bos.
+     * UPDATE: Menggunakan Gemini 2.0 Flash untuk kecepatan dan stabilitas.
+     * (Hanya baris ini yang diubah sesuai permintaan Bos)
      */
     const model = genAI.getGenerativeModel({ 
-        model: "gemini-2.5-flash" 
+        model: "gemini-2.0-flash" 
     });
 
     for (const [index, file] of files.entries()) {
@@ -69,9 +70,9 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
             const response = await result.response;
             const text = response.text();
             
-            /** * PERBAIKAN DI SINI:
+            /** * PERBAIKAN DI SINI (Tetap Dipertahankan):
              * Menggunakan Regex untuk mencari karakter { sampai } 
-             * agar teks tambahan dari Gemini 2.5 tidak merusak JSON.parse
+             * agar teks tambahan dari Gemini tidak merusak JSON.parse
              */
             const jsonMatch = text.match(/\{[\s\S]*\}/);
             if (!jsonMatch) throw new Error("Format JSON tidak ditemukan dalam respon AI");
