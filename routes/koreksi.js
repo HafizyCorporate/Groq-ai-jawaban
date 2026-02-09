@@ -1,13 +1,10 @@
 /**
- * FILE: koreksi.js
- * TUGAS: Otak Analisis AI (via Gemini 2.5 Flash) & Perhitungan Nilai
+ * FILE: koreksi.js - VERSI FINAL ANTI-GELAP
  */
-
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const dotenv = require('dotenv');
 dotenv.config();
 
-// Inisialisasi Google AI dengan API Key dari .env
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
@@ -18,139 +15,81 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
     const hitungNilaiAkhir = (rumus, betul, total) => {
         if (!rumus) return 0;
         try {
-            let f = rumus.toLowerCase()
-                         .replace(/betul/g, betul)
-                         .replace(/total/g, total)
-                         .replace(/x/g, '*');
+            let f = rumus.toLowerCase().replace(/betul/g, betul).replace(/total/g, total).replace(/x/g, '*');
             f = f.replace(/[^0-9+\-*/().]/g, ''); 
             return eval(f) || 0;
         } catch (e) { return 0; }
     };
 
-    /**
-     * UPDATE: Menggunakan Gemini 2.5 Flash
-     */
-    const model = genAI.getGenerativeModel({ 
-        model: "gemini-2.5-flash" 
-    });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }); // Pastikan model aktif
 
     for (const [index, file] of files.entries()) {
         try {
             const base64Data = file.buffer.toString("base64");
-            
-            const prompt = `TUGAS: EKSTRAKSI DATA LJK.
-            
-            KUNCI PG: ${JSON.stringify(kunciPG)}
-            KUNCI ESSAY: ${JSON.stringify(kunciEssay)}
-
-            INSTRUKSI UTAMA:
-            Cari tanda silang (X) atau coretan pada pilihan A, B, C, atau D.
-            
-            WAJIB BALAS DENGAN JSON MURNI:
+            const prompt = `EKSTRAKSI LJK:
+            Cari tanda silang (X) pada A, B, C, atau D.
+            FORMAT JSON:
             {
-              "nama_siswa": "Dapatkan nama dari kertas",
+              "nama_siswa": "NAMA",
               "jawaban_pg": { "1": "A", "2": "B" },
-              "analisis_essay": { "1": "BENAR/SALAH" },
-              "log_deteksi": "Rincian deteksi per nomor"
-            }
+              "log_deteksi": "1: Tanda X pada pilihan B; 2: Tanda X pada pilihan C"
+            }`;
 
-            JANGAN biarkan jawaban_pg kosong jika Anda melihat coretan jawaban!`;
-
-            const imagePart = {
-                inlineData: {
-                    data: base64Data,
-                    mimeType: file.mimetype || "image/jpeg"
-                }
-            };
-
+            const imagePart = { inlineData: { data: base64Data, mimeType: file.mimetype || "image/jpeg" } };
             const result = await model.generateContent([prompt, imagePart]);
             const response = await result.response;
             const text = response.text();
             
-            console.log(`--- JAWABAN MENTAH AI (FILE ${index + 1}) ---`);
-            console.log(text);
-            
+            console.log("RAW AI:", text);
             const jsonMatch = text.match(/\{[\s\S]*\}/);
-            if (!jsonMatch) throw new Error("Format JSON tidak ditemukan dalam respon AI");
-            
-            const aiData = JSON.parse(jsonMatch[0]);
+            const aiData = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
 
-            // --- SISTEM PENYARING OTOMATIS (SUPREMASI) ---
+            // --- JEMBATAN DARURAT (REFIXED) ---
             let jawabanPG = aiData.jawaban_pg || {};
             
-            // Jika AI malas mengisi object jawaban_pg, kita bedah log_deteksi secara paksa
+            // Jika AI cuma curhat di log_deteksi, kita paksa ambil datanya
             if (Object.keys(jawabanPG).length === 0 && aiData.log_deteksi) {
-                console.log("⚠️ Mengambil jawaban dari teks deskripsi (Log Deteksi)...");
-                
-                // Pola 1: Menangkap "Nomor 1: ... opsi B" atau "1: B" atau "1. Jawaban B"
-                const matches = aiData.log_deteksi.matchAll(/(?:Nomor\s+)?(\d+)[:.]?.*?opsi\s+([A-D])|(\d+)[:.]\s*(?:Jawaban\s*)?['"]?([A-D])['"]?/gi);
-                
-                for (const match of matches) {
-                    const no = match[1] || match[3];
-                    const jawab = match[2] || match[4];
-                    if (no && jawab) {
-                        jawabanPG[no] = jawab.toUpperCase();
-                    }
+                // RegEx Baru: Mencari angka, lalu mencari huruf A-D setelahnya (mengabaikan kata-kata perantara)
+                const polaCanggih = /(\d+)[:.]\s*.*?\s*([A-D])/gi;
+                let m;
+                while ((m = polaCanggih.exec(aiData.log_deteksi)) !== null) {
+                    jawabanPG[m[1]] = m[2].toUpperCase();
                 }
             }
-            // ---------------------------------------------
 
-            const analES = aiData.analisis_essay || {};
-            
-            let pgBetul = 0;
-            let pgTotalKunci = 0;
-            let esBetul = 0;
-            let rincianProses = [];
+            let pgBetul = 0, pgTotalKunci = 0, rincianProses = [];
 
             Object.keys(kunciPG).forEach(nomor => {
                 if (kunciPG[nomor] !== "") {
                     pgTotalKunci++;
-                    // Ambil jawaban dari object hasil penyaringan di atas
                     const jawabSiswa = (jawabanPG[nomor] || "KOSONG").toString().toUpperCase().trim();
                     const jawabKunci = kunciPG[nomor].toString().toUpperCase().trim();
                     
                     if (jawabSiswa === jawabKunci) {
                         pgBetul++;
-                        rincianProses.push(`No ${nomor}: ✅ Benar (Siswa: ${jawabSiswa})`);
+                        rincianProses.push(`No ${nomor}: ✅ Benar (${jawabSiswa})`);
                     } else {
-                        rincianProses.push(`No ${nomor}: ❌ Salah (Siswa: ${jawabSiswa}, Kunci: ${jawabKunci})`);
+                        rincianProses.push(`No ${nomor}: ❌ Salah (Siswa:${jawabSiswa}, Kunci:${jawabKunci})`);
                     }
                 }
             });
 
-            Object.keys(kunciEssay).forEach(no => {
-                const status = (analES[no] || "SALAH").toString();
-                const isBenar = status.toUpperCase().includes("BENAR");
-                if(isBenar) esBetul++;
-                rincianProses.push(`Essay ${no}: ${isBenar ? "✅" : "❌"} ${status}`);
-            });
-
             const nilaiPG = hitungNilaiAkhir(rumusPG, pgBetul, pgTotalKunci);
-            const nilaiES = hitungNilaiAkhir(rumusES, esBetul, Object.keys(kunciEssay).length);
-            const totalSkor = Math.round((nilaiPG + nilaiES) * 10) / 10;
 
             results.push({ 
-                nama: (aiData.nama_siswa && aiData.nama_siswa !== "TULIS NAMA SISWA") ? aiData.nama_siswa.trim() : `Siswa ${index + 1}`, 
+                nama: (aiData.nama_siswa && aiData.nama_siswa !== "NAMA") ? aiData.nama_siswa.trim() : `Siswa ${index + 1}`, 
                 pg_betul: pgBetul,
                 pg_total: pgTotalKunci,
-                es_betul: esBetul,
-                nomor_pg_betul: rincianProses.filter(t => t.includes('✅') && t.startsWith('No')).map(t => t.split(':')[0].replace('No ', '')).join(', '),
+                nomor_pg_betul: rincianProses.filter(t => t.includes('✅')).map(t => t.match(/No (\d+)/)[1]).join(', ') || "TIDAK ADA",
                 log_detail: rincianProses,
                 info_ai: aiData.log_deteksi || "Analisis selesai.",
-                nilai_akhir: totalSkor
+                nilai_akhir: nilaiPG
             }); 
 
         } catch (err) {
-            console.error("Detail Error:", err);
-            results.push({ 
-                nama: `GAGAL SCAN`, 
-                log_detail: [err.message],
-                info_ai: "Gagal memproses gambar.",
-                nilai_akhir: 0
-            });
+            results.push({ nama: `ERROR SCAN`, log_detail: [err.message], nilai_akhir: 0 });
         }
     }
     return results;
 }
-
 module.exports = { prosesKoreksiLengkap };
