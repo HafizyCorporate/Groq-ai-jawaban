@@ -383,6 +383,7 @@
                 const res = await fetch(endpoint, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
+                    credentials: 'include', // TAMBAHAN: Jaga sesi tetap aktif
                     body: JSON.stringify({ email, password })
                 });
                 const data = await res.json();
@@ -436,6 +437,7 @@
                 const res = await fetch(window.location.origin + '/auth/verify-otp', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
+                    credentials: 'include',
                     body: JSON.stringify({ email: email.trim(), otp: otp.trim(), newPassword: newPassword })
                 });
                 const data = await res.json();
@@ -510,12 +512,25 @@
                     fd.append('data', JSON.stringify(conf)); 
                     fd.append('foto', files[i]);
                     
+                    // PERBAIKAN: Timeout diperpanjang jadi 60 detik
                     const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 30000); 
+                    const timeoutId = setTimeout(() => controller.abort(), 60000); 
                     
                     try {
-                        const req = await fetch(window.location.origin + '/ai/proses-koreksi', { method: 'POST', body: fd, signal: controller.signal });
+                        const req = await fetch(window.location.origin + '/ai/proses-koreksi', { 
+                            method: 'POST', 
+                            body: fd, 
+                            credentials: 'include', // TAMBAHAN: Jaga sesi tetap aktif saat upload
+                            signal: controller.signal 
+                        });
                         clearTimeout(timeoutId);
+
+                        if (req.status === 401) {
+                            showAlert("Sesi habis, silakan login ulang.");
+                            logout();
+                            return;
+                        }
+
                         if (!req.ok) throw new Error(`Server Error (${req.status})`);
                         const text = await req.text();
                         let res = JSON.parse(text);
@@ -536,7 +551,11 @@
                             if(res.limitReached) break; 
                         }
                     } catch (itemError) {
-                        showAlert("GAGAL SCAN KE-" + (i+1) + ":\n" + itemError.message); 
+                        if (itemError.name === 'AbortError') {
+                            showAlert("Waktu habis. Coba lagi atau pastikan sinyal stabil.");
+                        } else {
+                            showAlert("GAGAL SCAN KE-" + (i+1) + ":\n" + itemError.message); 
+                        }
                         break; 
                     }
                 }
@@ -662,6 +681,7 @@
                 const res = await fetch(window.location.origin + '/admin/add-token', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
+                    credentials: 'include',
                     body: JSON.stringify({
                         adminEmail: "Versacy",
                         targetEmail: emailTarget.trim(),
