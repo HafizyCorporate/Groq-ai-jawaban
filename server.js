@@ -25,11 +25,18 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
+// PERBAIKAN SESSION: Tambahkan proxy dan name agar lebih stabil di Railway/Mobile
+app.set('trust proxy', 1); 
 app.use(session({
+    name: 'gemini_session',
     secret: 'kunci-rahasia-gemini-vision',
-    resave: false,
-    saveUninitialized: false,
-    cookie: { maxAge: 24 * 60 * 60 * 1000 }
+    resave: true, // Diubah ke true agar sesi tidak mudah hilang saat idle
+    saveUninitialized: true,
+    cookie: { 
+        maxAge: 24 * 60 * 60 * 1000,
+        secure: false, // Set ke false karena Railway biasanya handle SSL di tingkat proxy
+        sameSite: 'lax'
+    }
 }));
 
 // Simulasi database diganti ke Lowdb agar permanen
@@ -95,7 +102,11 @@ app.post('/auth/login', async (req, res) => {
         
         if (user && await bcrypt.compare(password, user.password)) {
             req.session.userId = email; 
-            res.json({ success: true, token: user.isPremium ? "UNLIMITED" : user.quota });
+            // Paksa simpan session sebelum kirim respon
+            req.session.save((err) => {
+                if(err) return res.status(500).json({ success: false });
+                res.json({ success: true, token: user.isPremium ? "UNLIMITED" : user.quota });
+            });
         } else {
             res.status(401).json({ success: false, message: "Email atau Password Salah!" });
         }
@@ -136,10 +147,10 @@ app.get('/', (req, res) => {
 
 // --- CORE AI ROUTE ---
 app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
-    req.setTimeout(30000); 
+    req.setTimeout(60000); // Ditambah jadi 60 detik karena Gemini 3 butuh waktu mikir
 
     try {
-        if (!req.session.userId) return res.status(401).json({ success: false, message: "Silakan login dulu!" });
+        if (!req.session.userId) return res.status(401).json({ success: false, message: "Sesi habis, silakan login ulang!" });
         if (!req.files || req.files.length === 0) return res.status(400).json({ success: false, message: "Mohon unggah foto!" });
 
         const user = db.get('users').find({ email: req.session.userId }).value();
@@ -149,14 +160,22 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
             return res.json({ success: false, limitReached: true, message: "TOKEN HABIS" });
         }
 
-        const settings = JSON.parse(req.body.data || "{}");
+        // PERBAIKAN: Parsing data yang lebih aman agar Kunci Jawaban tidak hilang/kosong
+        let settings = {};
+        try {
+            settings = (typeof req.body.data === 'string') ? JSON.parse(req.body.data) : (req.body.data || {});
+        } catch (e) {
+            console.error("Gagal parse settings:", e);
+            settings = { kunci_pg: {}, kunci_essay: {} };
+        }
+
         const r_pg = req.body.rumus_pg || "betul * 1"; 
         const r_es = req.body.rumus_es || "betul * 1"; 
 
         const results = await prosesKoreksiLengkap(req.files, settings, r_pg, r_es);
 
-        if (results.length > 0 && results[0].nama.includes("Error")) {
-            return res.status(500).json({ success: false, message: "AI sedang sibuk." });
+        if (results.length > 0 && results[0].nama.includes("GAGAL")) {
+            return res.status(500).json({ success: false, message: "AI gagal membaca gambar." });
         }
 
         // Kurangi kuota di database file
@@ -175,7 +194,7 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
 
     } catch (err) {
         console.error("❌ AI Global Error:", err);
-        res.status(500).json({ success: false, message: "Waktu tunggu habis." });
+        res.status(500).json({ success: false, message: "Waktu tunggu habis atau terjadi gangguan." });
     }
 });
 
