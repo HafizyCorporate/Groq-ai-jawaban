@@ -135,9 +135,10 @@ app.post('/auth/forgot-password', async (req, res) => {
         db.get('users').find({ email }).assign({ otp: otp }).write();
 
         const sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
-        sendSmtpEmail.subject = "Kode OTP Reset Password - Versacy AI";
+        // EDIT NAMA: Menjadi Guru Bantu Guru AI
+        sendSmtpEmail.subject = "Kode OTP Reset Password - Guru Bantu Guru AI";
         sendSmtpEmail.htmlContent = `<html><body><h3>Halo,</h3><p>Kode OTP Anda adalah: <b>${otp}</b></p><p>Gunakan kode ini untuk meriset password Anda.</p></body></html>`;
-        sendSmtpEmail.sender = { "name": "Versacy Admin", "email": "azhardax94@gmail.com" };
+        sendSmtpEmail.sender = { "name": "Guru Bantu Guru AI", "email": "azhardax94@gmail.com" };
         sendSmtpEmail.to = [{ "email": email }];
 
         await apiInstance.sendTransacEmail(sendSmtpEmail);
