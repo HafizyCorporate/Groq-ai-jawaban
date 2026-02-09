@@ -38,7 +38,6 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
         try {
             const base64Data = file.buffer.toString("base64");
             
-            // --- PROMPT BARU: DENGAN CONTOH STRUKTUR AGAR AI TIDAK MALAS ---
             const prompt = `TUGAS: EKSTRAKSI DATA LJK.
             
             KUNCI PG: ${JSON.stringify(kunciPG)}
@@ -64,7 +63,6 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
             }
 
             SEKARANG ANALISIS GAMBAR INI DAN BALAS HANYA DENGAN JSON MURNI!`;
-            // ------------------------------------------------------------------
 
             const imagePart = {
                 inlineData: {
@@ -77,7 +75,6 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
             const response = await result.response;
             const text = response.text();
             
-            // --- LOG TETAP ADA UNTUK BOS PANTAU ---
             console.log(`--- JAWABAN MENTAH AI (FILE ${index + 1}) ---`);
             console.log(text);
             
@@ -86,8 +83,23 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
             
             const aiData = JSON.parse(jsonMatch[0]);
 
-            // Data utama yang diambil untuk laporan
-            const jawabanPG = aiData.jawaban_pg || {};
+            // --- BAGIAN PEMBERSIH DATA (NEW) ---
+            let jawabanPG = aiData.jawaban_pg || {};
+            
+            // Jika AI curhat di log tapi lupa ngisi object jawaban_pg, kita sisir manual teksnya
+            if (Object.keys(jawabanPG).length === 0 && aiData.log_deteksi) {
+                console.log("⚠️ Sistem: Mendeteksi object kosong, menyisir teks log_deteksi...");
+                const barisLog = aiData.log_deteksi.split('\n');
+                barisLog.forEach(baris => {
+                    // Mencari pola angka dan huruf jawaban (A, B, C, atau D)
+                    const match = baris.match(/(\d+)[:.]\s*(?:Jawaban\s*)?['"]?([A-D])['"]?/i);
+                    if (match) {
+                        jawabanPG[match[1]] = match[2].toUpperCase();
+                    }
+                });
+            }
+            // ------------------------------------
+
             const analES = aiData.analisis_essay || {};
             
             let pgBetul = 0;
