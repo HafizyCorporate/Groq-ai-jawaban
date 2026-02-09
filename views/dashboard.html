@@ -238,7 +238,13 @@
             <div id="scanAwal" class="space-y-6"></div>
 
             <div class="bg-white p-10 rounded-[45px] border-t-[6px] border-blue-600 space-y-6 shadow-xl mt-14">
-                <p class="text-center font-black text-blue-600 text-xs uppercase italic">Masukan Rumus Penilaian</p>
+                <p class="text-center font-black text-blue-600 text-xs uppercase italic">Pengaturan Laporan & Nilai</p>
+                
+                <div>
+                    <p class="text-[10px] font-black text-slate-400 uppercase mb-2 ml-1 italic">Mata Pelajaran:</p>
+                    <input type="text" id="mapel" placeholder="Contoh: Matematika" class="w-full p-5 bg-slate-50 rounded-2xl text-sm font-bold border border-slate-100 outline-none">
+                </div>
+
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <p class="text-[10px] font-black text-slate-400 uppercase mb-2 ml-1 italic">Rumus PG:</p>
@@ -471,7 +477,6 @@
             btn.innerHTML = `<span class="spinner-mini"></span> MEMPROSES...`;
 
             try {
-                // SINKRONISASI: Menggunakan endpoint /auth/reset-password sesuai server.js
                 const res = await fetch(window.location.origin + '/auth/reset-password', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
@@ -487,7 +492,6 @@
                     document.getElementById('otpModalOverlay').classList.add('hidden');
                     showAlert("Berhasil! Password diperbarui. Silakan login.");
                     changeAuthMode('login');
-                    // Reset input
                     document.getElementById('otpCode').value = "";
                     document.getElementById('otpNewPass').value = "";
                 } else { showAlert(data.message || "Kode OTP salah atau kedaluwarsa!"); }
@@ -624,6 +628,7 @@
             if(!dbData.length) return showAlert("Data kosong!");
             let reportHtml = `<p class="text-center font-black text-blue-600 uppercase text-xs tracking-widest mt-14 italic">REKAP NILAI AKHIR</p>`;
             const r_pg_input = (document.getElementById('r_pg').value || "betul * 1").toLowerCase().trim();
+            const mapel_input = document.getElementById('mapel').value || "Tidak Disebutkan";
             const groupedData = {};
             
             dbData.forEach(s => {
@@ -645,12 +650,15 @@
                     nilai = Math.round(nilai * 10) / 10;
                 } catch(e) { nilai = 0; }
                 
-                exportData.push({ no: no++, nama: s.nama, betul: betul, nilai: nilai });
+                exportData.push({ no: no++, nama: s.nama, mapel: mapel_input, betul: betul, nilai: nilai });
 
                 reportHtml += `
                 <div class="bg-white p-8 rounded-[40px] border-l-[12px] border-blue-600 shadow-xl space-y-4 mb-5">
-                    <div class="flex justify-between items-center">
-                        <span class="text-2xl font-black text-slate-700 uppercase">${s.nama}</span>
+                    <div class="flex justify-between items-start">
+                        <div class="flex flex-col">
+                            <span class="text-[10px] font-black text-slate-400 uppercase italic mb-1">${mapel_input}</span>
+                            <span class="text-2xl font-black text-slate-700 uppercase">${s.nama}</span>
+                        </div>
                         <span class="text-6xl font-black text-slate-900">${nilai}</span>
                     </div>
                 </div>`;
@@ -666,7 +674,7 @@
             const { Document, Packer, Paragraph, Table, TableRow, TableCell, WidthType, AlignmentType, HeadingLevel } = docx;
             const rows = [
                 new TableRow({
-                    children: ["NO", "NAMA SISWA", "BETUL", "NILAI"].map(h => 
+                    children: ["NO", "NAMA SISWA", "MATA PELAJARAN", "BETUL", "NILAI"].map(h => 
                         new TableCell({ children: [new Paragraph({ text: h, bold: true, alignment: AlignmentType.CENTER })] })
                     )
                 })
@@ -676,6 +684,7 @@
                     children: [
                         new TableCell({ children: [new Paragraph({ text: d.no.toString(), alignment: AlignmentType.CENTER })] }),
                         new TableCell({ children: [new Paragraph({ text: d.nama.toUpperCase() })] }),
+                        new TableCell({ children: [new Paragraph({ text: d.mapel.toUpperCase() })] }),
                         new TableCell({ children: [new Paragraph({ text: d.betul.toString(), alignment: AlignmentType.CENTER })] }),
                         new TableCell({ children: [new Paragraph({ text: d.nilai.toString(), alignment: AlignmentType.CENTER })] }),
                     ]
@@ -692,7 +701,7 @@
                 }]
             });
             const blob = await Packer.toBlob(doc);
-            saveAs(blob, "Laporan_Nilai.docx");
+            saveAs(blob, `Laporan_Nilai_${exportData[0]?.mapel || 'Siswa'}.docx`);
         }
 
         function exportPDF() {
@@ -700,22 +709,22 @@
             const doc = new jsPDF();
             doc.setFontSize(18);
             doc.text("LAPORAN NILAI SISWA", 105, 15, { align: "center" });
-            const body = exportData.map(d => [d.no, d.nama.toUpperCase(), d.betul, d.nilai]);
+            const body = exportData.map(d => [d.no, d.nama.toUpperCase(), d.mapel.toUpperCase(), d.betul, d.nilai]);
             doc.autoTable({
-                head: [['NO', 'NAMA SISWA', 'BETUL', 'NILAI']],
+                head: [['NO', 'NAMA SISWA', 'MATA PELAJARAN', 'BETUL', 'NILAI']],
                 body: body,
                 startY: 30,
                 theme: 'grid',
                 headStyles: { fillStyle: [15, 23, 42] }
             });
-            doc.save("Laporan_Nilai.pdf");
+            doc.save(`Laporan_Nilai_${exportData[0]?.mapel || 'Siswa'}.pdf`);
         }
 
         function exportExcel() {
             const ws = XLSX.utils.json_to_sheet(exportData);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "Nilai");
-            XLSX.writeFile(wb, "Laporan_Nilai.xlsx");
+            XLSX.writeFile(wb, `Laporan_Nilai_${exportData[0]?.mapel || 'Siswa'}.xlsx`);
         }
 
         async function prosesTambahToken() {
