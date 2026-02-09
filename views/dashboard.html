@@ -189,13 +189,6 @@
         </div>
 
         <div class="notice-area notice-red p-6 rounded-[30px] shadow-sm border border-red-200">
-            <div class="flex items-center gap-3 mb-2">
-                <span class="text-2xl">⚠️</span>
-                <p class="text-xs font-black text-red-600 uppercase tracking-widest italic leading-none">PENTING: PETUNJUK GURU</p>
-            </div>
-            <p class="text-[13px] font-bold text-red-500 leading-relaxed mb-2">
-                Halo guru biarkan sampai guru selesai menginput nilai siswa ya baru Guru hitung rumusnya dibawah ini agar nanti laporan cetaknya semua masuk. Jangan lupa tulis mata pelajarannya agar laporan terpisah dengan mata pelajaran lain. Terimakasih
-            </p>
             <p class="text-[13px] font-bold text-slate-600 leading-relaxed mb-1">
                 Tolong upload foto siswa **sesuai urutan**. Jika soal ada 2 lembar, pastikan foto lembar yang ada namanya dipilih **lebih dulu**.
             </p>
@@ -241,6 +234,17 @@
             <div id="scanAwal" class="space-y-6"></div>
 
             <div class="bg-white p-10 rounded-[45px] border-t-[6px] border-blue-600 space-y-6 shadow-xl mt-14">
+                
+                <div class="notice-red p-6 rounded-[25px] border border-red-200">
+                    <div class="flex items-center gap-3 mb-2">
+                        <span class="text-2xl">⚠️</span>
+                        <p class="text-xs font-black text-red-600 uppercase tracking-widest italic leading-none">PENTING: PETUNJUK GURU</p>
+                    </div>
+                    <p class="text-[13px] font-bold text-red-500 leading-relaxed">
+                        Halo guru biarkan sampai guru selesai menginput nilai siswa ya baru Guru hitung rumusnya dibawah ini agar nanti laporan cetaknya semua masuk. Jangan lupa tulis mata pelajarannya agar laporan terpisah dengan mata pelajaran lain. Terimakasih
+                    </p>
+                </div>
+
                 <p class="text-center font-black text-blue-600 text-xs uppercase italic">Pengaturan Laporan & Nilai</p>
                 
                 <div>
@@ -272,6 +276,7 @@
     </div>
 
     <script>
+        // SCRIPT TETAP SAMA TIDAK ADA PERUBAHAN
         let dbData = [];
         let exportData = []; 
         let currentMode = 'login';
