@@ -235,7 +235,7 @@
                 <button onclick="konfirmasiHapusRiwayat()" class="text-xs font-black text-red-500 uppercase">Bersihkan</button>
             </div>
 
-            <div id="scanAwal" class="space-y-5"></div>
+            <div id="scanAwal" class="space-y-6"></div>
 
             <div class="bg-white p-10 rounded-[45px] border-t-[6px] border-blue-600 space-y-6 shadow-xl mt-14">
                 <p class="text-center font-black text-blue-600 text-xs uppercase italic">Masukan Rumus Penilaian</p>
@@ -264,7 +264,7 @@
 
     <script>
         let dbData = [];
-        let exportData = []; // Data untuk proses ekspor
+        let exportData = []; 
         let currentMode = 'login';
         let currentToken = 0;
 
@@ -324,46 +324,69 @@
                 </div>`;
         }
 
+        // --- FUNGSI TAMPILAN JENDELA LAPORAN (OPTIMIZED) ---
         function tampilkanHasilKeLayar() {
             const container = document.getElementById('scanAwal');
             if(!dbData.length) return;
             const dataUntukTampil = [...dbData].reverse();
+            
             const card = (s, i) => {
                 let logHtml = "";
                 if(s.log_detail && s.log_detail.length > 0) {
-                    logHtml = s.log_detail.map(l => `
-                        <div class="text-[11px] font-bold py-2 border-b border-slate-100 last:border-0 ${l.includes('✅') ? 'text-emerald-600' : 'text-rose-500'}">
-                            ${l}
-                        </div>
-                    `).join('');
+                    logHtml = s.log_detail.map(l => {
+                        const isSuccess = l.includes('✅') || l.includes('Betul');
+                        return `
+                        <div class="flex items-start gap-2 text-[12px] font-bold py-2.5 border-b border-slate-100 last:border-0 ${isSuccess ? 'text-emerald-600' : 'text-rose-500'}">
+                            <span class="mt-1">${isSuccess ? '●' : '○'}</span>
+                            <span class="leading-tight">${l}</span>
+                        </div>`;
+                    }).join('');
+                } else {
+                    logHtml = '<p class="text-xs font-bold text-slate-400 italic py-4">Tidak ada detail analisis.</p>';
                 }
+
                 return `
-                <div class="bg-white p-8 rounded-[40px] border-2 border-slate-50 shadow-md space-y-6">
-                    <div class="flex justify-between items-start">
-                        <div class="flex flex-col overflow-hidden">
-                            <span class="text-xs font-black text-blue-500 uppercase italic">Hasil Scan</span>
-                            <span class="text-3xl font-black text-slate-800 uppercase leading-tight">${s.nama || 'TIDAK TERBACA'}</span>
+                <div class="bg-white overflow-hidden rounded-[40px] border border-slate-200 shadow-sm hover:shadow-md transition-all duration-300">
+                    <div class="p-8 space-y-6">
+                        <div class="flex justify-between items-center">
+                            <div class="flex flex-col max-w-[70%]">
+                                <span class="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1">DATA SISWA TERDETEKSI</span>
+                                <h2 class="text-2xl font-black text-slate-800 uppercase truncate">${s.nama || 'NAMA TIDAK JELAS'}</h2>
+                            </div>
+                            <div class="flex flex-col items-center justify-center bg-blue-600 text-white min-w-[70px] h-[70px] rounded-3xl shadow-lg shadow-blue-200">
+                                <span class="text-[9px] font-black uppercase opacity-80 leading-none mb-1">BETUL</span>
+                                <span class="text-3xl font-black">${s.pg_betul || 0}</span>
+                            </div>
                         </div>
-                        <div class="bg-blue-50 px-5 py-4 rounded-3xl text-center border border-blue-100">
-                            <span class="block text-[10px] font-black text-blue-400 uppercase">PG</span>
-                            <span class="text-4xl font-black text-blue-600">${s.pg_betul || 0}</span>
+
+                        <div class="bg-slate-50 rounded-[30px] p-6 border border-slate-100">
+                            <div class="flex items-center gap-2 mb-3">
+                                <span class="text-lg">📍</span>
+                                <span class="text-[11px] font-black text-slate-400 uppercase tracking-widest italic">Pemetaan Jawaban Betul:</span>
+                            </div>
+                            <p class="text-xl font-black text-slate-700 tracking-widest leading-relaxed">
+                                ${s.nomor_pg_betul || '<span class="text-slate-300 italic">Kosong</span>'}
+                            </p>
                         </div>
-                    </div>
-                    <div class="space-y-4 pt-5 border-t-2 border-slate-50">
-                        <div class="bg-slate-50 p-6 rounded-[30px] border border-slate-100">
-                            <p class="text-[11px] font-black text-slate-400 uppercase mb-2 tracking-widest italic">NOMOR PG BETUL:</p>
-                            <p class="text-2xl font-black text-slate-700 leading-snug tracking-wider">${s.nomor_pg_betul || 'KOSONG'}</p>
-                        </div>
-                        <details class="group bg-slate-50 rounded-[25px] border border-slate-100 overflow-hidden">
-                            <summary class="flex justify-between items-center p-5 cursor-pointer select-none">
-                                <span class="text-[10px] font-black text-blue-600 uppercase italic">🔍 Detail Analisis AI</span>
-                                <span class="text-blue-600 transition-transform group-open:rotate-180">▼</span>
+
+                        <details class="group border border-slate-100 rounded-[25px] overflow-hidden">
+                            <summary class="flex justify-between items-center p-5 bg-white cursor-pointer select-none hover:bg-slate-50 transition-colors">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center">
+                                        <span class="text-blue-600 text-sm">🔍</span>
+                                    </div>
+                                    <span class="text-xs font-black text-slate-600 uppercase tracking-wider">Log Analisis Visual AI</span>
+                                </div>
+                                <span class="text-blue-500 font-black transition-transform duration-300 group-open:rotate-180">▼</span>
                             </summary>
-                            <div class="p-6 pt-0 max-h-60 overflow-y-auto">${logHtml || '<p class="text-[10px] font-bold text-slate-400 italic">Data log tidak tersedia</p>'}</div>
+                            <div class="px-6 pb-6 pt-2 bg-white max-h-[300px] overflow-y-auto">
+                                ${logHtml}
+                            </div>
                         </details>
                     </div>
                 </div>`;
             };
+
             container.innerHTML = dataUntukTampil.map((s, i) => card(s, i)).join('');
             document.getElementById('resWrap').classList.add('force-show');
         }
@@ -383,7 +406,7 @@
                 const res = await fetch(endpoint, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    credentials: 'include', // TAMBAHAN: Jaga sesi tetap aktif
+                    credentials: 'include',
                     body: JSON.stringify({ email, password })
                 });
                 const data = await res.json();
@@ -477,7 +500,14 @@
             document.getElementById('stts').innerText = '✅ ' + input.files.length + ' File Terpilih';
         }
 
-        function logout() { location.reload(); }
+        function logout() {
+            if(confirm("Apakah Anda yakin ingin keluar? Semua riwayat scan di jendela ini akan dihapus.")) {
+                dbData = [];
+                localStorage.removeItem('riwayat_ai_v2');
+                location.reload();
+            }
+        }
+
         function simpanKeRiwayat() { localStorage.setItem('riwayat_ai_v2', JSON.stringify(dbData)); }
         function muatRiwayat() {
             const saved = localStorage.getItem('riwayat_ai_v2');
@@ -523,54 +553,34 @@
                             signal: controller.signal 
                         });
                         clearTimeout(timeoutId);
-
-                        if (req.status === 401) {
-                            showAlert("Sesi habis, silakan login ulang.");
-                            logout();
-                            return;
-                        }
-
+                        if (req.status === 401) { showAlert("Sesi habis, silakan login ulang."); logout(); return; }
                         if (!req.ok) throw new Error(`Server Error (${req.status})`);
                         const text = await req.text();
                         let res = JSON.parse(text);
 
                         if(res.success) {
-                            // FIX: Ambil index ke-0 karena server mengirim Array hasil koreksi
                             let itemData = Array.isArray(res.data) ? res.data[0] : res.data;
-
                             if(!itemData.nama || itemData.nama === "-" || itemData.nama === "" || itemData.nama.includes("TIDAK")) {
                                 itemData.nama = namaTerakhir;
                             } else {
                                 namaTerakhir = itemData.nama;
                             }
-
-                            // Pastikan data penting terisi agar tidak muncul "KOSONG"
                             itemData.nomor_pg_betul = itemData.nomor_pg_betul || "TIDAK ADA";
                             itemData.log_detail = itemData.log_detail || [];
-
                             dbData.push(itemData);
                             if(res.current_token !== undefined) updateTokenDisplay(res.current_token);
                             tampilkanHasilKeLayar(); 
                             simpanKeRiwayat();
-                        } else { 
-                            showAlert("AI Gagal: " + res.message); 
-                            if(res.limitReached) break; 
-                        }
+                        } else { showAlert("AI Gagal: " + res.message); if(res.limitReached) break; }
                     } catch (itemError) {
-                        if (itemError.name === 'AbortError') {
-                            showAlert("Waktu habis. Coba lagi atau pastikan sinyal stabil.");
-                        } else {
-                            showAlert("GAGAL SCAN KE-" + (i+1) + ":\n" + itemError.message); 
-                        }
+                        if (itemError.name === 'AbortError') { showAlert("Waktu habis."); } else { showAlert("GAGAL SCAN: " + itemError.message); }
                         break; 
                     }
                 }
-                btn.innerText = "SELESAI ✅"; 
+                btn.innerText = "SELETI ✅"; 
                 fileInput.value = ""; 
                 document.getElementById('stts').innerText = 'Belum ada file dipilih';
-            } catch(e) { 
-                showAlert("Terjadi kesalahan sistem!"); 
-            } finally {
+            } catch(e) { showAlert("Terjadi kesalahan sistem!"); } finally {
                 loadMsg.classList.add('hidden'); 
                 setTimeout(() => { btn.disabled = false; btn.innerText = originalText; }, 3000);
             }
@@ -579,45 +589,27 @@
         document.getElementById('btnHitung').onclick = async () => {
             if(!dbData.length) return showAlert("Data kosong!");
             let reportHtml = `<p class="text-center font-black text-blue-600 uppercase text-xs tracking-widest mt-14 italic">REKAP NILAI AKHIR</p>`;
-            
-            // Ambil rumus dan bersihkan dari spasi/huruf besar
             const r_pg_input = (document.getElementById('r_pg').value || "betul * 1").toLowerCase().trim();
-            
             const groupedData = {};
             
             dbData.forEach(s => {
-                if(!groupedData[s.nama]) {
-                    groupedData[s.nama] = { nama: s.nama, pg_betul: 0 };
-                }
+                if(!groupedData[s.nama]) { groupedData[s.nama] = { nama: s.nama, pg_betul: 0 }; }
                 groupedData[s.nama].pg_betul += (s.pg_betul || 0);
             });
 
-            exportData = []; // Reset data ekspor
+            exportData = [];
             let no = 1;
 
             Object.values(groupedData).forEach(s => {
                 let betul = parseInt(s.pg_betul) || 0;
                 let nilai = 0;
-                
                 try {
-                    // PROSES RUMUS: Ganti kata 'betul' dengan angka asli, dan 'x' menjadi '*'
                     let rumusEvaluasi = r_pg_input.replace(/betul/g, betul).replace(/x/g, '*');
-                    
-                    // Keamanan: Hanya izinkan angka, operator matematika, dan titik desimal
                     rumusEvaluasi = rumusEvaluasi.replace(/[^0-9+\-*/().]/g, '');
-                    
-                    // Hitung nilai menggunakan eval aman
                     nilai = eval(rumusEvaluasi);
-                    
-                    // Proteksi jika hasil bukan angka atau tak terhingga
                     if (!isFinite(nilai)) nilai = 0;
-                    
-                    // Bulatkan ke 1 angka di belakang koma (contoh: 8.5)
                     nilai = Math.round(nilai * 10) / 10;
-                } catch(e) { 
-                    console.error("Kesalahan Rumus:", e);
-                    nilai = 0; 
-                }
+                } catch(e) { nilai = 0; }
                 
                 exportData.push({ no: no++, nama: s.nama, betul: betul, nilai: nilai });
 
@@ -632,12 +624,11 @@
             
             const box = document.getElementById('laporanFinal'); 
             box.innerHTML = reportHtml;
-            document.getElementById('exportMenu').classList.remove('hidden'); // Tampilkan menu export
+            document.getElementById('exportMenu').classList.remove('hidden');
             box.scrollIntoView({ behavior: 'smooth' });
         };
 
         // --- FUNGSI EKSPOR ---
-
         async function exportWord() {
             const { Document, Packer, Paragraph, Table, TableRow, TableCell, WidthType, AlignmentType, HeadingLevel } = docx;
             const rows = [
@@ -676,8 +667,6 @@
             const doc = new jsPDF();
             doc.setFontSize(18);
             doc.text("LAPORAN NILAI SISWA", 105, 15, { align: "center" });
-            doc.setFontSize(10);
-            doc.text("Tanggal: " + new Date().toLocaleString(), 105, 22, { align: "center" });
             const body = exportData.map(d => [d.no, d.nama.toUpperCase(), d.betul, d.nilai]);
             doc.autoTable({
                 head: [['NO', 'NAMA SISWA', 'BETUL', 'NILAI']],
