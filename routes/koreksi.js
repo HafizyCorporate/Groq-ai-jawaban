@@ -39,8 +39,13 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
         try {
             const base64Data = file.buffer.toString("base64");
             
+            // BAGIAN PEMBACAAN DATA (PROMPT) DIPERKUAT DENGAN REFERENSI KUNCI
             const prompt = `ANDA ADALAH GURU SUPER TELITI DENGAN KEMAMPUAN VISUAL DETEKTIF. 
             TUGAS: Koreksi LJK dengan metode Identifikasi Tumpang Tindih (Overlay).
+
+            REFERENSI KUNCI (WAJIB DIIKUTI):
+            - KUNCI PG: ${JSON.stringify(kunciPG)}
+            - KUNCI ESSAY: ${JSON.stringify(kunciEssay)}
 
             ATURAN DETEKSI (WAJIB):
             1. **Fokus Interaksi Tinta**: Cari coretan manual (X, centang, atau coretan tebal). Jawaban siswa adalah huruf opsi (a, b, c, atau d) yang SECARA FISIK TERTUTUP atau TERTINDIH oleh tinta tersebut.
@@ -49,7 +54,7 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
             4. **Deteksi Multi-Alat**: Pilih coretan yang paling TEBAL. Abaikan bekas hapusan.
 
             INSTRUKSI ESSAY:
-            - Bandingkan dengan Kunci: ${JSON.stringify(kunciEssay)}. Nyatakan BENAR jika inti maknanya sama.
+            - Bandingkan dengan Kunci Essay di atas. Nyatakan BENAR jika inti maknanya sama.
 
             WAJIB OUTPUT JSON MURNI:
             {
