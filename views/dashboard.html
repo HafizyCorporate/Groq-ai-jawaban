@@ -324,7 +324,6 @@
                 </div>`;
         }
 
-        // --- FUNGSI TAMPILAN JENDELA LAPORAN (OPTIMIZED) ---
         function tampilkanHasilKeLayar() {
             const container = document.getElementById('scanAwal');
             if(!dbData.length) {
@@ -417,7 +416,6 @@
                 const data = await res.json();
                 if(res.ok && data.success) {
                     if(currentMode === 'login') {
-                        // MEMBERSIHKAN DATA LAMA SAAT LOGIN BERHASIL
                         dbData = [];
                         localStorage.removeItem('riwayat_ai_v2');
                         document.getElementById('scanAwal').innerHTML = '';
@@ -466,23 +464,37 @@
             const otp = document.getElementById('otpCode').value;
             const newPassword = document.getElementById('otpNewPass').value;
             const btn = document.querySelector("#otpModalOverlay button[onclick='submitVerifyOTP()']");
+            
             if(!otp || !newPassword) return showAlert("Lengkapi kode dan password baru!");
+            
             btn.disabled = true;
+            btn.innerHTML = `<span class="spinner-mini"></span> MEMPROSES...`;
+
             try {
-                const res = await fetch(window.location.origin + '/auth/verify-otp', {
+                // SINKRONISASI: Menggunakan endpoint /auth/reset-password sesuai server.js
+                const res = await fetch(window.location.origin + '/auth/reset-password', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     credentials: 'include',
-                    body: JSON.stringify({ email: email.trim(), otp: otp.trim(), newPassword: newPassword })
+                    body: JSON.stringify({ 
+                        email: email.trim(), 
+                        otp: otp.trim(), 
+                        newPassword: newPassword 
+                    })
                 });
                 const data = await res.json();
                 if(data.success) {
                     document.getElementById('otpModalOverlay').classList.add('hidden');
                     showAlert("Berhasil! Password diperbarui. Silakan login.");
                     changeAuthMode('login');
-                } else { showAlert(data.message); }
-            } catch(e) { showAlert("Gagal verifikasi"); }
-            btn.disabled = false;
+                    // Reset input
+                    document.getElementById('otpCode').value = "";
+                    document.getElementById('otpNewPass').value = "";
+                } else { showAlert(data.message || "Kode OTP salah atau kedaluwarsa!"); }
+            } catch(e) { showAlert("Gagal verifikasi ke server."); } finally {
+                btn.disabled = false;
+                btn.innerText = "GANTI PASSWORD";
+            }
         }
 
         function updateTokenDisplay(val) {
@@ -650,7 +662,6 @@
             box.scrollIntoView({ behavior: 'smooth' });
         };
 
-        // --- FUNGSI EKSPOR ---
         async function exportWord() {
             const { Document, Packer, Paragraph, Table, TableRow, TableCell, WidthType, AlignmentType, HeadingLevel } = docx;
             const rows = [
