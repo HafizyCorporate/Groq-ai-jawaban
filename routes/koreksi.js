@@ -10,7 +10,6 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
     const kunciPG = settings.kunci_pg || {};
-    const kunciEssay = settings.kunci_essay || {}; // Menambahkan referensi kunci essay dari settings
     const results = [];
 
     const hitungNilai = (rumus, betul, total) => {
@@ -28,25 +27,7 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
     for (const [index, file] of files.entries()) {
         try {
             const base64Data = file.buffer.toString("base64");
-            
-            // --- BAGIAN PROMPT DENGAN INSTRUKSI GURU TELITI & REFERENSI DATA ---
-            const prompt = `ANDA ADALAH GURU SUPER TELITI DENGAN KEMAMPUAN VISUAL DETEKTIF. 
-            TUGAS: Koreksi LJK dengan metode Identifikasi Tumpang Tindih (Overlay).
-
-            REFERENSI KUNCI JAWABAN (WAJIB DIIKUTI):
-            - KUNCI PG: ${JSON.stringify(kunciPG)}
-            - KUNCI ESSAY: ${JSON.stringify(kunciEssay)}
-
-            ATURAN DETEKSI (WAJIB):
-            1. **Cari Jawaban Siswa**: Pindai setiap nomor yang ada di KUNCI PG di atas pada gambar.
-            2. **Fokus Interaksi Tinta**: Cari coretan manual (X, centang, atau coretan tebal). Jawaban siswa adalah huruf opsi (a, b, c, atau d) yang SECARA FISIK TERTUTUP atau TERTINDIH oleh tinta tersebut.
-            3. **Identifikasi Huruf di Bawah Tinta**: Lihat karakter huruf apa yang ada tepat di bawah coretan.
-            4. **Deteksi Multi-Alat**: Pilih coretan yang paling TEBAL. Abaikan bekas hapusan.
-            5. **JANGAN LEWATKAN**: Pastikan memberikan jawaban untuk setiap nomor yang diminta di kunci.
-
-            INSTRUKSI ESSAY:
-            - Bandingkan dengan Kunci Essay di atas. Nyatakan BENAR jika inti maknanya sama.
-
+            const prompt = `TUGAS: Ekstrak Nama dan Jawaban LJK.
             WAJIB JAWAB DENGAN JSON MURNI:
             {
               "nama_siswa": "NAMA",
@@ -61,13 +42,13 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
             
             console.log("--- RAW OUTPUT 2.5 FLASH ---", text);
 
-            // TAHAP 1: EKSTRAK JSON
+            // TAHAP 1: EKSTRAK JSON (Biar gak error kalau AI curhat diluar JSON)
             const jsonStart = text.indexOf('{');
             const jsonEnd = text.lastIndexOf('}') + 1;
             if (jsonStart === -1) throw new Error("Format JSON tidak ditemukan!");
             const aiData = JSON.parse(text.substring(jsonStart, jsonEnd));
 
-            // TAHAP 2: FALLBACK REGEX
+            // TAHAP 2: FALLBACK REGEX (Penyaring Brutal)
             let jawabanSiswa = aiData.jawaban_pg || {};
             if (Object.keys(jawabanSiswa).length === 0) {
                 const teksAnalisis = aiData.log_deteksi || text;
@@ -99,7 +80,7 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
                 }
             });
 
-            // TAHAP 4: KIRIM KE FRONTEND
+            // TAHAP 4: KIRIM KE FRONTEND (Pastikan nama variabel sesuai HTML Bos)
             results.push({
                 nama: (aiData.nama_siswa && aiData.nama_siswa !== "NAMA") ? aiData.nama_siswa : `Siswa ${index + 1}`,
                 pg_betul: pgBetul,
