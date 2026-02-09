@@ -19,30 +19,6 @@ const { prosesKoreksiLengkap } = require('./routes/koreksi');
 
 dotenv.config();
 
-// ==========================================
-// --- KODE CEK MODEL HALAL (TAMBAHAN) ---
-// ==========================================
-console.log("--- MEMULAI CEK MODEL HALAL ---");
-if (!process.env.GEMINI_API_KEY) {
-    console.log("❌ ERROR: API KEY TIDAK DITEMUKAN DI VARIABLES RAILWAY!");
-} else {
-    // Menggunakan fetch bawaan Node.js 18+ atau global fetch
-    fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${process.env.GEMINI_API_KEY}`)
-        .then(res => res.json())
-        .then(data => {
-            if (data.models) {
-                console.log("✅ DAFTAR MODEL YANG BISA BOS PAKAI:");
-                data.models.forEach(m => {
-                    console.log("👉 " + m.name.replace('models/', ''));
-                });
-            } else {
-                console.log("❌ API MERESPON TAPI DAFTAR KOSONG:", data.error ? data.error.message : "Cek Quota API");
-            }
-        })
-        .catch(err => console.log("❌ GAGAL KONTAK GOOGLE:", err.message));
-}
-// ==========================================
-
 const app = express();
 const port = process.env.PORT || 8080; 
 
