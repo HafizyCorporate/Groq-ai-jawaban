@@ -1,5 +1,6 @@
 /**
- * FILE: koreksi.js - VERSI FINAL ANTI-ZONK
+ * FILE: koreksi.js 
+ * MODEL: Gemini 2.5 Flash (RE-FIXED)
  */
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const dotenv = require('dotenv');
@@ -11,7 +12,6 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
     const kunciPG = settings.kunci_pg || {};
     const results = [];
 
-    // Fungsi Hitung Nilai Aman
     const hitungNilai = (rumus, betul, total) => {
         if (!rumus || total === 0) return 0;
         try {
@@ -21,14 +21,14 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
         } catch (e) { return 0; }
     };
 
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    // BALIK LAGI KE 2.5 FLASH SESUAI REQUEST BOS
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     for (const [index, file] of files.entries()) {
         try {
             const base64Data = file.buffer.toString("base64");
-            const prompt = `EKSTRAKSI LJK:
-            Cari Nama Siswa dan jawaban tanda silang (X) pada opsi A, B, C, atau D.
-            BALAS HANYA DENGAN JSON MURNI:
+            const prompt = `TUGAS: Ekstrak Nama dan Jawaban LJK.
+            WAJIB JAWAB DENGAN JSON MURNI:
             {
               "nama_siswa": "NAMA",
               "jawaban_pg": {"1": "A", "2": "B"},
@@ -40,26 +40,25 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
             const response = await result.response;
             let text = response.text();
             
-            console.log("--- RAW OUTPUT AI ---", text);
+            console.log("--- RAW OUTPUT 2.5 FLASH ---", text);
 
-            // 1. PEMBERSIH JSON (Membuang teks sampah di luar kurung kurawal)
-            const start = text.indexOf('{');
-            const end = text.lastIndexOf('}') + 1;
-            if (start === -1 || end === 0) throw new Error("AI tidak mengirim format JSON");
-            const cleanJson = text.substring(start, end);
-            const aiData = JSON.parse(cleanJson);
+            // TAHAP 1: EKSTRAK JSON (Biar gak error kalau AI curhat diluar JSON)
+            const jsonStart = text.indexOf('{');
+            const jsonEnd = text.lastIndexOf('}') + 1;
+            if (jsonStart === -1) throw new Error("Format JSON tidak ditemukan!");
+            const aiData = JSON.parse(text.substring(jsonStart, jsonEnd));
 
-            // 2. FALLBACK BRUTAL (Jika jawaban_pg kosong tapi log_deteksi ada isinya)
+            // TAHAP 2: FALLBACK REGEX (Penyaring Brutal)
             let jawabanSiswa = aiData.jawaban_pg || {};
             if (Object.keys(jawabanSiswa).length === 0) {
-                const sumberTeks = aiData.log_deteksi || text;
-                const matches = sumberTeks.matchAll(/(\d+)[:.]\s*.*?\s*([A-D])(?![a-z])/gi);
+                const teksAnalisis = aiData.log_deteksi || text;
+                const matches = teksAnalisis.matchAll(/(\d+)[:.]\s*.*?\s*([A-D])(?![a-z])/gi);
                 for (const m of matches) {
                     jawabanSiswa[m[1]] = m[2].toUpperCase();
                 }
             }
 
-            // 3. KOMPARASI DENGAN KUNCI DI DASHBOARD
+            // TAHAP 3: KOMPARASI & HITUNG
             let pgBetul = 0;
             let totalKunci = 0;
             let rincian = [];
@@ -81,7 +80,7 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
                 }
             });
 
-            // 4. PACKING DATA UNTUK DASHBOARD (Nama variabel harus pas dengan HTML)
+            // TAHAP 4: KIRIM KE FRONTEND (Pastikan nama variabel sesuai HTML Bos)
             results.push({
                 nama: (aiData.nama_siswa && aiData.nama_siswa !== "NAMA") ? aiData.nama_siswa : `Siswa ${index + 1}`,
                 pg_betul: pgBetul,
@@ -91,10 +90,10 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
             });
 
         } catch (err) {
-            console.error("LOG ERROR:", err);
+            console.error("CRITICAL ERROR:", err);
             results.push({ 
-                nama: "GAGAL SCAN", 
-                log_detail: ["Sistem gagal membedah gambar: " + err.message], 
+                nama: "ERROR SCAN", 
+                log_detail: ["Gagal baca data: " + err.message], 
                 nomor_pg_betul: "KOSONG", 
                 nilai_akhir: 0 
             });
