@@ -579,7 +579,10 @@
         document.getElementById('btnHitung').onclick = async () => {
             if(!dbData.length) return showAlert("Data kosong!");
             let reportHtml = `<p class="text-center font-black text-blue-600 uppercase text-xs tracking-widest mt-14 italic">REKAP NILAI AKHIR</p>`;
-            const r_pg = document.getElementById('r_pg').value || "betul * 1";
+            
+            // Ambil rumus dan bersihkan dari spasi/huruf besar
+            const r_pg_input = (document.getElementById('r_pg').value || "betul * 1").toLowerCase().trim();
+            
             const groupedData = {};
             
             dbData.forEach(s => {
@@ -593,9 +596,28 @@
             let no = 1;
 
             Object.values(groupedData).forEach(s => {
-                let betul = s.pg_betul;
+                let betul = parseInt(s.pg_betul) || 0;
                 let nilai = 0;
-                try { nilai = eval(r_pg.replace(/betul/g, betul)); } catch(e) { nilai = 0; }
+                
+                try {
+                    // PROSES RUMUS: Ganti kata 'betul' dengan angka asli, dan 'x' menjadi '*'
+                    let rumusEvaluasi = r_pg_input.replace(/betul/g, betul).replace(/x/g, '*');
+                    
+                    // Keamanan: Hanya izinkan angka, operator matematika, dan titik desimal
+                    rumusEvaluasi = rumusEvaluasi.replace(/[^0-9+\-*/().]/g, '');
+                    
+                    // Hitung nilai menggunakan eval aman
+                    nilai = eval(rumusEvaluasi);
+                    
+                    // Proteksi jika hasil bukan angka atau tak terhingga
+                    if (!isFinite(nilai)) nilai = 0;
+                    
+                    // Bulatkan ke 1 angka di belakang koma (contoh: 8.5)
+                    nilai = Math.round(nilai * 10) / 10;
+                } catch(e) { 
+                    console.error("Kesalahan Rumus:", e);
+                    nilai = 0; 
+                }
                 
                 exportData.push({ no: no++, nama: s.nama, betul: betul, nilai: nilai });
 
