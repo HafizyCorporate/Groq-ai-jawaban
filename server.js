@@ -4,6 +4,7 @@ const path = require('path');
 const dotenv = require('dotenv');
 const bcrypt = require('bcrypt'); 
 const session = require('express-session'); 
+const SibApiV3Sdk = require('sib-api-v3-sdk'); // Tambahan: Brevo SDK
 
 // --- DATABASE FILE (LOWDB) ---
 const low = require('lowdb');
@@ -18,6 +19,12 @@ db.defaults({ users: [] }).write();
 const { prosesKoreksiLengkap } = require('./routes/koreksi');
 
 dotenv.config();
+
+// --- KONFIGURASI BREVO API ---
+const defaultClient = SibApiV3Sdk.ApiClient.instance;
+const apiKey = defaultClient.authentications['api-key'];
+apiKey.apiKey = process.env.BREVO_API_KEY; 
+const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
 
 const app = express();
 const port = process.env.PORT || 8080; 
@@ -110,6 +117,48 @@ app.post('/auth/login', async (req, res) => {
             });
         } else {
             res.status(401).json({ success: false, message: "Email atau Password Salah!" });
+        }
+    } catch (e) { res.status(500).json({ success: false }); }
+});
+
+// --- FITUR LUPA PASSWORD (BREVO API) ---
+app.post('/auth/forgot-password', async (req, res) => {
+    try {
+        const { email } = req.body;
+        const user = db.get('users').find({ email }).value();
+
+        if (!user) {
+            return res.status(404).json({ success: false, message: "Email tidak terdaftar!" });
+        }
+
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        db.get('users').find({ email }).assign({ otp: otp }).write();
+
+        const sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
+        sendSmtpEmail.subject = "Kode OTP Reset Password - Versacy AI";
+        sendSmtpEmail.htmlContent = `<html><body><h3>Halo,</h3><p>Kode OTP Anda adalah: <b>${otp}</b></p><p>Gunakan kode ini untuk meriset password Anda.</p></body></html>`;
+        sendSmtpEmail.sender = { "name": "Versacy Admin", "email": "azhardax94@gmail.com" };
+        sendSmtpEmail.to = [{ "email": email }];
+
+        await apiInstance.sendTransacEmail(sendSmtpEmail);
+        res.json({ success: true, message: "Kode OTP telah dikirim ke email." });
+    } catch (error) {
+        console.error("Brevo Error:", error);
+        res.status(500).json({ success: false, message: "Gagal mengirim email." });
+    }
+});
+
+app.post('/auth/reset-password', async (req, res) => {
+    try {
+        const { email, otp, newPassword } = req.body;
+        const user = db.get('users').find({ email }).value();
+
+        if (user && user.otp === otp) {
+            const hashedPassword = await bcrypt.hash(newPassword, 10);
+            db.get('users').find({ email }).assign({ password: hashedPassword, otp: null }).write();
+            res.json({ success: true, message: "Password berhasil diperbarui!" });
+        } else {
+            res.status(400).json({ success: false, message: "Kode OTP salah!" });
         }
     } catch (e) { res.status(500).json({ success: false }); }
 });
