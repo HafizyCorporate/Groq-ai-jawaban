@@ -29,7 +29,6 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
 
     /**
      * UPDATE: Menggunakan Gemini 2.5 Flash
-     * Berdasarkan hasil cek model di Railway Bos yang tersedia adalah versi 2.5.
      */
     const model = genAI.getGenerativeModel({ 
         model: "gemini-2.5-flash" 
@@ -39,31 +38,32 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
         try {
             const base64Data = file.buffer.toString("base64");
             
-            // --- PERBAIKAN PROMPT: DIPAKSA UNTUK MENGISI OBJECT JSON SECARA LENGKAP ---
-            const prompt = `TUGAS: EKSTRAKSI DATA LJK SECARA STRIK.
+            // --- PROMPT BARU: DENGAN CONTOH STRUKTUR AGAR AI TIDAK MALAS ---
+            const prompt = `TUGAS: EKSTRAKSI DATA LJK.
             
-            KUNCI PG SEBAGAI REFERENSI: ${JSON.stringify(kunciPG)}
-            KUNCI ESSAY SEBAGAI REFERENSI: ${JSON.stringify(kunciEssay)}
+            KUNCI PG: ${JSON.stringify(kunciPG)}
+            KUNCI ESSAY: ${JSON.stringify(kunciEssay)}
 
-            INSTRUKSI WAJIB:
-            1. Identifikasi NAMA SISWA dari kertas.
-            2. Deteksi coretan (X/Centang/Tebal) pada pilihan A, B, C, D untuk setiap nomor di KUNCI PG.
-            3. Masukkan hasil deteksi huruf tersebut ke dalam object "jawaban_pg".
-            4. Bandingkan jawaban essay siswa dengan KUNCI ESSAY.
+            INSTRUKSI:
+            Cari coretan (X/Centang/Lingkaran) pada gambar. 
+            WAJIB masukkan setiap huruf jawaban ke dalam object "jawaban_pg". 
+            JANGAN HANYA MENULIS DI 'log_deteksi'.
 
-            BALAS HANYA DENGAN FORMAT JSON MURNI BERIKUT:
+            CONTOH OUTPUT YANG SAYA INGINKAN (WAJIB):
             {
-              "nama_siswa": "TULIS NAMA SISWA",
+              "nama_siswa": "BUDI SANTOSO",
               "jawaban_pg": {
                 "1": "A",
-                "2": "B",
-                "3": "C"
+                "2": "C",
+                "3": "B"
               },
               "analisis_essay": {
-                "1": "BENAR/SALAH (Alasan)"
+                "1": "BENAR"
               },
-              "log_deteksi": "Jelaskan ringkasan visual per nomor."
-            }`;
+              "log_deteksi": "Catatan visual per nomor"
+            }
+
+            SEKARANG ANALISIS GAMBAR INI DAN BALAS HANYA DENGAN JSON MURNI!`;
             // ------------------------------------------------------------------
 
             const imagePart = {
@@ -77,7 +77,7 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
             const response = await result.response;
             const text = response.text();
             
-            // LOG TAMBAHAN: Untuk melihat apa yang dikatakan AI di Railway Logs
+            // --- LOG TETAP ADA UNTUK BOS PANTAU ---
             console.log(`--- JAWABAN MENTAH AI (FILE ${index + 1}) ---`);
             console.log(text);
             
@@ -86,6 +86,7 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
             
             const aiData = JSON.parse(jsonMatch[0]);
 
+            // Data utama yang diambil untuk laporan
             const jawabanPG = aiData.jawaban_pg || {};
             const analES = aiData.analisis_essay || {};
             
@@ -97,7 +98,6 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
             Object.keys(kunciPG).forEach(nomor => {
                 if (kunciPG[nomor] !== "") {
                     pgTotalKunci++;
-                    // Mencari jawaban siswa di object jawaban_pg yang dikirim AI
                     const jawabSiswa = (jawabanPG[nomor] || "KOSONG").toString().toUpperCase().trim();
                     const jawabKunci = kunciPG[nomor].toString().toUpperCase().trim();
                     
