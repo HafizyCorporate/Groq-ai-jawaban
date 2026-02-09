@@ -116,9 +116,41 @@
 
         details summary::-webkit-details-marker { display:none; }
         details summary { list-style: none; }
+
+        /* ANIMASI SPLASH */
+        .zoom-out-bg {
+            transform: scale(1.5);
+            opacity: 0;
+            transition: all 1.2s cubic-bezier(0.19, 1, 0.22, 1);
+        }
+        @keyframes glow {
+            0%, 100% { filter: drop-shadow(0 0 20px rgba(37,99,235,0.4)); }
+            50% { filter: drop-shadow(0 0 50px rgba(37,99,235,0.8)); }
+        }
+        .glow-active { animation: glow 2s infinite; }
     </style>
 </head>
 <body class="bg-slate-50 p-4 text-slate-900">
+
+    <div id="megaSplash" class="fixed inset-0 z-[500] bg-[#0f172a] flex flex-col items-center justify-center overflow-hidden">
+        <div class="absolute w-[500px] h-[500px] bg-blue-600/20 blur-[120px] rounded-full animate-pulse"></div>
+        <div class="relative text-center z-10">
+            <h1 id="mainTitle" class="text-7xl md:text-9xl font-black italic tracking-tighter text-white opacity-0 scale-50 transition-all duration-700">
+                JAWABAN <span class="text-blue-600">AI</span>
+            </h1>
+            <div id="subTitle" class="mt-4 opacity-0 transform translate-y-10 transition-all duration-1000">
+                <p class="text-blue-400 text-xl md:text-2xl font-bold tracking-[0.2em] uppercase">
+                    Design by <span class="text-white">Guru bantu Guru</span>
+                </p>
+            </div>
+            <div id="collabIcon" class="mt-12 text-8xl opacity-0 transform scale-0 transition-all duration-700">
+                🤝
+                <div class="text-xs text-blue-300 font-black tracking-[0.5em] mt-4 animate-pulse uppercase">Collaboration</div>
+            </div>
+        </div>
+        <audio id="sndWoosh" src="https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3"></audio>
+        <audio id="sndMagic" src="https://assets.mixkit.co/active_storage/sfx/2432/2432-preview.mp3"></audio>
+    </div>
 
     <div id="customAlertOverlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] hidden flex items-center justify-center p-6">
         <div class="bg-white w-full max-sm rounded-[40px] p-8 shadow-2xl modal-animate text-center border border-slate-100">
@@ -276,6 +308,38 @@
     </div>
 
     <script>
+        // LOGIKA ANIMASI SPLASH (MEGA INTRO)
+        window.addEventListener('DOMContentLoaded', () => {
+            const splash = document.getElementById('megaSplash');
+            const title = document.getElementById('mainTitle');
+            const sub = document.getElementById('subTitle');
+            const icon = document.getElementById('collabIcon');
+            const sndWoosh = document.getElementById('sndWoosh');
+            const sndMagic = document.getElementById('sndMagic');
+
+            setTimeout(() => {
+                title.classList.remove('opacity-0', 'scale-50');
+                title.classList.add('opacity-100', 'scale-100', 'glow-active');
+                sndWoosh.play().catch(e => {});
+            }, 500);
+
+            setTimeout(() => {
+                sub.classList.remove('opacity-0', 'translate-y-10');
+                sub.classList.add('opacity-100', 'translate-y-0');
+            }, 1500);
+
+            setTimeout(() => {
+                icon.classList.remove('opacity-0', 'scale-0');
+                icon.classList.add('opacity-100', 'scale-100');
+                sndMagic.play().catch(e => {});
+            }, 2200);
+
+            setTimeout(() => {
+                splash.classList.add('zoom-out-bg');
+                setTimeout(() => { splash.remove(); }, 1200);
+            }, 4500);
+        });
+
         // SCRIPT TETAP SAMA TIDAK ADA PERUBAHAN
         let dbData = [];
         let exportData = []; 
