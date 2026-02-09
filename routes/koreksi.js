@@ -39,30 +39,30 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
         try {
             const base64Data = file.buffer.toString("base64");
             
-            // --- BAGIAN PROMPT DI SINI YANG DITAMBAHKAN REFERENSI DATA ---
-            const prompt = `ANDA ADALAH GURU SUPER TELITI DENGAN KEMAMPUAN VISUAL DETEKTIF. 
-            TUGAS: Koreksi LJK dengan metode Identifikasi Tumpang Tindih (Overlay).
+            // --- PERBAIKAN PROMPT: DIPAKSA UNTUK MENGISI OBJECT JSON SECARA LENGKAP ---
+            const prompt = `TUGAS: EKSTRAKSI DATA LJK SECARA STRIK.
+            
+            KUNCI PG SEBAGAI REFERENSI: ${JSON.stringify(kunciPG)}
+            KUNCI ESSAY SEBAGAI REFERENSI: ${JSON.stringify(kunciEssay)}
 
-            REFERENSI KUNCI JAWABAN (WAJIB DIIKUTI):
-            - KUNCI PG: ${JSON.stringify(kunciPG)}
-            - KUNCI ESSAY: ${JSON.stringify(kunciEssay)}
+            INSTRUKSI WAJIB:
+            1. Identifikasi NAMA SISWA dari kertas.
+            2. Deteksi coretan (X/Centang/Tebal) pada pilihan A, B, C, D untuk setiap nomor di KUNCI PG.
+            3. Masukkan hasil deteksi huruf tersebut ke dalam object "jawaban_pg".
+            4. Bandingkan jawaban essay siswa dengan KUNCI ESSAY.
 
-            ATURAN DETEKSI (WAJIB):
-            1. **Cari Jawaban Siswa**: Pindai setiap nomor yang ada di KUNCI PG di atas pada gambar.
-            2. **Fokus Interaksi Tinta**: Cari coretan manual (X, centang, atau coretan tebal). Jawaban siswa adalah huruf opsi (a, b, c, atau d) yang SECARA FISIK TERTUTUP atau TERTINDIH oleh tinta tersebut.
-            3. **Identifikasi Huruf di Bawah Tinta**: Lihat karakter huruf apa yang ada tepat di bawah coretan.
-            4. **Deteksi Multi-Alat**: Pilih coretan yang paling TEBAL. Abaikan bekas hapusan.
-            5. **JANGAN LEWATKAN**: Pastikan memberikan jawaban untuk setiap nomor yang diminta di kunci.
-
-            INSTRUKSI ESSAY:
-            - Bandingkan dengan Kunci Essay di atas. Nyatakan BENAR jika inti maknanya sama.
-
-            WAJIB OUTPUT JSON MURNI:
+            BALAS HANYA DENGAN FORMAT JSON MURNI BERIKUT:
             {
-              "nama_siswa": "Detect Nama dari kertas",
-              "jawaban_pg": {"1": "A", "2": "B"},
-              "analisis_essay": {"1": "BENAR/SALAH (Alasan)"},
-              "log_deteksi": "Jelaskan visual per nomor."
+              "nama_siswa": "TULIS NAMA SISWA",
+              "jawaban_pg": {
+                "1": "A",
+                "2": "B",
+                "3": "C"
+              },
+              "analisis_essay": {
+                "1": "BENAR/SALAH (Alasan)"
+              },
+              "log_deteksi": "Jelaskan ringkasan visual per nomor."
             }`;
             // ------------------------------------------------------------------
 
@@ -97,6 +97,7 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
             Object.keys(kunciPG).forEach(nomor => {
                 if (kunciPG[nomor] !== "") {
                     pgTotalKunci++;
+                    // Mencari jawaban siswa di object jawaban_pg yang dikirim AI
                     const jawabSiswa = (jawabanPG[nomor] || "KOSONG").toString().toUpperCase().trim();
                     const jawabKunci = kunciPG[nomor].toString().toUpperCase().trim();
                     
@@ -110,7 +111,7 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
             });
 
             Object.keys(kunciEssay).forEach(no => {
-                const status = analES[no] || "SALAH";
+                const status = (analES[no] || "SALAH").toString();
                 const isBenar = status.toUpperCase().includes("BENAR");
                 if(isBenar) esBetul++;
                 rincianProses.push(`Essay ${no}: ${isBenar ? "✅" : "❌"} ${status}`);
@@ -121,7 +122,7 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
             const totalSkor = Math.round((nilaiPG + nilaiES) * 10) / 10;
 
             results.push({ 
-                nama: (aiData.nama_siswa || `Siswa ${index + 1}`).trim(), 
+                nama: (aiData.nama_siswa && aiData.nama_siswa !== "TULIS NAMA SISWA") ? aiData.nama_siswa.trim() : `Siswa ${index + 1}`, 
                 pg_betul: pgBetul,
                 pg_total: pgTotalKunci,
                 es_betul: esBetul,
