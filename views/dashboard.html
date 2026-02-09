@@ -327,7 +327,11 @@
         // --- FUNGSI TAMPILAN JENDELA LAPORAN (OPTIMIZED) ---
         function tampilkanHasilKeLayar() {
             const container = document.getElementById('scanAwal');
-            if(!dbData.length) return;
+            if(!dbData.length) {
+                container.innerHTML = '';
+                document.getElementById('resWrap').classList.add('hidden');
+                return;
+            }
             const dataUntukTampil = [...dbData].reverse();
             
             const card = (s, i) => {
@@ -388,6 +392,7 @@
             };
 
             container.innerHTML = dataUntukTampil.map((s, i) => card(s, i)).join('');
+            document.getElementById('resWrap').classList.remove('hidden');
             document.getElementById('resWrap').classList.add('force-show');
         }
 
@@ -412,6 +417,13 @@
                 const data = await res.json();
                 if(res.ok && data.success) {
                     if(currentMode === 'login') {
+                        // MEMBERSIHKAN DATA LAMA SAAT LOGIN BERHASIL
+                        dbData = [];
+                        localStorage.removeItem('riwayat_ai_v2');
+                        document.getElementById('scanAwal').innerHTML = '';
+                        document.getElementById('laporanFinal').innerHTML = '';
+                        document.getElementById('resWrap').classList.add('hidden');
+
                         if(email.toLowerCase() === "versacy") document.getElementById('adminPanel').classList.remove('hidden');
                         updateTokenDisplay(data.token || 0);
                         document.getElementById('authWrapper').classList.add('hidden');
@@ -500,18 +512,28 @@
             document.getElementById('stts').innerText = '✅ ' + input.files.length + ' File Terpilih';
         }
 
-        function logout() {
-            if(confirm("Apakah Anda yakin ingin keluar? Semua riwayat scan di jendela ini akan dihapus.")) {
+        function logout() { 
+            if(confirm("Keluar dan hapus semua riwayat di sesi ini?")) {
                 dbData = [];
                 localStorage.removeItem('riwayat_ai_v2');
-                location.reload();
+                location.reload(); 
             }
         }
-
+        
         function simpanKeRiwayat() { localStorage.setItem('riwayat_ai_v2', JSON.stringify(dbData)); }
+        
         function muatRiwayat() {
             const saved = localStorage.getItem('riwayat_ai_v2');
-            if(saved) { dbData = JSON.parse(saved); if(dbData.length > 0) tampilkanHasilKeLayar(); }
+            if(saved) { 
+                dbData = JSON.parse(saved); 
+                if(dbData && dbData.length > 0) {
+                    tampilkanHasilKeLayar(); 
+                } else {
+                    document.getElementById('resWrap').classList.add('hidden');
+                }
+            } else {
+                document.getElementById('resWrap').classList.add('hidden');
+            }
         }
 
         document.getElementById('btnAI').onclick = async () => {
@@ -577,7 +599,7 @@
                         break; 
                     }
                 }
-                btn.innerText = "SELETI ✅"; 
+                btn.innerText = "SELESAI ✅"; 
                 fileInput.value = ""; 
                 document.getElementById('stts').innerText = 'Belum ada file dipilih';
             } catch(e) { showAlert("Terjadi kesalahan sistem!"); } finally {
