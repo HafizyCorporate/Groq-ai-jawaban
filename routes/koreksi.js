@@ -43,26 +43,18 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
             KUNCI PG: ${JSON.stringify(kunciPG)}
             KUNCI ESSAY: ${JSON.stringify(kunciEssay)}
 
-            INSTRUKSI:
-            Cari coretan (X/Centang/Lingkaran) pada gambar. 
-            WAJIB masukkan setiap huruf jawaban ke dalam object "jawaban_pg". 
-            JANGAN HANYA MENULIS DI 'log_deteksi'.
-
-            CONTOH OUTPUT YANG SAYA INGINKAN (WAJIB):
+            INSTRUKSI UTAMA:
+            Cari tanda silang (X) atau coretan pada pilihan A, B, C, atau D.
+            
+            WAJIB BALAS DENGAN JSON MURNI:
             {
-              "nama_siswa": "BUDI SANTOSO",
-              "jawaban_pg": {
-                "1": "A",
-                "2": "C",
-                "3": "B"
-              },
-              "analisis_essay": {
-                "1": "BENAR"
-              },
-              "log_deteksi": "Catatan visual per nomor"
+              "nama_siswa": "Dapatkan nama dari kertas",
+              "jawaban_pg": { "1": "A", "2": "B" },
+              "analisis_essay": { "1": "BENAR/SALAH" },
+              "log_deteksi": "Rincian deteksi per nomor"
             }
 
-            SEKARANG ANALISIS GAMBAR INI DAN BALAS HANYA DENGAN JSON MURNI!`;
+            JANGAN biarkan jawaban_pg kosong jika Anda melihat coretan jawaban!`;
 
             const imagePart = {
                 inlineData: {
@@ -83,22 +75,25 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
             
             const aiData = JSON.parse(jsonMatch[0]);
 
-            // --- BAGIAN PEMBERSIH DATA (NEW) ---
+            // --- SISTEM PENYARING OTOMATIS (SUPREMASI) ---
             let jawabanPG = aiData.jawaban_pg || {};
             
-            // Jika AI curhat di log tapi lupa ngisi object jawaban_pg, kita sisir manual teksnya
+            // Jika AI malas mengisi object jawaban_pg, kita bedah log_deteksi secara paksa
             if (Object.keys(jawabanPG).length === 0 && aiData.log_deteksi) {
-                console.log("⚠️ Sistem: Mendeteksi object kosong, menyisir teks log_deteksi...");
-                const barisLog = aiData.log_deteksi.split('\n');
-                barisLog.forEach(baris => {
-                    // Mencari pola angka dan huruf jawaban (A, B, C, atau D)
-                    const match = baris.match(/(\d+)[:.]\s*(?:Jawaban\s*)?['"]?([A-D])['"]?/i);
-                    if (match) {
-                        jawabanPG[match[1]] = match[2].toUpperCase();
+                console.log("⚠️ Mengambil jawaban dari teks deskripsi (Log Deteksi)...");
+                
+                // Pola 1: Menangkap "Nomor 1: ... opsi B" atau "1: B" atau "1. Jawaban B"
+                const matches = aiData.log_deteksi.matchAll(/(?:Nomor\s+)?(\d+)[:.]?.*?opsi\s+([A-D])|(\d+)[:.]\s*(?:Jawaban\s*)?['"]?([A-D])['"]?/gi);
+                
+                for (const match of matches) {
+                    const no = match[1] || match[3];
+                    const jawab = match[2] || match[4];
+                    if (no && jawab) {
+                        jawabanPG[no] = jawab.toUpperCase();
                     }
-                });
+                }
             }
-            // ------------------------------------
+            // ---------------------------------------------
 
             const analES = aiData.analisis_essay || {};
             
@@ -110,6 +105,7 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
             Object.keys(kunciPG).forEach(nomor => {
                 if (kunciPG[nomor] !== "") {
                     pgTotalKunci++;
+                    // Ambil jawaban dari object hasil penyaringan di atas
                     const jawabSiswa = (jawabanPG[nomor] || "KOSONG").toString().toUpperCase().trim();
                     const jawabKunci = kunciPG[nomor].toString().toUpperCase().trim();
                     
@@ -149,7 +145,7 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
             results.push({ 
                 nama: `GAGAL SCAN`, 
                 log_detail: [err.message],
-                info_ai: "Gagal memproses gambar. Coba pastikan foto tegak dan jelas.",
+                info_ai: "Gagal memproses gambar.",
                 nilai_akhir: 0
             });
         }
