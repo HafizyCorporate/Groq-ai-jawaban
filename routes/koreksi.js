@@ -29,7 +29,6 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
 
     /**
      * UPDATE: Menggunakan Gemini 2.0 Flash untuk kecepatan dan stabilitas.
-     * (Hanya baris ini yang diubah sesuai permintaan Bos)
      */
     const model = genAI.getGenerativeModel({ 
         model: "gemini-2.0-flash" 
@@ -39,19 +38,19 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
         try {
             const base64Data = file.buffer.toString("base64");
             
-            // BAGIAN PEMBACAAN DATA (PROMPT) DIPERKUAT DENGAN REFERENSI KUNCI
+            // --- BAGIAN PROMPT DIPERBARUI AGAR LEBIH AGRESIF MEMBACA JAWABAN ---
             const prompt = `ANDA ADALAH GURU SUPER TELITI DENGAN KEMAMPUAN VISUAL DETEKTIF. 
             TUGAS: Koreksi LJK dengan metode Identifikasi Tumpang Tindih (Overlay).
 
-            REFERENSI KUNCI (WAJIB DIIKUTI):
+            REFERENSI KUNCI JAWABAN (WAJIB DIIKUTI):
             - KUNCI PG: ${JSON.stringify(kunciPG)}
             - KUNCI ESSAY: ${JSON.stringify(kunciEssay)}
 
             ATURAN DETEKSI (WAJIB):
-            1. **Fokus Interaksi Tinta**: Cari coretan manual (X, centang, atau coretan tebal). Jawaban siswa adalah huruf opsi (a, b, c, atau d) yang SECARA FISIK TERTUTUP atau TERTINDIH oleh tinta tersebut.
-            2. **Identifikasi Huruf di Bawah Tinta**: Lihat karakter huruf apa yang ada tepat di bawah coretan.
-            3. **Non-Asumsi Layout**: Cari huruf yang tertindih di area setiap nomor soal.
-            4. **Deteksi Multi-Alat**: Pilih coretan yang paling TEBAL. Abaikan bekas hapusan.
+            1. **Cari Jawaban Siswa**: Pindai setiap nomor yang ada di KUNCI PG di atas.
+            2. **Fokus Interaksi Tinta**: Cari coretan manual (X, centang, atau bulatan hitam). Jawaban siswa adalah huruf opsi (A, B, C, D, atau E) yang TERTINDIH oleh tinta tersebut.
+            3. **PILIH YANG PALING TEBAL**: Jika ada bekas hapusan atau coretan ragu-ragu, PILIH coretan yang paling TEBAL/GELAP. Jangan biarkan kosong jika ada sedikit saja tanda.
+            4. **JANGAN LEWATKAN SATUPUN NOMOR**: Pastikan setiap nomor di kunci jawaban memiliki pasangan jawaban dari siswa (meskipun salah).
 
             INSTRUKSI ESSAY:
             - Bandingkan dengan Kunci Essay di atas. Nyatakan BENAR jika inti maknanya sama.
@@ -59,10 +58,11 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
             WAJIB OUTPUT JSON MURNI:
             {
               "nama_siswa": "Detect Nama dari kertas",
-              "jawaban_pg": {"1": "A", "2": "B"},
+              "jawaban_pg": {"1": "A", "2": "B", "3": "C"},
               "analisis_essay": {"1": "BENAR/SALAH (Alasan)"},
               "log_deteksi": "Jelaskan visual per nomor."
             }`;
+            // ------------------------------------------------------------------
 
             const imagePart = {
                 inlineData: {
