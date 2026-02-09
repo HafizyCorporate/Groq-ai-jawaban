@@ -10,6 +10,7 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
     const kunciPG = settings.kunci_pg || {};
+    const kunciES = settings.kunci_essay || {}; // Ambil kunci essay dari settings
     const results = [];
 
     const hitungNilai = (rumus, betul, total) => {
@@ -27,7 +28,21 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
     for (const [index, file] of files.entries()) {
         try {
             const base64Data = file.buffer.toString("base64");
+            
+            // --- PROMPT DIPERKUAT TANPA MERUBAH STRUKTUR ---
             const prompt = `TUGAS: Ekstrak Nama dan Jawaban LJK.
+            
+            ATURAN DETEKSI (WAJIB):
+            1. Cari Jawaban Siswa: Pindai setiap nomor yang ada di KUNCI PG: ${JSON.stringify(kunciPG)} pada gambar.
+            2. Fokus Interaksi Tinta: Cari coretan manual (X, centang, atau coretan tebal). Jawaban siswa adalah huruf opsi (A, B, C, atau D) yang SECARA FISIK TERTUTUP atau TERTINDIH oleh tinta tersebut.
+            3. Identifikasi Huruf di Bawah Tinta: Lihat karakter huruf apa yang ada tepat di bawah coretan.
+            4. Deteksi Multi-Alat: Pilih coretan yang paling TEBAL. Abaikan bekas hapusan.
+            5. JANGAN LEWATKAN: Pastikan memberikan jawaban untuk setiap nomor yang diminta di kunci.
+            
+            INSTRUKSI ESSAY:
+            - Bandingkan dengan Kunci Essay: ${JSON.stringify(kunciES)}. 
+            - Nyatakan BENAR jika inti maknanya sama. Jika kunci essay kosong, abaikan.
+
             WAJIB JAWAB DENGAN JSON MURNI:
             {
               "nama_siswa": "NAMA",
