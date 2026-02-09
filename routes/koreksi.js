@@ -1,6 +1,6 @@
 /**
  * FILE: koreksi.js
- * TUGAS: Otak Analisis AI (via Gemini 3.0 Flash) & Perhitungan Nilai
+ * TUGAS: Otak Analisis AI (via Gemini 2.5 Flash) & Perhitungan Nilai
  */
 
 const { GoogleGenerativeAI } = require("@google/generative-ai");
@@ -28,11 +28,11 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
     };
 
     /**
-     * UPDATE: Menggunakan Gemini 3.0 Flash (Gemini 3 Flash) 
-     * Sesuai permintaan Bos karena performa vision yang lebih stabil.
+     * UPDATE: Menggunakan Gemini 2.5 Flash
+     * Berdasarkan hasil cek model di Railway Bos yang tersedia adalah versi 2.5.
      */
     const model = genAI.getGenerativeModel({ 
-        model: "gemini-3-flash" 
+        model: "gemini-2.5-flash" 
     });
 
     for (const [index, file] of files.entries()) {
@@ -77,10 +77,6 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
             const response = await result.response;
             const text = response.text();
             
-            /** * PERBAIKAN DI SINI (Tetap Dipertahankan):
-             * Menggunakan Regex untuk mencari karakter { sampai } 
-             * agar teks tambahan dari Gemini tidak merusak JSON.parse
-             */
             const jsonMatch = text.match(/\{[\s\S]*\}/);
             if (!jsonMatch) throw new Error("Format JSON tidak ditemukan dalam respon AI");
             
