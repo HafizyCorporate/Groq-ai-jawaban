@@ -39,18 +39,20 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
         try {
             const base64Data = file.buffer.toString("base64");
             
+            // --- BAGIAN PROMPT DI SINI YANG DITAMBAHKAN REFERENSI DATA ---
             const prompt = `ANDA ADALAH GURU SUPER TELITI DENGAN KEMAMPUAN VISUAL DETEKTIF. 
             TUGAS: Koreksi LJK dengan metode Identifikasi Tumpang Tindih (Overlay).
 
-            REFERENSI KUNCI (WAJIB DIIKUTI):
+            REFERENSI KUNCI JAWABAN (WAJIB DIIKUTI):
             - KUNCI PG: ${JSON.stringify(kunciPG)}
             - KUNCI ESSAY: ${JSON.stringify(kunciEssay)}
 
             ATURAN DETEKSI (WAJIB):
-            1. **Fokus Interaksi Tinta**: Cari coretan manual (X, centang, atau coretan tebal). Jawaban siswa adalah huruf opsi (a, b, c, atau d) yang SECARA FISIK TERTUTUP atau TERTINDIH oleh tinta tersebut.
-            2. **Identifikasi Huruf di Bawah Tinta**: Lihat karakter huruf apa yang ada tepat di bawah coretan.
-            3. **Non-Asumsi Layout**: Cari huruf yang tertindih di area setiap nomor soal.
+            1. **Cari Jawaban Siswa**: Pindai setiap nomor yang ada di KUNCI PG di atas pada gambar.
+            2. **Fokus Interaksi Tinta**: Cari coretan manual (X, centang, atau coretan tebal). Jawaban siswa adalah huruf opsi (a, b, c, atau d) yang SECARA FISIK TERTUTUP atau TERTINDIH oleh tinta tersebut.
+            3. **Identifikasi Huruf di Bawah Tinta**: Lihat karakter huruf apa yang ada tepat di bawah coretan.
             4. **Deteksi Multi-Alat**: Pilih coretan yang paling TEBAL. Abaikan bekas hapusan.
+            5. **JANGAN LEWATKAN**: Pastikan memberikan jawaban untuk setiap nomor yang diminta di kunci.
 
             INSTRUKSI ESSAY:
             - Bandingkan dengan Kunci Essay di atas. Nyatakan BENAR jika inti maknanya sama.
@@ -62,6 +64,7 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
               "analisis_essay": {"1": "BENAR/SALAH (Alasan)"},
               "log_deteksi": "Jelaskan visual per nomor."
             }`;
+            // ------------------------------------------------------------------
 
             const imagePart = {
                 inlineData: {
@@ -74,6 +77,10 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
             const response = await result.response;
             const text = response.text();
             
+            /** * PERBAIKAN DI SINI (Tetap Dipertahankan):
+             * Menggunakan Regex untuk mencari karakter { sampai } 
+             * agar teks tambahan dari Gemini tidak merusak JSON.parse
+             */
             const jsonMatch = text.match(/\{[\s\S]*\}/);
             if (!jsonMatch) throw new Error("Format JSON tidak ditemukan dalam respon AI");
             
