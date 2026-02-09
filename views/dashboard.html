@@ -512,7 +512,6 @@
                     fd.append('data', JSON.stringify(conf)); 
                     fd.append('foto', files[i]);
                     
-                    // PERBAIKAN: Timeout diperpanjang jadi 60 detik
                     const controller = new AbortController();
                     const timeoutId = setTimeout(() => controller.abort(), 60000); 
                     
@@ -520,7 +519,7 @@
                         const req = await fetch(window.location.origin + '/ai/proses-koreksi', { 
                             method: 'POST', 
                             body: fd, 
-                            credentials: 'include', // TAMBAHAN: Jaga sesi tetap aktif saat upload
+                            credentials: 'include', 
                             signal: controller.signal 
                         });
                         clearTimeout(timeoutId);
@@ -536,12 +535,19 @@
                         let res = JSON.parse(text);
 
                         if(res.success) {
-                            let itemData = res.data;
+                            // FIX: Ambil index ke-0 karena server mengirim Array hasil koreksi
+                            let itemData = Array.isArray(res.data) ? res.data[0] : res.data;
+
                             if(!itemData.nama || itemData.nama === "-" || itemData.nama === "" || itemData.nama.includes("TIDAK")) {
                                 itemData.nama = namaTerakhir;
                             } else {
                                 namaTerakhir = itemData.nama;
                             }
+
+                            // Pastikan data penting terisi agar tidak muncul "KOSONG"
+                            itemData.nomor_pg_betul = itemData.nomor_pg_betul || "TIDAK ADA";
+                            itemData.log_detail = itemData.log_detail || [];
+
                             dbData.push(itemData);
                             if(res.current_token !== undefined) updateTokenDisplay(res.current_token);
                             tampilkanHasilKeLayar(); 
