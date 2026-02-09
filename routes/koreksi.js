@@ -69,13 +69,17 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
             const imagePart = {
                 inlineData: {
                     data: base64Data,
-                    mimeType: "image/jpeg"
+                    mimeType: file.mimetype || "image/jpeg"
                 }
             };
 
             const result = await model.generateContent([prompt, imagePart]);
             const response = await result.response;
             const text = response.text();
+            
+            // LOG TAMBAHAN: Untuk melihat apa yang dikatakan AI di Railway Logs
+            console.log(`--- JAWABAN MENTAH AI (FILE ${index + 1}) ---`);
+            console.log(text);
             
             const jsonMatch = text.match(/\{[\s\S]*\}/);
             if (!jsonMatch) throw new Error("Format JSON tidak ditemukan dalam respon AI");
