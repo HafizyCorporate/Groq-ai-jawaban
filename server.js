@@ -9,7 +9,6 @@ const SibApiV3Sdk = require('sib-api-v3-sdk');
 dotenv.config();
 
 // --- IMPORT DB HYBRID ---
-// Gunakan nama 'db' agar konsisten dengan ekspor di db.js
 const db = require('./db'); 
 
 // --- PEMANGGILAN FILE KOREKSI.JS ---
@@ -30,7 +29,6 @@ app.use(express.static('public'));
 
 // --- SESSION CONFIGURATION (HYBRID STORE) ---
 app.set('trust proxy', 1); 
-
 const sessionConfig = {
     name: 'gemini_session',
     secret: process.env.SESSION_SECRET || 'kunci-rahasia-gemini-vision',
@@ -43,16 +41,14 @@ const sessionConfig = {
     }
 };
 
-// Gunakan pgSession HANYA jika di Cloud (PostgreSQL)
 if (process.env.DATABASE_URL) {
     const pgSession = require('connect-pg-simple')(session);
     sessionConfig.store = new pgSession({
-        pool : db.pool, // db.pool diambil dari ekspor db.js mode postgres
+        pool : db.pool, 
         tableName : 'session',
         createTableIfMissing: true
     });
 }
-
 app.use(session(sessionConfig));
 
 const storage = multer.memoryStorage();
@@ -69,23 +65,22 @@ app.post('/auth/register', async (req, res) => {
         
         const hashedPassword = await bcrypt.hash(password, 10);
         
-        // Gunakan db.query (Hybrid)
+        // Menggunakan ? yang akan di-convert db.js menjadi $1 dst
         await db.query(
-            "INSERT INTO users (username, password, quota, is_premium, role) VALUES (?, ?, ?, ?, ?)",
-            [email, hashedPassword, 10, false, 'user']
+            "INSERT INTO users (username, password, quota, role) VALUES (?, ?, ?, ?)",
+            [email, hashedPassword, 10, 'user']
         );
 
-        res.json({ success: true, message: "Pendaftaran Berhasil! Jatah gratis: 10x Koreksi." });
+        res.json({ success: true, message: "Pendaftaran Berhasil!" });
     } catch (e) { 
         console.error("Register Error:", e);
-        res.status(500).json({ success: false, message: "Email mungkin sudah terdaftar." }); 
+        res.status(500).json({ success: false, message: "User sudah ada atau error sistem." }); 
     }
 });
 
 app.post('/auth/login', async (req, res) => {
     try {
         const { email, password } = req.body;
-        // Gunakan db.get untuk mengambil satu baris data
         const user = await db.get("SELECT * FROM users WHERE username = ?", [email]);
         
         if (user && await bcrypt.compare(password, user.password)) {
@@ -93,72 +88,62 @@ app.post('/auth/login', async (req, res) => {
             req.session.username = user.username;
             req.session.role = user.role;
 
-            req.session.save((err) => {
-                if(err) return res.status(500).json({ success: false });
-                res.json({ success: true, token: user.is_premium ? "UNLIMITED" : user.quota });
+            req.session.save(() => {
+                res.json({ 
+                    success: true, 
+                    quota: user.is_premium ? "UNLIMITED" : user.quota,
+                    role: user.role 
+                });
             });
         } else {
             res.status(401).json({ success: false, message: "Email atau Password Salah!" });
         }
     } catch (e) { 
-        console.error("Login Error:", e);
         res.status(500).json({ success: false }); 
     }
 });
 
-// --- FITUR ADMIN: TAMBAH TOKEN ---
-app.post('/admin/add-token', async (req, res) => {
-    try {
-        const { targetEmail, amount } = req.body;
-
-        if (req.session.role !== 'admin') {
-            return res.status(403).json({ success: false, message: "Anda bukan Admin!" });
-        }
-
-        const result = await db.query(
-            "UPDATE users SET quota = quota + ? WHERE username = ?", 
-            [parseInt(amount), targetEmail]
-        );
-        
-        if (result.rowCount === 0) {
-            return res.status(404).json({ success: false, message: "User tidak ditemukan!" });
-        }
-
-        res.json({ success: true, message: "Berhasil menambahkan token." });
-    } catch (e) {
-        console.error("Admin Add Token Error:", e);
-        res.status(500).json({ success: false });
-    }
-});
-
-// --- CORE AI ROUTE ---
+// --- CORE AI ROUTE + SAVE TO HISTORY ---
 app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
     try {
-        if (!req.session.userId) return res.status(401).json({ success: false, message: "Silakan login ulang!" });
+        if (!req.session.userId) return res.status(401).json({ success: false, message: "Login dahulu!" });
         
-        const user = await db.get("SELECT id, is_premium, quota FROM users WHERE id = ?", [req.session.userId]);
+        const user = await db.get("SELECT * FROM users WHERE id = ?", [req.session.userId]);
 
         if (!user.is_premium && user.quota < req.files.length) {
             return res.json({ success: false, limitReached: true, message: "TOKEN HABIS" });
         }
 
-        // Jalankan proses koreksi (Logika AI kamu)
         const results = await prosesKoreksiLengkap(req.files, req.body.data, req.body.rumus_pg, req.body.rumus_es);
 
-        // Update kuota jika bukan premium
-        if (!user.is_premium && results.length > 0) {
-            await db.query(
-                "UPDATE users SET quota = quota - ? WHERE id = ?",
-                [req.files.length, user.id]
-            );
+        // UPDATE QUOTA & SAVE HISTORY
+        if (results && results.length > 0) {
+            // Potong Quota
+            if (!user.is_premium) {
+                await db.query("UPDATE users SET quota = quota - ? WHERE id = ?", [req.files.length, user.id]);
+            }
+
+            // Simpan ke tabel history (Agar bisa dilihat admin/user nanti)
+            for (const item of results) {
+                await db.query(
+                    "INSERT INTO history (user_id, soal, jawaban, subject, level) VALUES (?, ?, ?, ?, ?)",
+                    [user.id, item.soal || '', JSON.stringify(item), req.body.subject || 'Umum', req.body.level || '-']
+                );
+            }
         }
 
         res.json({ success: true, data: results });
-
     } catch (err) {
         console.error("AI Error:", err);
         res.status(500).json({ success: false });
     }
+});
+
+// --- ADMIN ROUTES ---
+app.get('/admin/users', async (req, res) => {
+    if (req.session.role !== 'admin') return res.status(403).send("Forbidden");
+    const users = await db.all("SELECT id, username, quota, role, is_premium FROM users", []);
+    res.json(users);
 });
 
 app.listen(port, "0.0.0.0", () => console.log(`🚀 Server Berjalan di Port ${port}`));
