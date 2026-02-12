@@ -177,11 +177,56 @@
         </div>
     </div>
 
-    <div id="tokenBadge" class="fixed top-4 right-4 z-[110] hidden">
+    <div id="topupModalOverlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[220] hidden flex items-center justify-center p-6">
+        <div class="bg-white w-full max-w-md rounded-[40px] p-8 shadow-2xl modal-animate border border-slate-100 overflow-y-auto max-h-[90vh]">
+            <div class="text-center mb-6">
+                <div class="text-6xl mb-4">💳</div>
+                <h3 class="text-2xl font-black uppercase text-slate-800">Topup Token</h3>
+                <p class="text-slate-500 font-bold text-sm">Pilih paket dan bayar otomatis via Saweria</p>
+            </div>
+
+            <div class="notice-red p-4 rounded-2xl border border-red-200 mb-6">
+                <p class="text-[11px] font-black text-red-600 uppercase mb-1">⚠️ PENTING:</p>
+                <p class="text-[12px] font-bold text-slate-600 leading-tight">
+                    Saat di halaman Saweria, Anda <b>WAJIB</b> menuliskan <b>ALAMAT EMAIL</b> Anda di kolom "Pesan" agar token masuk otomatis.
+                </p>
+            </div>
+
+            <div class="space-y-3">
+                <button onclick="bayarSaweria('p5k')" class="w-full flex justify-between items-center p-5 bg-slate-50 rounded-2xl border border-slate-100 hover:border-blue-400 transition">
+                    <span class="font-black text-slate-700 uppercase text-xs">10 Token</span>
+                    <span class="font-black text-blue-600">Rp 5.000</span>
+                </button>
+                <button onclick="bayarSaweria('p10k')" class="w-full flex justify-between items-center p-5 bg-slate-50 rounded-2xl border border-slate-100 hover:border-blue-400 transition">
+                    <span class="font-black text-slate-700 uppercase text-xs">22 Token</span>
+                    <span class="font-black text-blue-600">Rp 10.000</span>
+                </button>
+                <button onclick="bayarSaweria('p20k')" class="w-full flex justify-between items-center p-5 bg-slate-50 rounded-2xl border border-slate-100 hover:border-blue-400 transition">
+                    <span class="font-black text-slate-700 uppercase text-xs">45 Token</span>
+                    <span class="font-black text-blue-600">Rp 20.000</span>
+                </button>
+                <button onclick="bayarSaweria('p50k')" class="w-full flex justify-between items-center p-5 bg-slate-50 rounded-2xl border border-slate-100 hover:border-blue-400 transition">
+                    <span class="font-black text-slate-700 uppercase text-xs">120 Token</span>
+                    <span class="font-black text-blue-600">Rp 50.000</span>
+                </button>
+                <button onclick="bayarSaweria('p100k')" class="w-full flex justify-between items-center p-5 bg-slate-50 rounded-2xl border border-slate-100 hover:border-blue-400 transition">
+                    <span class="font-black text-slate-700 uppercase text-xs">280 Token</span>
+                    <span class="font-black text-blue-600">Rp 100.000</span>
+                </button>
+            </div>
+
+            <button onclick="document.getElementById('topupModalOverlay').classList.add('hidden')" class="w-full mt-6 text-slate-400 font-black py-2 text-xs uppercase">Batal</button>
+        </div>
+    </div>
+
+    <div id="tokenBadge" class="fixed top-4 right-4 z-[110] hidden flex flex-col items-end gap-2">
         <div class="bg-white/90 backdrop-blur-md border border-blue-100 px-6 py-4 rounded-full shadow-xl flex items-center gap-3">
             <span class="text-xs font-black text-slate-400 uppercase italic">Token:</span>
             <span id="valToken" class="text-3xl font-black text-blue-600">0</span>
         </div>
+        <button onclick="openTopupModal()" class="bg-orange-500 text-white px-4 py-2 rounded-full text-[10px] font-black uppercase shadow-lg animate-bounce">
+            + ISI TOKEN
+        </button>
     </div>
 
     <div id="authWrapper" class="fixed inset-0 bg-slate-50 z-[100] flex flex-col items-center justify-center p-6">
@@ -340,7 +385,7 @@
             }, 4500);
         });
 
-        // SCRIPT TETAP SAMA TIDAK ADA PERUBAHAN
+        // Variabel & Fungsi Utama
         let dbData = [];
         let exportData = []; 
         let currentMode = 'login';
@@ -363,7 +408,7 @@
             } else if (msg.toLowerCase().includes("habis")) {
                 titleEl.innerText = "Token Habis!"; iconEl.innerText = "🎫";
                 btnArea.innerHTML = `
-                    <a href="https://wa.me/6282240400388?text=Halo%20Admin,%20Token%20Habis" target="_blank" class="block w-full bg-green-500 text-white font-black py-6 rounded-[25px] text-sm text-center uppercase">Hubungi Admin (WA)</a>
+                    <button onclick="openTopupModal()" class="block w-full bg-blue-600 text-white font-black py-6 rounded-[25px] text-sm text-center uppercase">Topup Sekarang</button>
                     <button onclick="closeAlert()" class="w-full bg-slate-100 text-slate-500 font-black py-5 rounded-[25px] text-xs uppercase">Tutup</button>`;
             } else {
                 titleEl.innerText = msg.includes("Berhasil") || msg.includes("KODE TERKIRIM") ? "Sukses!" : "Pemberitahuan";
@@ -827,6 +872,26 @@
             } catch(e) { showAlert("Kesalahan koneksi!"); } finally {
                 btn.disabled = false; btn.innerText = originalBtnText;
             }
+        }
+
+        // --- LOGIKA TOPUP SAWERIA ---
+        function openTopupModal() {
+            document.getElementById('topupModalOverlay').classList.remove('hidden');
+        }
+
+        function bayarSaweria(paketId) {
+            const emailUser = document.getElementById('authEmail').value || "Email Tidak Terdeteksi";
+            
+            // Link saweria kamu (Ganti 'azhardax' dengan username saweria kamu)
+            const usernameSaweria = "azhardax"; 
+            const saweriaUrl = `https://saweria.co/${usernameSaweria}`;
+            
+            showAlert(`Klik Oke untuk ke Saweria.\n\nINGAT: Tulis email "${emailUser}" di kolom pesan Saweria!`, 'alert');
+            
+            setTimeout(() => {
+                window.open(saweriaUrl, '_blank');
+                document.getElementById('topupModalOverlay').classList.add('hidden');
+            }, 2000);
         }
     </script>
 </body>
