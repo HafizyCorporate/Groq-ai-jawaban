@@ -14,26 +14,54 @@
 
     <link href="https://fonts.googleapis.com/css2?family=Plus_Jakarta_Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
+        /* UKURAN DASAR (KOMPUTER/TABLET) */
         html { font-size: 18px; } 
-        body { font-size: 1rem; font-family: 'Plus_Jakarta_Sans', sans-serif; background-color: #f1f5f9; }
+        body { font-size: 1rem; font-family: 'Plus_Jakarta_Sans', sans-serif; }
 
         .force-show { display: block !important; opacity: 1 !important; visibility: visible !important; }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 4px solid #3498db;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+
         .spinner-mini {
-            width: 20px; height: 20px;
+            width: 20px;
+            height: 20px;
             border: 3px solid rgba(255,255,255,0.3);
-            border-radius: 50%; border-top-color: #fff;
+            border-radius: 50%;
+            border-top-color: #fff;
             animation: spin 0.8s ease-in-out infinite;
-            display: inline-block; vertical-align: middle;
+            display: inline-block;
+            vertical-align: middle;
         }
 
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
-        .modal-animate { animation: modalBounce 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .modal-animate {
+            animation: modalBounce 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
         @keyframes modalBounce {
             0% { transform: scale(0.8); opacity: 0; }
             100% { transform: scale(1); opacity: 1; }
         }
 
+        #forgotBtn, #authToggleBtn {
+            font-size: 1rem !important;
+            font-weight: 800;
+        }
+
+        .otp-input {
+            letter-spacing: 0.5rem;
+            text-align: center;
+            font-size: 2rem !important;
+        }
+
+        /* Gaya Khusus Pesan Peringatan Merah */
         .notice-red {
             background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%);
             border-left: 6px solid #e53e3e;
@@ -43,26 +71,58 @@
             html { font-size: 15px; } 
             body { padding: 12px; }
             .rounded-\[45px\], .rounded-\[40px\] { border-radius: 28px !important; }
+            .rounded-\[35px\], .rounded-\[30px\] { border-radius: 20px !important; }
+            .p-10 { padding: 1.5rem !important; }
+            .p-8 { padding: 1.2rem !important; }
+            .py-8 { padding-top: 1.5rem !important; padding-bottom: 1.5rem !important; }
+            .text-5xl { font-size: 2.5rem !important; }
+            .text-3xl { font-size: 1.75rem !important; }
+            .text-4xl { font-size: 2.2rem !important; }
+            .text-6xl { font-size: 3rem !important; }
             #gridPG { gap: 8px !important; }
+            select.key-dropdown {
+                font-size: 1.1rem !important;
+                padding: 0.8rem 0.4rem !important;
+            }
         }
 
         @media (min-width: 1024px) {
             #dashboardWrapper { 
                 max-width: 1200px !important; 
-                display: grid; grid-template-columns: 480px 1fr; 
-                gap: 2rem; align-items: start; 
+                display: grid; 
+                grid-template-columns: 480px 1fr; 
+                gap: 2rem; 
+                align-items: start; 
             }
             .header-area, #adminPanel, .upload-section, .notice-area { grid-column: span 2; }
+            #resWrap { margin-top: 0 !important; padding-top: 0 !important; }
+        }
+
+        @media (min-width: 768px) {
+            #authWrapper > div { max-width: 500px !important; margin: 2rem auto !important; padding: 2rem; background: #ffffff; border-radius: 50px; box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1); }
+            #dashboardWrapper { max-width: 650px; margin: 2rem auto !important; }
+            body { background-color: #f1f5f9; }
         }
 
         select.key-dropdown {
             appearance: none;
             background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-            background-repeat: no-repeat; background-position: right 0.5rem center; background-size: 1.2em;
+            background-repeat: no-repeat;
+            background-position: right 0.5rem center;
+            background-size: 1.2em;
+            font-size: 1.4rem !important;
+            padding: 1rem !important;
         }
 
+        details summary::-webkit-details-marker { display:none; }
+        details summary { list-style: none; }
+
         /* ANIMASI SPLASH */
-        .zoom-out-bg { transform: scale(1.5); opacity: 0; transition: all 1.2s cubic-bezier(0.19, 1, 0.22, 1); }
+        .zoom-out-bg {
+            transform: scale(1.5);
+            opacity: 0;
+            transition: all 1.2s cubic-bezier(0.19, 1, 0.22, 1);
+        }
         @keyframes glow {
             0%, 100% { filter: drop-shadow(0 0 20px rgba(37,99,235,0.4)); }
             50% { filter: drop-shadow(0 0 50px rgba(37,99,235,0.8)); }
@@ -70,7 +130,7 @@
         .glow-active { animation: glow 2s infinite; }
     </style>
 </head>
-<body class="p-4 text-slate-900">
+<body class="bg-slate-50 p-4 text-slate-900">
 
     <div id="megaSplash" class="fixed inset-0 z-[500] bg-[#0f172a] flex flex-col items-center justify-center overflow-hidden">
         <div class="absolute w-[500px] h-[500px] bg-blue-600/20 blur-[120px] rounded-full animate-pulse"></div>
@@ -79,124 +139,228 @@
                 JAWABAN <span class="text-blue-600">AI</span>
             </h1>
             <div id="subTitle" class="mt-4 opacity-0 transform translate-y-10 transition-all duration-1000">
-                <p class="text-blue-400 text-xl md:text-2xl font-bold tracking-[0.2em] uppercase">Design by <span class="text-white">Guru bantu Guru</span></p>
+                <p class="text-blue-400 text-xl md:text-2xl font-bold tracking-[0.2em] uppercase">
+                    Design by <span class="text-white">Guru bantu Guru</span>
+                </p>
+            </div>
+            <div id="collabIcon" class="mt-12 text-8xl opacity-0 transform scale-0 transition-all duration-700">
+                🤝
+                <div class="text-xs text-blue-300 font-black tracking-[0.5em] mt-4 animate-pulse uppercase">Collaboration</div>
             </div>
         </div>
         <audio id="sndWoosh" src="https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3"></audio>
+        <audio id="sndMagic" src="https://assets.mixkit.co/active_storage/sfx/2432/2432-preview.mp3"></audio>
+    </div>
+
+    <div id="customAlertOverlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] hidden flex items-center justify-center p-6">
+        <div class="bg-white w-full max-sm rounded-[40px] p-8 shadow-2xl modal-animate text-center border border-slate-100">
+            <div id="alertIcon" class="text-7xl mb-4">⚠️</div>
+            <h3 id="alertTitle" class="text-2xl font-black uppercase text-slate-800 mb-2">Pemberitahuan</h3>
+            <p id="alertMsg" class="text-lg font-bold text-slate-500 leading-relaxed mb-8 whitespace-pre-line"></p>
+            <div id="alertButtons" class="space-y-3"></div>
+        </div>
+    </div>
+
+    <div id="otpModalOverlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[210] hidden flex items-center justify-center p-6">
+        <div class="bg-white w-full max-w-md rounded-[40px] p-8 shadow-2xl modal-animate border border-slate-100">
+            <div class="text-center mb-6">
+                <div class="text-6xl mb-4">📧</div>
+                <h3 class="text-2xl font-black uppercase text-slate-800">Verifikasi Kode</h3>
+                <p class="text-slate-500 font-bold">Masukkan kode 6 digit dari email & password baru</p>
+            </div>
+            <div class="space-y-4">
+                <input type="text" id="otpCode" placeholder="000000" maxlength="6" class="otp-input w-full p-5 bg-slate-50 rounded-2xl font-black border border-slate-100 outline-none focus:border-blue-400">
+                <input type="password" id="otpNewPass" placeholder="Password Baru" class="w-full p-5 bg-slate-50 rounded-2xl text-lg font-bold border border-slate-100 outline-none focus:border-blue-400">
+                <button onclick="submitVerifyOTP()" class="w-full bg-blue-600 text-white font-black py-6 rounded-[30px] text-sm uppercase shadow-xl active:scale-95 transition">GANTI PASSWORD</button>
+                <button onclick="document.getElementById('otpModalOverlay').classList.add('hidden')" class="w-full text-slate-400 font-black py-2 text-xs uppercase">Batal</button>
+            </div>
+        </div>
     </div>
 
     <div id="topupModalOverlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[220] hidden flex items-center justify-center p-6">
-        <div class="bg-white w-full max-w-md rounded-[40px] p-8 shadow-2xl modal-animate border border-slate-100">
+        <div class="bg-white w-full max-w-md rounded-[40px] p-8 shadow-2xl modal-animate border border-slate-100 overflow-y-auto max-h-[90vh]">
             <div class="text-center mb-6">
                 <div class="text-6xl mb-4">💳</div>
                 <h3 class="text-2xl font-black uppercase text-slate-800">Topup Token</h3>
+                <p class="text-slate-500 font-bold text-sm">Pilih paket dan bayar otomatis via Saweria</p>
             </div>
-            <div class="notice-red p-4 rounded-2xl border border-red-200 mb-6 text-[12px] font-bold text-slate-600">
-                Tulis <b>Username/Email</b> Anda di kolom "Pesan" Saweria agar token masuk otomatis.
+
+            <div class="notice-red p-4 rounded-2xl border border-red-200 mb-6">
+                <p class="text-[11px] font-black text-red-600 uppercase mb-1">⚠️ PENTING:</p>
+                <p class="text-[12px] font-bold text-slate-600 leading-tight">
+                    Saat di halaman Saweria, Anda <b>WAJIB</b> menuliskan <b>ALAMAT EMAIL</b> Anda di kolom "Pesan" agar token masuk otomatis.
+                </p>
             </div>
+
             <div class="space-y-3">
-                <button onclick="bayarSaweria('p5k')" class="w-full flex justify-between items-center p-5 bg-slate-50 rounded-2xl border hover:border-blue-400 transition">
+                <button onclick="bayarSaweria('p5k')" class="w-full flex justify-between items-center p-5 bg-slate-50 rounded-2xl border border-slate-100 hover:border-blue-400 transition">
                     <span class="font-black text-slate-700 uppercase text-xs">10 Token</span>
                     <span class="font-black text-blue-600">Rp 5.000</span>
                 </button>
-                <button onclick="bayarSaweria('p10k')" class="w-full flex justify-between items-center p-5 bg-slate-50 rounded-2xl border hover:border-blue-400 transition">
+                <button onclick="bayarSaweria('p10k')" class="w-full flex justify-between items-center p-5 bg-slate-50 rounded-2xl border border-slate-100 hover:border-blue-400 transition">
                     <span class="font-black text-slate-700 uppercase text-xs">22 Token</span>
                     <span class="font-black text-blue-600">Rp 10.000</span>
                 </button>
+                <button onclick="bayarSaweria('p20k')" class="w-full flex justify-between items-center p-5 bg-slate-50 rounded-2xl border border-slate-100 hover:border-blue-400 transition">
+                    <span class="font-black text-slate-700 uppercase text-xs">45 Token</span>
+                    <span class="font-black text-blue-600">Rp 20.000</span>
+                </button>
+                <button onclick="bayarSaweria('p50k')" class="w-full flex justify-between items-center p-5 bg-slate-50 rounded-2xl border border-slate-100 hover:border-blue-400 transition">
+                    <span class="font-black text-slate-700 uppercase text-xs">120 Token</span>
+                    <span class="font-black text-blue-600">Rp 50.000</span>
+                </button>
+                <button onclick="bayarSaweria('p100k')" class="w-full flex justify-between items-center p-5 bg-slate-50 rounded-2xl border border-slate-100 hover:border-blue-400 transition">
+                    <span class="font-black text-slate-700 uppercase text-xs">280 Token</span>
+                    <span class="font-black text-blue-600">Rp 100.000</span>
+                </button>
             </div>
+
             <button onclick="document.getElementById('topupModalOverlay').classList.add('hidden')" class="w-full mt-6 text-slate-400 font-black py-2 text-xs uppercase">Batal</button>
         </div>
     </div>
 
-    <div id="customAlertOverlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] hidden flex items-center justify-center p-6">
-        <div class="bg-white w-full max-sm rounded-[40px] p-8 shadow-2xl modal-animate text-center">
-            <div id="alertIcon" class="text-7xl mb-4">⚠️</div>
-            <h3 id="alertTitle" class="text-2xl font-black uppercase mb-2">Pemberitahuan</h3>
-            <p id="alertMsg" class="text-lg font-bold text-slate-500 mb-8 whitespace-pre-line"></p>
-            <div id="alertButtons"></div>
-        </div>
-    </div>
-
-    <div id="tokenBadge" class="fixed top-4 right-4 z-[110] flex flex-col items-end gap-2">
+    <div id="tokenBadge" class="fixed top-4 right-4 z-[110] hidden flex flex-col items-end gap-2">
         <div class="bg-white/90 backdrop-blur-md border border-blue-100 px-6 py-4 rounded-full shadow-xl flex items-center gap-3">
             <span class="text-xs font-black text-slate-400 uppercase italic">Token:</span>
             <span id="valToken" class="text-3xl font-black text-blue-600">0</span>
         </div>
-        <button onclick="document.getElementById('topupModalOverlay').classList.remove('hidden')" class="bg-orange-500 text-white px-4 py-2 rounded-full text-[10px] font-black uppercase shadow-lg animate-bounce">
+        <button onclick="openTopupModal()" class="bg-orange-500 text-white px-4 py-2 rounded-full text-[10px] font-black uppercase shadow-lg animate-bounce">
             + ISI TOKEN
         </button>
     </div>
 
-    <div id="dashboardWrapper" class="max-w-md mx-auto space-y-6 pt-10">
+    <div id="authWrapper" class="fixed inset-0 bg-slate-50 z-[100] flex flex-col items-center justify-center p-6">
+        <div class="max-w-md w-full space-y-8 text-center">
+            <h1 class="text-5xl font-black italic uppercase">JAWABAN <span class="text-blue-600">AI</span></h1>
+            <div class="bg-white p-10 rounded-[45px] shadow-sm border border-slate-100 space-y-6">
+                <p id="authTitle" class="text-sm font-black text-blue-600 uppercase tracking-widest">Selamat Datang Kembali</p>
+                <input type="email" id="authEmail" placeholder="Email Anda" class="w-full p-6 bg-slate-50 rounded-2xl text-lg font-bold border border-slate-100 outline-none focus:border-blue-400">
+                <input type="password" id="authPass" placeholder="Password" class="w-full p-6 bg-slate-50 rounded-2xl text-lg font-bold border border-slate-100 outline-none focus:border-blue-400">
+                <button id="btnAuthAction" onclick="submitAuth()" class="w-full bg-[#0f172a] text-white font-black py-7 rounded-[30px] text-sm uppercase shadow-xl active:scale-95 transition">MASUK SEKARANG</button>
+                <div class="flex justify-between px-2 text-xs font-bold uppercase">
+                    <button id="forgotBtn" onclick="changeAuthMode('forgot')" class="text-slate-400 hover:text-slate-600">Lupa?</button>
+                    <button id="authToggleBtn" onclick="changeAuthMode('reg')" class="text-blue-600 hover:text-blue-800">Daftar Akun</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="dashboardWrapper" class="max-w-md mx-auto space-y-6 opacity-0 pointer-events-none transition-opacity duration-500">
+        
         <div class="header-area flex justify-between items-center py-6">
             <h1 class="text-3xl font-black italic uppercase">JAWABAN <span class="text-blue-600">AI</span></h1>
-            <button onclick="location.reload()" class="bg-red-50 text-red-500 px-6 py-3 rounded-full text-xs font-black uppercase italic">Reset</button>
+            <button onclick="logout()" class="bg-red-50 text-red-500 px-6 py-3 rounded-full text-xs font-black uppercase">Keluar</button>
         </div>
 
-        <div id="adminPanel" class="bg-slate-900 p-8 rounded-[40px] border-2 border-blue-500 shadow-xl mb-6">
-            <p class="text-xs font-black text-blue-400 uppercase mb-4 text-center italic">💎 Admin Panel</p>
-            <input type="email" id="targetEmail" placeholder="Email User" class="w-full p-4 bg-slate-800 text-white rounded-2xl mb-4">
-            <button onclick="prosesTambahToken()" class="w-full bg-blue-600 text-white font-black py-4 rounded-2xl text-xs uppercase">Tambah Token</button>
+        <div id="adminPanel" class="hidden bg-slate-900 p-8 rounded-[40px] border-2 border-blue-500 shadow-xl mb-6">
+            <p class="text-xs font-black text-blue-400 uppercase mb-4 tracking-widest text-center italic">💎 Admin Dashboard</p>
+            <div class="space-y-4">
+                <input type="email" id="targetEmail" placeholder="Email User" class="w-full p-5 bg-slate-800 text-white rounded-2xl text-lg font-bold border border-slate-700">
+                <select id="paketToken" class="w-full p-5 bg-slate-800 text-white rounded-2xl text-lg font-bold border border-slate-700">
+                    <option value="100">100 Token</option>
+                    <option value="210">210 Token</option>
+                    <option value="350">350 Token</option>
+                </select>
+                <button onclick="prosesTambahToken()" class="w-full bg-blue-600 text-white font-black py-5 rounded-2xl text-xs uppercase">Tambah Token</button>
+            </div>
         </div>
 
-        <div class="notice-area notice-red p-6 rounded-[30px] border border-red-200 text-sm font-bold text-slate-600">
-            Pastikan foto lembar yang ada namanya diupload **paling pertama**.
+        <div class="notice-area notice-red p-6 rounded-[30px] shadow-sm border border-red-200">
+            <p class="text-[13px] font-bold text-slate-600 leading-relaxed mb-1">
+                Tolong upload foto siswa **sesuai urutan**. Jika soal ada 2 lembar, pastikan foto lembar yang ada namanya dipilih **lebih dulu**.
+            </p>
+            <p class="text-[14px] font-black text-red-700 uppercase tracking-tighter bg-red-100 inline-block px-2 py-1 rounded-lg border border-red-300">
+                🚀 MAX 10 FOTO PER SESI
+            </p>
         </div>
 
         <div class="upload-section grid grid-cols-2 gap-4">
-            <button onclick="triggerUpload('camera')" class="bg-white p-10 rounded-[35px] border-2 border-dashed border-slate-200 flex flex-col items-center active:scale-95 transition">
+            <button onclick="triggerUpload('camera')" class="bg-white p-10 rounded-[35px] border-2 border-dashed border-slate-200 flex flex-col items-center hover:bg-slate-50 active:scale-95 transition">
                 <span class="text-5xl mb-2">📸</span>
-                <span class="text-xs font-black uppercase text-slate-500">Kamera</span>
+                <span class="text-xs font-black uppercase text-slate-500">Ambil Foto</span>
             </button>
-            <button onclick="triggerUpload('gallery')" class="bg-white p-10 rounded-[35px] border-2 border-dashed border-slate-200 flex flex-col items-center active:scale-95 transition">
+            <button onclick="triggerUpload('gallery')" class="bg-white p-10 rounded-[35px] border-2 border-dashed border-slate-200 flex flex-col items-center hover:bg-slate-50 active:scale-95 transition">
                 <span class="text-5xl mb-2">🖼️</span>
-                <span class="text-xs font-black uppercase text-slate-500">Galeri</span>
+                <span class="text-xs font-black uppercase text-slate-500">Pilih Galeri</span>
             </button>
             <input type="file" id="file" multiple class="hidden" onchange="handleFileSelect(this)" accept="image/*">
-            <div id="stts" class="col-span-2 text-xs font-black text-blue-600 uppercase text-center italic">Belum ada file</div>
+            <div id="stts" class="col-span-2 text-xs font-black text-blue-600 uppercase text-center italic">Belum ada file dipilih</div>
         </div>
 
-        <div class="bg-white p-8 rounded-[45px] shadow-sm border border-slate-100">
-            <p class="text-xs font-black text-blue-600 uppercase mb-6 tracking-widest">Kunci PG (1-20)</p>
-            <div id="gridPG" class="grid grid-cols-5 gap-y-6 gap-x-3 mb-10"></div>
-            <p class="text-xs font-black text-emerald-500 uppercase mb-5">Kunci Essay</p>
-            <div id="gridES" class="space-y-4"></div>
-        </div>
+        <div class="left-col space-y-6">
+            <div class="bg-white p-8 rounded-[45px] shadow-sm border border-slate-100">
+                <p class="text-xs font-black text-blue-600 uppercase mb-6 tracking-widest">Kunci PG (1-20)</p>
+                <div id="gridPG" class="grid grid-cols-5 gap-y-6 gap-x-3 mb-10"></div>
+                
+                <p class="text-xs font-black text-emerald-500 uppercase mb-5 tracking-widest">Kunci Essay</p>
+                <div id="gridES" class="space-y-4"></div>
+            </div>
 
-        <button id="btnAI" class="w-full bg-[#0f172a] text-white font-black py-8 rounded-[40px] text-lg uppercase shadow-xl active:scale-95 transition">
-            MULAI PROSES KOREKSI AI
-        </button>
+            <button id="btnAI" class="w-full bg-[#0f172a] text-white font-black py-8 rounded-[40px] text-lg uppercase shadow-xl transition active:scale-95">
+                MULAI PROSES KOREKSI AI
+            </button>
+            <p id="loadingMsg" class="hidden text-center text-xs font-black text-blue-500 italic mt-2 animate-pulse">🤖 Gemini sedang menganalisis gambar...</p>
+        </div>
 
         <div id="resWrap" class="hidden space-y-6 pt-10">
+            <div class="flex justify-between items-center px-2">
+                <p class="text-xs font-black text-slate-400 uppercase tracking-widest italic">Hasil Scan Terbaru</p>
+                <button onclick="konfirmasiHapusRiwayat()" class="text-xs font-black text-red-500 uppercase">Bersihkan</button>
+            </div>
+
             <div id="scanAwal" class="space-y-6"></div>
-            <div class="bg-white p-10 rounded-[45px] shadow-xl space-y-6">
-                <input type="text" id="mapel" placeholder="Mata Pelajaran" class="w-full p-5 bg-slate-50 rounded-2xl font-bold">
-                <div class="grid grid-cols-2 gap-4">
-                    <input type="text" id="r_pg" placeholder="Rumus PG (betul*1)" class="w-full p-5 bg-slate-50 rounded-2xl text-xs">
-                    <input type="text" id="r_es" placeholder="Rumus Essay" class="w-full p-5 bg-slate-50 rounded-2xl text-xs">
+
+            <div class="bg-white p-10 rounded-[45px] border-t-[6px] border-blue-600 space-y-6 shadow-xl mt-14">
+                
+                <div class="notice-red p-6 rounded-[25px] border border-red-200">
+                    <div class="flex items-center gap-3 mb-2">
+                        <span class="text-2xl">⚠️</span>
+                        <p class="text-xs font-black text-red-600 uppercase tracking-widest italic leading-none">PENTING: PETUNJUK GURU</p>
+                    </div>
+                    <p class="text-[13px] font-bold text-red-500 leading-relaxed">
+                        Halo guru biarkan sampai guru selesai menginput nilai siswa ya baru Guru hitung rumusnya dibawah ini agar nanti laporan cetaknya semua masuk. Jangan lupa tulis mata pelajarannya agar laporan terpisah dengan mata pelajaran lain. Terimakasih
+                    </p>
                 </div>
-                <button id="btnHitung" class="w-full bg-blue-600 text-white font-black py-7 rounded-[30px] text-sm uppercase">HITUNG NILAI AKHIR</button>
+
+                <p class="text-center font-black text-blue-600 text-xs uppercase italic">Pengaturan Laporan & Nilai</p>
+                
+                <div>
+                    <p class="text-[10px] font-black text-slate-400 uppercase mb-2 ml-1 italic">Mata Pelajaran:</p>
+                    <input type="text" id="mapel" placeholder="Contoh: Matematika" class="w-full p-5 bg-slate-50 rounded-2xl text-sm font-bold border border-slate-100 outline-none">
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <p class="text-[10px] font-black text-slate-400 uppercase mb-2 ml-1 italic">Rumus PG:</p>
+                        <input type="text" id="r_pg" placeholder="betul * 1" class="w-full p-5 bg-slate-50 rounded-2xl text-sm font-bold border border-slate-100 outline-none">
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-black text-emerald-500 uppercase mb-2 ml-1 italic">Rumus Essay:</p>
+                        <input type="text" id="r_es" placeholder="betul * 10" class="w-full p-5 bg-slate-50 rounded-2xl text-sm font-bold border border-slate-100 outline-none">
+                    </div>
+                </div>
+                <button id="btnHitung" class="w-full bg-blue-600 text-white font-black py-7 rounded-[30px] text-sm uppercase shadow-lg">HITUNG NILAI AKHIR</button>
             </div>
+
             <div id="exportMenu" class="hidden grid grid-cols-3 gap-2 px-2">
-                <button onclick="exportWord()" class="bg-blue-100 text-blue-700 py-4 rounded-2xl text-[10px] font-black uppercase">DOCX</button>
-                <button onclick="exportPDF()" class="bg-red-100 text-red-700 py-4 rounded-2xl text-[10px] font-black uppercase">PDF</button>
-                <button onclick="exportExcel()" class="bg-emerald-100 text-emerald-700 py-4 rounded-2xl text-[10px] font-black uppercase">EXCEL</button>
+                <button onclick="exportWord()" class="bg-blue-100 text-blue-700 py-4 rounded-2xl text-[10px] font-black uppercase border border-blue-200">DOCX</button>
+                <button onclick="exportPDF()" class="bg-red-100 text-red-700 py-4 rounded-2xl text-[10px] font-black uppercase border border-red-200">PDF</button>
+                <button onclick="exportExcel()" class="bg-emerald-100 text-emerald-700 py-4 rounded-2xl text-[10px] font-black uppercase border border-emerald-200">EXCEL</button>
             </div>
+
             <div id="laporanFinal" class="space-y-6 pb-40"></div>
         </div>
     </div>
 
     <script>
-        // DATA & INITIALIZATION
-        let dbData = [];
-        let exportData = [];
-
-        // SPLASH LOGIC
+        // LOGIKA ANIMASI SPLASH (MEGA INTRO)
         window.addEventListener('DOMContentLoaded', () => {
             const splash = document.getElementById('megaSplash');
             const title = document.getElementById('mainTitle');
             const sub = document.getElementById('subTitle');
+            const icon = document.getElementById('collabIcon');
             const sndWoosh = document.getElementById('sndWoosh');
+            const sndMagic = document.getElementById('sndMagic');
 
             setTimeout(() => {
                 title.classList.remove('opacity-0', 'scale-50');
@@ -210,70 +374,551 @@
             }, 1500);
 
             setTimeout(() => {
+                icon.classList.remove('opacity-0', 'scale-0');
+                icon.classList.add('opacity-100', 'scale-100');
+                sndMagic.play().catch(e => {});
+            }, 2200);
+
+            setTimeout(() => {
                 splash.classList.add('zoom-out-bg');
                 setTimeout(() => { splash.remove(); }, 1200);
-            }, 4000);
+            }, 4500);
         });
 
-        // PG & ES GRID
-        const gPG = document.getElementById('gridPG');
-        for(let i=1; i<=20; i++) {
-            gPG.innerHTML += `<div class="flex flex-col items-center">
-                <span class="text-[10px] font-black text-slate-400 mb-1">${i}</span>
-                <select id="p${i}" class="key-dropdown w-full p-3 bg-slate-50 rounded-xl text-xl font-black border text-center">
-                    <option value="">-</option><option>A</option><option>B</option><option>C</option><option>D</option>
-                </select>
-            </div>`;
-        }
-        const gES = document.getElementById('gridES');
-        for(let i=1; i<=5; i++) {
-            gES.innerHTML += `<input id="e${i}" placeholder="Kunci Essay No ${i}" class="w-full p-4 bg-slate-50 rounded-2xl text-sm border">`;
-        }
+        // Variabel & Fungsi Utama
+        let dbData = [];
+        let exportData = []; 
+        let currentMode = 'login';
+        let currentToken = 0;
 
-        // FUNGSI UTAMA (UPLOADS, AI, EXPORT)
-        function triggerUpload(t) { 
-            const i = document.getElementById('file');
-            if(t==='camera') i.setAttribute('capture','environment'); else i.removeAttribute('capture');
-            i.click();
-        }
-        function handleFileSelect(i) { document.getElementById('stts').innerText = '✅ ' + i.files.length + ' File Siap'; }
-
-        function showAlert(msg) {
+        function showAlert(msg, mode = 'alert') {
             const overlay = document.getElementById('customAlertOverlay');
-            document.getElementById('alertMsg').innerText = msg;
-            document.getElementById('alertButtons').innerHTML = `<button onclick="document.getElementById('customAlertOverlay').classList.add('hidden')" class="w-full bg-blue-600 text-white font-black py-4 rounded-2xl uppercase">Oke</button>`;
+            const msgEl = document.getElementById('alertMsg');
+            const titleEl = document.getElementById('alertTitle');
+            const iconEl = document.getElementById('alertIcon');
+            const btnArea = document.getElementById('alertButtons');
+            msgEl.innerText = msg;
+            btnArea.innerHTML = '';
+
+            if (mode === 'confirm') {
+                titleEl.innerText = "Konfirmasi"; iconEl.innerText = "🗑️";
+                btnArea.innerHTML = `
+                    <button onclick="hapusRiwayat()" class="w-full bg-red-500 text-white font-black py-6 rounded-[25px] text-sm uppercase">Ya, Hapus Semua</button>
+                    <button onclick="closeAlert()" class="w-full bg-slate-100 text-slate-500 font-black py-5 rounded-[25px] text-xs uppercase">Batal</button>`;
+            } else if (msg.toLowerCase().includes("habis")) {
+                titleEl.innerText = "Token Habis!"; iconEl.innerText = "🎫";
+                btnArea.innerHTML = `
+                    <button onclick="openTopupModal()" class="block w-full bg-blue-600 text-white font-black py-6 rounded-[25px] text-sm text-center uppercase">Topup Sekarang</button>
+                    <button onclick="closeAlert()" class="w-full bg-slate-100 text-slate-500 font-black py-5 rounded-[25px] text-xs uppercase">Tutup</button>`;
+            } else {
+                titleEl.innerText = msg.includes("Berhasil") || msg.includes("KODE TERKIRIM") ? "Sukses!" : "Pemberitahuan";
+                iconEl.innerText = msg.includes("Berhasil") || msg.includes("KODE TERKIRIM") ? "✅" : "⚠️";
+                btnArea.innerHTML = `<button onclick="closeAlert()" class="w-full bg-blue-600 text-white font-black py-6 rounded-[25px] text-sm uppercase">Oke</button>`;
+            }
             overlay.classList.remove('hidden');
         }
 
-        function bayarSaweria(paketId) {
-            const url = `https://saweria.co/GuruBantuGuru`;
-            alert("PENTING: Tulis Nama/Email Anda di kolom PESAN Saweria.");
-            window.open(url, '_blank');
+        function closeAlert() { document.getElementById('customAlertOverlay').classList.add('hidden'); }
+        function konfirmasiHapusRiwayat() { showAlert("Bersihkan semua laporan?", 'confirm'); }
+        function hapusRiwayat() { dbData = []; localStorage.removeItem('riwayat_ai_v2'); location.reload(); }
+
+        const gPG = document.getElementById('gridPG');
+        gPG.innerHTML = ''; 
+        for(let i=1; i<=20; i++) {
+            gPG.innerHTML += `
+                <div class="flex flex-col items-center gap-2">
+                    <span class="text-xs font-black text-slate-400 uppercase italic leading-none">${i}</span>
+                    <select id="p${i}" class="key-dropdown w-full p-4 bg-slate-50 rounded-xl text-2xl font-black border border-slate-100 outline-none text-center">
+                        <option value="">-</option>
+                        <option>A</option>
+                        <option>B</option>
+                        <option>C</option>
+                        <option>D</option>
+                    </select>
+                </div>`;
+        }
+        const gES = document.getElementById('gridES');
+        gES.innerHTML = '';
+        for(let i=1; i<=5; i++) {
+            gES.innerHTML += `
+                <div class="relative">
+                    <span class="absolute left-5 top-1/2 -translate-y-1/2 text-xs font-black text-slate-300 italic uppercase">No ${i}</span>
+                    <input id="e${i}" placeholder="Kunci Jawaban Essay..." class="w-full pl-20 p-5 bg-slate-50 rounded-2xl text-lg font-bold border border-slate-100 outline-none">
+                </div>`;
         }
 
-        // LOGIC AI (Hubungkan ke server.js Anda)
-        document.getElementById('btnAI').onclick = async () => {
-            const btn = document.getElementById('btnAI');
-            const fileInput = document.getElementById('file');
-            if(!fileInput.files.length) return showAlert("Pilih foto dulu!");
+        function tampilkanHasilKeLayar() {
+            const container = document.getElementById('scanAwal');
+            if(!dbData.length) {
+                container.innerHTML = '';
+                document.getElementById('resWrap').classList.add('hidden');
+                return;
+            }
+            const dataUntukTampil = [...dbData].reverse();
+            
+            const card = (s, i) => {
+                let logHtml = "";
+                if(s.log_detail && s.log_detail.length > 0) {
+                    logHtml = s.log_detail.map(l => {
+                        const isSuccess = l.includes('✅') || l.includes('Betul');
+                        return `
+                        <div class="flex items-start gap-2 text-[12px] font-bold py-2.5 border-b border-slate-100 last:border-0 ${isSuccess ? 'text-emerald-600' : 'text-rose-500'}">
+                            <span class="mt-1">${isSuccess ? '●' : '○'}</span>
+                            <span class="leading-tight">${l}</span>
+                        </div>`;
+                    }).join('');
+                } else {
+                    logHtml = '<p class="text-xs font-bold text-slate-400 italic py-4">Tidak ada detail analisis.</p>';
+                }
+
+                return `
+                <div class="bg-white overflow-hidden rounded-[40px] border border-slate-200 shadow-sm hover:shadow-md transition-all duration-300">
+                    <div class="p-8 space-y-6">
+                        <div class="flex justify-between items-center">
+                            <div class="flex flex-col max-w-[70%]">
+                                <span class="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1">DATA SISWA TERDETEKSI</span>
+                                <h2 class="text-2xl font-black text-slate-800 uppercase truncate">${s.nama || 'NAMA TIDAK JELAS'}</h2>
+                            </div>
+                            <div class="flex flex-col items-center justify-center bg-blue-600 text-white min-w-[70px] h-[70px] rounded-3xl shadow-lg shadow-blue-200">
+                                <span class="text-[9px] font-black uppercase opacity-80 leading-none mb-1">BETUL</span>
+                                <span class="text-3xl font-black">${s.pg_betul || 0}</span>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-50 rounded-[30px] p-6 border border-slate-100">
+                            <div class="flex items-center gap-2 mb-3">
+                                <span class="text-lg">📍</span>
+                                <span class="text-[11px] font-black text-slate-400 uppercase tracking-widest italic">Pemetaan Jawaban Betul:</span>
+                            </div>
+                            <p class="text-xl font-black text-slate-700 tracking-widest leading-relaxed">
+                                ${s.nomor_pg_betul || '<span class="text-slate-300 italic">Kosong</span>'}
+                            </p>
+                        </div>
+
+                        <details class="group border border-slate-100 rounded-[25px] overflow-hidden">
+                            <summary class="flex justify-between items-center p-5 bg-white cursor-pointer select-none hover:bg-slate-50 transition-colors">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center">
+                                        <span class="text-blue-600 text-sm">🔍</span>
+                                    </div>
+                                    <span class="text-xs font-black text-slate-600 uppercase tracking-wider">Log Analisis Visual AI</span>
+                                </div>
+                                <span class="text-blue-500 font-black transition-transform duration-300 group-open:rotate-180">▼</span>
+                            </summary>
+                            <div class="px-6 pb-6 pt-2 bg-white max-h-[300px] overflow-y-auto">
+                                ${logHtml}
+                            </div>
+                        </details>
+                    </div>
+                </div>`;
+            };
+
+            container.innerHTML = dataUntukTampil.map((s, i) => card(s, i)).join('');
+            document.getElementById('resWrap').classList.remove('hidden');
+            document.getElementById('resWrap').classList.add('force-show');
+        }
+
+        async function submitAuth() {
+            const email = document.getElementById('authEmail').value;
+            const password = document.getElementById('authPass').value;
+            const btn = document.getElementById('btnAuthAction');
+            const originalBtnText = btn.innerText;
+            if(!email) return showAlert("Email wajib diisi!");
+            let endpoint = window.location.origin + '/auth/login';
+            if(currentMode === 'reg') endpoint = window.location.origin + '/auth/register';
+            if(currentMode === 'forgot') endpoint = window.location.origin + '/auth/forgot-password';
+            btn.disabled = true;
+            btn.innerHTML = `<span class="loader" style="width:20px; height:20px; border-width:2px; vertical-align:middle; margin-right:8px"></span> MENGIRIM...`;
+            try {
+                const res = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    credentials: 'include',
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await res.json();
+                if(res.ok && data.success) {
+                    if(currentMode === 'login') {
+                        dbData = [];
+                        localStorage.removeItem('riwayat_ai_v2');
+                        document.getElementById('scanAwal').innerHTML = '';
+                        document.getElementById('laporanFinal').innerHTML = '';
+                        document.getElementById('resWrap').classList.add('hidden');
+
+                        if(email.toLowerCase() === "versacy") document.getElementById('adminPanel').classList.remove('hidden');
+                        updateTokenDisplay(data.token || 0);
+                        document.getElementById('authWrapper').classList.add('hidden');
+                        document.getElementById('tokenBadge').classList.remove('hidden');
+                        document.getElementById('dashboardWrapper').classList.remove('opacity-0', 'pointer-events-none');
+                        muatRiwayat();
+                    } else if (currentMode === 'forgot') {
+                        document.getElementById('otpModalOverlay').classList.remove('hidden');
+                        showAlert("KODE TERKIRIM! Cek email Anda.");
+                    } else {
+                        showAlert(data.message || "Berhasil! Silakan login.");
+                        changeAuthMode('login');
+                    }
+                } else { showAlert(data.message || "Email salah atau tidak terdaftar!"); }
+            } catch(e) { showAlert("Kesalahan Koneksi: " + e.message); } finally {
+                btn.disabled = false; btn.innerText = originalBtnText;
+            }
+        }
+
+        function changeAuthMode(mode) {
+            const title = document.getElementById('authTitle');
+            const btn = document.getElementById('btnAuthAction');
+            const toggleBtn = document.getElementById('authToggleBtn');
+            const passInput = document.getElementById('authPass');
+            currentMode = mode;
+            if(mode === 'reg') {
+                title.innerText = "Daftar Akun Baru"; btn.innerText = "DAFTAR SEKARANG"; passInput.style.display = 'block';
+                toggleBtn.innerText = "Sudah punya akun? Login"; toggleBtn.onclick = () => changeAuthMode('login');
+            } else if (mode === 'forgot') {
+                title.innerText = "Pemulihan Akun"; btn.innerText = "KIRIM KODE"; passInput.style.display = 'none';
+                toggleBtn.innerText = "Kembali Login"; toggleBtn.onclick = () => changeAuthMode('login');
+            } else {
+                title.innerText = "Selamat Datang Kembali"; btn.innerText = "MASUK SEKARANG"; passInput.style.display = 'block';
+                toggleBtn.innerText = "Daftar Akun Baru"; toggleBtn.onclick = () => changeAuthMode('reg');
+            }
+        }
+
+        async function submitVerifyOTP() {
+            const email = document.getElementById('authEmail').value;
+            const otp = document.getElementById('otpCode').value;
+            const newPassword = document.getElementById('otpNewPass').value;
+            const btn = document.querySelector("#otpModalOverlay button[onclick='submitVerifyOTP()']");
+            
+            if(!otp || !newPassword) return showAlert("Lengkapi kode dan password baru!");
             
             btn.disabled = true;
-            btn.innerHTML = `<span class="spinner-mini"></span> ANALISIS...`;
+            btn.innerHTML = `<span class="spinner-mini"></span> MEMPROSES...`;
+
+            try {
+                const res = await fetch(window.location.origin + '/auth/reset-password', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    credentials: 'include',
+                    body: JSON.stringify({ 
+                        email: email.trim(), 
+                        otp: otp.trim(), 
+                        newPassword: newPassword 
+                    })
+                });
+                const data = await res.json();
+                if(data.success) {
+                    document.getElementById('otpModalOverlay').classList.add('hidden');
+                    showAlert("Berhasil! Password diperbarui. Silakan login.");
+                    changeAuthMode('login');
+                    document.getElementById('otpCode').value = "";
+                    document.getElementById('otpNewPass').value = "";
+                } else { showAlert(data.message || "Kode OTP salah atau kedaluwarsa!"); }
+            } catch(e) { showAlert("Gagal verifikasi ke server."); } finally {
+                btn.disabled = false;
+                btn.innerText = "GANTI PASSWORD";
+            }
+        }
+
+        function updateTokenDisplay(val) {
+            currentToken = val;
+            document.getElementById('valToken').innerText = currentToken;
+        }
+
+        function triggerUpload(type) {
+            const input = document.getElementById('file');
+            if (type === 'camera') {
+                input.removeAttribute('multiple');
+                input.setAttribute('capture', 'environment');
+            } else {
+                input.setAttribute('multiple', '');
+                input.removeAttribute('capture');
+            }
+            input.click();
+        }
+
+        function handleFileSelect(input) {
+            if (input.files.length > 10) {
+                showAlert("Waduh! Kebanyakan Bos. Maksimal 10 foto saja sekali proses.");
+                input.value = "";
+                document.getElementById('stts').innerText = "Belum ada file dipilih";
+                return;
+            }
+            document.getElementById('stts').innerText = '✅ ' + input.files.length + ' File Terpilih';
+        }
+
+        function logout() { 
+            if(confirm("Keluar dan hapus semua riwayat di sesi ini?")) {
+                dbData = [];
+                localStorage.removeItem('riwayat_ai_v2');
+                location.reload(); 
+            }
+        }
+        
+        function simpanKeRiwayat() { localStorage.setItem('riwayat_ai_v2', JSON.stringify(dbData)); }
+        
+        function muatRiwayat() {
+            const saved = localStorage.getItem('riwayat_ai_v2');
+            if(saved) { 
+                dbData = JSON.parse(saved); 
+                if(dbData && dbData.length > 0) {
+                    tampilkanHasilKeLayar(); 
+                } else {
+                    document.getElementById('resWrap').classList.add('hidden');
+                }
+            } else {
+                document.getElementById('resWrap').classList.add('hidden');
+            }
+        }
+
+        document.getElementById('btnAI').onclick = async () => {
+            const btn = document.getElementById('btnAI');
+            const loadMsg = document.getElementById('loadingMsg');
+            const fileInput = document.getElementById('file');
+            const files = fileInput.files;
+            if(!files.length) return showAlert("Pilih file!");
             
-            // Logika FETCH ke /ai/proses-koreksi tetap sama seperti kode asli Anda
-            setTimeout(() => { 
-                btn.disabled = false; btn.innerText = "MULAI PROSES KOREKSI AI";
-                showAlert("Pastikan Server.js berjalan untuk menerima request AI!");
-            }, 2000);
+            btn.disabled = true; 
+            loadMsg.classList.remove('hidden');
+            const originalText = "MULAI PROSES KOREKSI AI";
+            
+            const conf = { kunci_pg: {}, kunci_essay: {} };
+            for(let i=1; i<=20; i++) { 
+                const v = document.getElementById(`p${i}`).value; if(v !== "") conf.kunci_pg[i] = v; 
+            }
+            for(let i=1; i<=5; i++) {
+                const v = document.getElementById(`e${i}`).value; if(v !== "") conf.kunci_essay[i] = v;
+            }
+
+            let namaTerakhir = "TIDAK DIKENAL";
+
+            try {
+                for (let i = 0; i < files.length; i++) {
+                    btn.innerHTML = `<span class="spinner-mini"></span> <span class="ml-2">ANALISIS ${i+1}/${files.length}...</span>`;
+                    const fd = new FormData(); 
+                    fd.append('data', JSON.stringify(conf)); 
+                    fd.append('foto', files[i]);
+                    
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 60000); 
+                    
+                    try {
+                        const req = await fetch(window.location.origin + '/ai/proses-koreksi', { 
+                            method: 'POST', 
+                            body: fd, 
+                            credentials: 'include', 
+                            signal: controller.signal 
+                        });
+                        clearTimeout(timeoutId);
+                        if (req.status === 401) { showAlert("Sesi habis, silakan login ulang."); logout(); return; }
+                        if (!req.ok) throw new Error(`Server Error (${req.status})`);
+                        const text = await req.text();
+                        let res = JSON.parse(text);
+
+                        if(res.success) {
+                            let itemData = Array.isArray(res.data) ? res.data[0] : res.data;
+                            if(!itemData.nama || itemData.nama === "-" || itemData.nama === "" || itemData.nama.includes("TIDAK")) {
+                                itemData.nama = namaTerakhir;
+                            } else {
+                                namaTerakhir = itemData.nama;
+                            }
+                            itemData.nomor_pg_betul = itemData.nomor_pg_betul || "TIDAK ADA";
+                            itemData.log_detail = itemData.log_detail || [];
+                            dbData.push(itemData);
+                            if(res.current_token !== undefined) updateTokenDisplay(res.current_token);
+                            tampilkanHasilKeLayar(); 
+                            simpanKeRiwayat();
+                        } else { showAlert("AI Gagal: " + res.message); if(res.limitReached) break; }
+                    } catch (itemError) {
+                        if (itemError.name === 'AbortError') { showAlert("Waktu habis."); } else { showAlert("GAGAL SCAN: " + itemError.message); }
+                        break; 
+                    }
+                }
+                btn.innerText = "SELESAI ✅"; 
+                fileInput.value = ""; 
+                document.getElementById('stts').innerText = 'Belum ada file dipilih';
+            } catch(e) { showAlert("Terjadi kesalahan sistem!"); } finally {
+                loadMsg.classList.add('hidden'); 
+                setTimeout(() => { btn.disabled = false; btn.innerText = originalText; }, 3000);
+            }
         };
 
-        // EXPORT FUNCTIONS (DOCX, PDF, EXCEL) - Tetap Utuh
-        function exportWord() { showAlert("Memproses DOCX..."); }
-        function exportPDF() { showAlert("Memproses PDF..."); }
-        function exportExcel() { showAlert("Memproses EXCEL..."); }
+        document.getElementById('btnHitung').onclick = async () => {
+            if(!dbData.length) return showAlert("Data kosong!");
+            let reportHtml = `<p class="text-center font-black text-blue-600 uppercase text-xs tracking-widest mt-14 italic">REKAP NILAI AKHIR</p>`;
+            const r_pg_input = (document.getElementById('r_pg').value || "betul * 1").toLowerCase().trim();
+            const mapel_input = document.getElementById('mapel').value || "Tidak Disebutkan";
+            const groupedData = {};
+            
+            dbData.forEach(s => {
+                if(!groupedData[s.nama]) { groupedData[s.nama] = { nama: s.nama, pg_betul: 0 }; }
+                groupedData[s.nama].pg_betul += (s.pg_betul || 0);
+            });
+
+            exportData = [];
+            let no = 1;
+
+            Object.values(groupedData).forEach(s => {
+                let betul = parseInt(s.pg_betul) || 0;
+                let nilai = 0;
+                try {
+                    let rumusEvaluasi = r_pg_input.replace(/betul/g, betul).replace(/x/g, '*');
+                    rumusEvaluasi = rumusEvaluasi.replace(/[^0-9+\-*/().]/g, '');
+                    nilai = eval(rumusEvaluasi);
+                    if (!isFinite(nilai)) nilai = 0;
+                    nilai = Math.round(nilai * 10) / 10;
+                } catch(e) { nilai = 0; }
+                
+                exportData.push({ no: no++, nama: s.nama, mapel: mapel_input, betul: betul, nilai: nilai });
+
+                reportHtml += `
+                <div class="bg-white p-8 rounded-[40px] border-l-[12px] border-blue-600 shadow-xl space-y-4 mb-5">
+                    <div class="flex justify-between items-start">
+                        <div class="flex flex-col">
+                            <span class="text-[10px] font-black text-slate-400 uppercase italic mb-1">${mapel_input}</span>
+                            <span class="text-2xl font-black text-slate-700 uppercase">${s.nama}</span>
+                        </div>
+                        <span class="text-6xl font-black text-slate-900">${nilai}</span>
+                    </div>
+                </div>`;
+            });
+            
+            const box = document.getElementById('laporanFinal'); 
+            box.innerHTML = reportHtml;
+            document.getElementById('exportMenu').classList.remove('hidden');
+            box.scrollIntoView({ behavior: 'smooth' });
+        };
+
+        async function exportWord() {
+            const { Document, Packer, Paragraph, Table, TableRow, TableCell, WidthType, AlignmentType, HeadingLevel } = docx;
+            const rows = [
+                new TableRow({
+                    children: ["NO", "NAMA SISWA", "MATA PELAJARAN", "BETUL", "NILAI"].map(h => 
+                        new TableCell({ children: [new Paragraph({ text: h, bold: true, alignment: AlignmentType.CENTER })] })
+                    )
+                })
+            ];
+            exportData.forEach(d => {
+                rows.push(new TableRow({
+                    children: [
+                        new TableCell({ children: [new Paragraph({ text: d.no.toString(), alignment: AlignmentType.CENTER })] }),
+                        new TableCell({ children: [new Paragraph({ text: d.nama.toUpperCase() })] }),
+                        new TableCell({ children: [new Paragraph({ text: d.mapel.toUpperCase() })] }),
+                        new TableCell({ children: [new Paragraph({ text: d.betul.toString(), alignment: AlignmentType.CENTER })] }),
+                        new TableCell({ children: [new Paragraph({ text: d.nilai.toString(), alignment: AlignmentType.CENTER })] }),
+                    ]
+                }));
+            });
+            const doc = new Document({
+                sections: [{
+                    children: [
+                        new Paragraph({ text: "LAPORAN NILAI SISWA", heading: HeadingLevel.HEADING_1, alignment: AlignmentType.CENTER }),
+                        new Paragraph({ text: "Dicetak pada: " + new Date().toLocaleString(), alignment: AlignmentType.CENTER }),
+                        new Paragraph({ text: "" }),
+                        new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: rows })
+                    ]
+                }]
+            });
+            const blob = await Packer.toBlob(doc);
+            saveAs(blob, `Laporan_Nilai_${exportData[0]?.mapel || 'Siswa'}.docx`);
+        }
+
+        function exportPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.setFontSize(18);
+            doc.text("LAPORAN NILAI SISWA", 105, 15, { align: "center" });
+            const body = exportData.map(d => [d.no, d.nama.toUpperCase(), d.mapel.toUpperCase(), d.betul, d.nilai]);
+            doc.autoTable({
+                head: [['NO', 'NAMA SISWA', 'MATA PELAJARAN', 'BETUL', 'NILAI']],
+                body: body,
+                startY: 30,
+                theme: 'grid',
+                headStyles: { fillStyle: [15, 23, 42] }
+            });
+            doc.save(`Laporan_Nilai_${exportData[0]?.mapel || 'Siswa'}.pdf`);
+        }
+
+        function exportExcel() {
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Nilai");
+            XLSX.writeFile(wb, `Laporan_Nilai_${exportData[0]?.mapel || 'Siswa'}.xlsx`);
+        }
 
         async function prosesTambahToken() {
-            showAlert("Fungsi Admin Aktif. Mengirim token ke user...");
+            const emailTarget = document.getElementById('targetEmail').value;
+            const jumlahToken = document.getElementById('paketToken').value;
+            const btn = document.querySelector("#adminPanel button");
+            if(!emailTarget) return showAlert("Masukkan email user dulu!");
+            if(!confirm(`Kirim ${jumlahToken} token ke ${emailTarget}?`)) return;
+            const originalBtnText = btn.innerText;
+            btn.disabled = true;
+            btn.innerHTML = `<span class="spinner-mini"></span> MENGIRIM...`;
+            try {
+                const res = await fetch(window.location.origin + '/admin/add-token', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        adminEmail: "Versacy",
+                        targetEmail: emailTarget.trim(),
+                        amount: parseInt(jumlahToken)
+                    })
+                });
+                const data = await res.json();
+                if(data.success) {
+                    showAlert(`Berhasil! ${jumlahToken} token terkirim ke ${emailTarget}.`);
+                    document.getElementById('targetEmail').value = "";
+                } else { showAlert("Gagal: " + data.message); }
+            } catch(e) { showAlert("Kesalahan koneksi!"); } finally {
+                btn.disabled = false; btn.innerText = originalBtnText;
+            }
+        }
+
+        // --- LOGIKA TOPUP SAWERIA ---
+        function openTopupModal() {
+            // Pastikan email ada sebelum buka modal topup
+            const emailUser = document.getElementById('authEmail').value;
+            if(!emailUser) {
+                showAlert("Silakan masukkan email Anda di kotak login terlebih dahulu.");
+                return;
+            }
+            document.getElementById('topupModalOverlay').classList.remove('hidden');
+        }
+
+        function bayarSaweria(paketId) {
+            const emailUser = document.getElementById('authEmail').value || "Email Tidak Terdeteksi";
+            const usernameSaweria = "GuruBantuGuru"; // ID Saweria Anda
+            
+            let nominal = 0;
+            if (paketId === 'p5k') nominal = 5000;
+            else if (paketId === 'p10k') nominal = 10000;
+            else if (paketId === 'p20k') nominal = 20000;
+            else if (paketId === 'p50k') nominal = 50000;
+            else if (paketId === 'p100k') nominal = 100000;
+
+            const saweriaUrl = `https://saweria.co/${usernameSaweria}?amount=${nominal}`;
+            
+            // Mencoba menyalin email otomatis agar user tinggal paste di kolom pesan
+            navigator.clipboard.writeText(emailUser).then(() => {
+                showAlert(
+                    `✅ EMAIL DISALIN: ${emailUser}\n\n` +
+                    `1. Anda akan diarahkan ke Saweria.\n` +
+                    `2. Tempel/Paste email tadi di kolom "PESAN".\n` +
+                    `3. Token akan masuk otomatis setelah bayar!`, 
+                    'alert'
+                );
+            }).catch(() => {
+                showAlert(
+                    `INGAT: Tulis email "${emailUser}"\ndi kolom PESAN Saweria agar token masuk!`, 
+                    'alert'
+                );
+            });
+            
+            // Delay 3 detik supaya user sempat baca alert
+            setTimeout(() => {
+                window.open(saweriaUrl, '_blank');
+                document.getElementById('topupModalOverlay').classList.add('hidden');
+            }, 3500);
         }
     </script>
 </body>
