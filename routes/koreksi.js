@@ -97,7 +97,9 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
                 pg_betul: pgBetul,
                 nomor_pg_betul: listNoBetul.join(', ') || "TIDAK ADA",
                 log_detail: rincian,
-                nilai_akhir: Math.round(hitungNilai(rumusPG, pgBetul, totalKunci) * 10) / 10
+                     // Jika nilai desimal <= 0.5 maka bulatkan ke bawah, jika > 0.5 bulatkan ke atas
+                    return (n - Math.floor(n) <= 0.5) ? Math.floor(n) : Math.ceil(n);
+                })(hitungNilai(rumusPG, pgBetul, totalKunci))
             });
 
         } catch (err) {
