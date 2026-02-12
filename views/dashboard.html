@@ -876,22 +876,49 @@
 
         // --- LOGIKA TOPUP SAWERIA ---
         function openTopupModal() {
+            // Pastikan email ada sebelum buka modal topup
+            const emailUser = document.getElementById('authEmail').value;
+            if(!emailUser) {
+                showAlert("Silakan masukkan email Anda di kotak login terlebih dahulu.");
+                return;
+            }
             document.getElementById('topupModalOverlay').classList.remove('hidden');
         }
 
         function bayarSaweria(paketId) {
             const emailUser = document.getElementById('authEmail').value || "Email Tidak Terdeteksi";
+            const usernameSaweria = "GuruBantuGuru"; // ID Saweria Anda
             
-            // Link saweria kamu (Ganti 'azhardax' dengan username saweria kamu)
-            const usernameSaweria = "azhardax"; 
-            const saweriaUrl = `https://saweria.co/${GuruBantuGuru}`;
+            let nominal = 0;
+            if (paketId === 'p5k') nominal = 5000;
+            else if (paketId === 'p10k') nominal = 10000;
+            else if (paketId === 'p20k') nominal = 20000;
+            else if (paketId === 'p50k') nominal = 50000;
+            else if (paketId === 'p100k') nominal = 100000;
+
+            const saweriaUrl = `https://saweria.co/${usernameSaweria}?amount=${nominal}`;
             
-            showAlert(`Klik Oke untuk ke Saweria.\n\nINGAT: Tulis email "${emailUser}" di kolom pesan Saweria!`, 'alert');
+            // Mencoba menyalin email otomatis agar user tinggal paste di kolom pesan
+            navigator.clipboard.writeText(emailUser).then(() => {
+                showAlert(
+                    `✅ EMAIL DISALIN: ${emailUser}\n\n` +
+                    `1. Anda akan diarahkan ke Saweria.\n` +
+                    `2. Tempel/Paste email tadi di kolom "PESAN".\n` +
+                    `3. Token akan masuk otomatis setelah bayar!`, 
+                    'alert'
+                );
+            }).catch(() => {
+                showAlert(
+                    `INGAT: Tulis email "${emailUser}"\ndi kolom PESAN Saweria agar token masuk!`, 
+                    'alert'
+                );
+            });
             
+            // Delay 3 detik supaya user sempat baca alert
             setTimeout(() => {
                 window.open(saweriaUrl, '_blank');
                 document.getElementById('topupModalOverlay').classList.add('hidden');
-            }, 2000);
+            }, 3500);
         }
     </script>
 </body>
