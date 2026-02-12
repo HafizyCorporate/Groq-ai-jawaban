@@ -7,7 +7,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus_Jakarta_Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        /* UKURAN DASAR & STYLE SAMA PERSIS */
         html { font-size: 18px; } 
         body { font-size: 1rem; font-family: 'Plus_Jakarta_Sans', sans-serif; background-color: #f1f5f9; }
         .loader { border: 4px solid #f3f3f3; border-radius: 50%; border-top: 4px solid #3498db; width: 30px; height: 30px; animation: spin 1s linear infinite; display: inline-block; }
@@ -17,11 +16,9 @@
         @keyframes modalBounce { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
         .otp-input { letter-spacing: 0.5rem; text-align: center; font-size: 2rem !important; }
         
-        /* RESPONSIVE */
         @media (max-width: 767px) { html { font-size: 15px; } body { padding: 12px; } .rounded-\[45px\] { border-radius: 28px !important; } .text-5xl { font-size: 2.5rem !important; } }
         @media (min-width: 768px) { #authWrapper > div { max-width: 500px !important; margin: 2rem auto !important; padding: 2rem; background: #ffffff; border-radius: 50px; box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1); } }
 
-        /* ANIMASI SPLASH */
         .zoom-out-bg { transform: scale(1.5); opacity: 0; transition: all 1.2s cubic-bezier(0.19, 1, 0.22, 1); }
         @keyframes glow { 0%, 100% { filter: drop-shadow(0 0 20px rgba(37,99,235,0.4)); } 50% { filter: drop-shadow(0 0 50px rgba(37,99,235,0.8)); } }
         .glow-active { animation: glow 2s infinite; }
@@ -93,7 +90,6 @@
     </div>
 
     <script>
-        // ANIMASI SPLASH
         window.addEventListener('DOMContentLoaded', () => {
             const splash = document.getElementById('megaSplash');
             const title = document.getElementById('mainTitle');
@@ -142,9 +138,9 @@
 
             if(!email) return showAlert("Email wajib diisi!");
             
-            let endpoint = window.location.origin + '/auth/login';
-            if(currentMode === 'reg') endpoint = window.location.origin + '/auth/register';
-            if(currentMode === 'forgot') endpoint = window.location.origin + '/auth/forgot-password';
+            let endpoint = '/auth/login';
+            if(currentMode === 'reg') endpoint = '/auth/register';
+            if(currentMode === 'forgot') endpoint = '/auth/forgot-password';
 
             btn.disabled = true;
             btn.innerHTML = `<span class="loader" style="width:20px; height:20px; border-width:2px; vertical-align:middle; margin-right:8px"></span> MENGIRIM...`;
@@ -153,19 +149,14 @@
                 const res = await fetch(endpoint, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    credentials: 'include',
                     body: JSON.stringify({ email, password })
                 });
                 const data = await res.json();
 
-                if(res.ok && data.success) {
+                if(data.success) {
                     if(currentMode === 'login') {
-                        // SIMPAN SESI KE LOCALSTORAGE AGAR BISA DIBACA DASHBOARD
-                        localStorage.setItem('jawaban_ai_email', email);
-                        localStorage.setItem('jawaban_ai_token', data.token || 0);
-                        
-                        // REDIRECT KE DASHBOARD
-                        window.location.href = 'dashboard.html';
+                        // FIX REDIRECT KE ROUTE SERVER
+                        window.location.href = '/dashboard';
                     } else if (currentMode === 'forgot') {
                         document.getElementById('otpModalOverlay').classList.remove('hidden');
                         showAlert("KODE TERKIRIM! Cek email Anda.");
@@ -174,10 +165,10 @@
                         changeAuthMode('login');
                     }
                 } else {
-                    showAlert(data.message || "Email salah atau tidak terdaftar!");
+                    showAlert(data.message || "Gagal memproses permintaan.");
                 }
             } catch(e) { 
-                showAlert("Kesalahan Koneksi: " + e.message); 
+                showAlert("Kesalahan Koneksi"); 
             } finally {
                 btn.disabled = false; btn.innerText = originalBtnText;
             }
@@ -187,33 +178,29 @@
             const email = document.getElementById('authEmail').value;
             const otp = document.getElementById('otpCode').value;
             const newPassword = document.getElementById('otpNewPass').value;
-            const btn = document.querySelector("#otpModalOverlay button[onclick='submitVerifyOTP()']");
+            const btn = document.querySelector("#otpModalOverlay button");
             
-            if(!otp || !newPassword) return showAlert("Lengkapi kode dan password baru!");
+            if(!otp || !newPassword) return showAlert("Lengkapi data!");
             
-            btn.disabled = true; btn.innerHTML = `<span class="spinner-mini"></span> MEMPROSES...`;
+            btn.disabled = true; btn.innerHTML = `<span class="spinner-mini"></span>...`;
 
             try {
-                const res = await fetch(window.location.origin + '/auth/reset-password', {
+                const res = await fetch('/auth/reset-password', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    credentials: 'include',
-                    body: JSON.stringify({ email: email.trim(), otp: otp.trim(), newPassword: newPassword })
+                    body: JSON.stringify({ email, otp, newPassword })
                 });
                 const data = await res.json();
                 if(data.success) {
-                    if (data.success) {
-    // JANGAN gunakan 'dashboard.html'
-    window.location.href = '/dashboard'; 
-}
-
                     document.getElementById('otpModalOverlay').classList.add('hidden');
-                    showAlert("Berhasil! Password diperbarui. Silakan login.");
+                    showAlert("Berhasil! Silakan login.");
                     changeAuthMode('login');
-                    document.getElementById('otpCode').value = "";
-                    document.getElementById('otpNewPass').value = "";
-                } else { showAlert(data.message || "Kode OTP salah atau kedaluwarsa!"); }
-            } catch(e) { showAlert("Gagal verifikasi ke server."); } finally {
+                } else { 
+                    showAlert(data.message || "Kode salah!"); 
+                }
+            } catch(e) { 
+                showAlert("Gagal tersambung."); 
+            } finally {
                 btn.disabled = false; btn.innerText = "GANTI PASSWORD";
             }
         }
