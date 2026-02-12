@@ -1,6 +1,7 @@
 /**
  * FILE: koreksi.js 
  * MODEL: Gemini 2.5 Flash (RE-FIXED)
+ * UPDATE: Logika Pembulatan Kustom (0.5 ke bawah = 0)
  */
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const dotenv = require('dotenv');
@@ -59,7 +60,6 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
             if (jsonStart === -1) throw new Error("Format JSON tidak ditemukan!");
             const aiData = JSON.parse(text.substring(jsonStart, jsonEnd));
 
-            // TAHAP 2: FALLBACK REGEX
             let jawabanSiswa = aiData.jawaban_pg || {};
             if (Object.keys(jawabanSiswa).length === 0) {
                 const teksAnalisis = aiData.log_deteksi || text;
@@ -69,7 +69,6 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
                 }
             }
 
-            // --- TAHAP 3: KOMPARASI & HITUNG (SUDAH ADA DISINI) ---
             let pgBetul = 0;
             let totalKunci = 0;
             let rincian = [];
@@ -91,13 +90,14 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
                 }
             });
 
-            // TAHAP 4: KIRIM KE FRONTEND
+            // TAHAP 4: KIRIM KE FRONTEND (LOGIKA PEMBULATAN BARU)
             results.push({
                 nama: (aiData.nama_siswa && aiData.nama_siswa !== "NAMA") ? aiData.nama_siswa : `Siswa ${index + 1}`,
                 pg_betul: pgBetul,
                 nomor_pg_betul: listNoBetul.join(', ') || "TIDAK ADA",
                 log_detail: rincian,
-                     // Jika nilai desimal <= 0.5 maka bulatkan ke bawah, jika > 0.5 bulatkan ke atas
+                nilai_akhir: (function(n) {
+                    // Jika nilai desimal <= 0.5 maka bulatkan ke bawah, jika > 0.5 bulatkan ke atas
                     return (n - Math.floor(n) <= 0.5) ? Math.floor(n) : Math.ceil(n);
                 })(hitungNilai(rumusPG, pgBetul, totalKunci))
             });
