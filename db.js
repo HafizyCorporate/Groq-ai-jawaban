@@ -3,10 +3,19 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs');
 
-// 1. KONEKSI POSTGRESQL (Utama)
+// 1. KONEKSI POSTGRESQL (Utama) dengan Tambahan Pengamanan Koneksi
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false }
+    ssl: { rejectUnauthorized: false },
+    // --- TAMBAHAN PENGAMANAN KONEKSI ---
+    max: 20,              // Maksimal koneksi simultan (mencegah overload DB)
+    idleTimeoutMillis: 30000, // Tutup koneksi otomatis jika tidak dipakai dalam 30 detik
+    connectionTimeoutMillis: 2000, // Batas waktu tunggu koneksi (mencegah server gantung)
+});
+
+// Log error pada pool untuk pengawasan hacker/error sistem
+pool.on('error', (err) => {
+    console.error('❌ Unexpected error on idle client', err);
 });
 
 // 2. SETUP SQLITE (Hanya untuk ambil data lama)
@@ -31,4 +40,4 @@ module.exports = {
     query: (text, params) => pool.query(text, params),
     pool,
     sqliteDb // Jika null, berarti data lama sudah tidak ada/tidak perlu dimigrasi
-};
+}
