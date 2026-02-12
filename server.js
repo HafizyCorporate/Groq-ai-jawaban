@@ -33,7 +33,8 @@ app.set('trust proxy', 1);
 app.use(session({
     store: new pgSession({
         pool : pool,
-        tableName : 'session' 
+        tableName : 'session',
+        createTableIfMissing: true // Otomatis buat tabel session jika belum ada
     }),
     name: 'gemini_session',
     secret: process.env.SESSION_SECRET || 'kunci-rahasia-gemini-vision',
@@ -41,7 +42,7 @@ app.use(session({
     saveUninitialized: false,
     cookie: { 
         maxAge: 24 * 60 * 60 * 1000,
-        secure: process.env.NODE_ENV === 'production', // true jika https
+        secure: process.env.NODE_ENV === 'production', 
         sameSite: 'lax'
     }
 }));
@@ -60,7 +61,7 @@ app.post('/auth/register', async (req, res) => {
         
         const hashedPassword = await bcrypt.hash(password, 10);
         
-        // Menggunakan username sebagai email sesuai struktur sebelumnya
+        // Optimasi: Menggunakan role 'user' secara eksplisit
         await pool.query(
             "INSERT INTO users (username, password, quota, is_premium, role) VALUES ($1, $2, $3, $4, $5)",
             [email, hashedPassword, 10, false, 'user']
@@ -69,6 +70,7 @@ app.post('/auth/register', async (req, res) => {
         res.json({ success: true, message: "Pendaftaran Berhasil! Jatah gratis: 10x Koreksi." });
     } catch (e) { 
         if (e.code === '23505') return res.status(400).json({ success: false, message: "Email sudah terdaftar!" });
+        console.error("Register Error:", e);
         res.status(500).json({ success: false }); 
     }
 });
@@ -76,11 +78,11 @@ app.post('/auth/register', async (req, res) => {
 app.post('/auth/login', async (req, res) => {
     try {
         const { email, password } = req.body;
-        const result = await pool.query("SELECT * FROM users WHERE username = $1", [email]);
+        const result = await pool.query("SELECT id, username, password, role, is_premium, quota FROM users WHERE username = $1", [email]);
         const user = result.rows[0];
         
         if (user && await bcrypt.compare(password, user.password)) {
-            req.session.userId = user.id; // Simpan ID user di session (lebih aman)
+            req.session.userId = user.id; 
             req.session.username = user.username;
             req.session.role = user.role;
 
@@ -91,7 +93,10 @@ app.post('/auth/login', async (req, res) => {
         } else {
             res.status(401).json({ success: false, message: "Email atau Password Salah!" });
         }
-    } catch (e) { res.status(500).json({ success: false }); }
+    } catch (e) { 
+        console.error("Login Error:", e);
+        res.status(500).json({ success: false }); 
+    }
 });
 
 // --- FITUR LUPA PASSWORD ---
@@ -105,18 +110,18 @@ app.post('/auth/forgot-password', async (req, res) => {
         }
 
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        // Pastikan kolom 'otp' sudah ada di tabel users (Postgres)
         await pool.query("UPDATE users SET otp = $1 WHERE username = $2", [otp, email]);
 
         const sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
         sendSmtpEmail.subject = "Kode OTP Reset Password - Guru Bantu Guru AI";
-        sendSmtpEmail.htmlContent = `<html><body><h3>Halo,</h3><p>Kode OTP Anda adalah: <b>${otp}</b></p></body></html>`;
+        sendSmtpEmail.htmlContent = `<html><body><h3>Halo,</h3><p>Kode OTP Anda adalah: <b>${otp}</b></p><p>Gunakan kode ini untuk meriset password Anda.</p></body></html>`;
         sendSmtpEmail.sender = { "name": "Guru Bantu Guru AI", "email": "azhardax94@gmail.com" };
         sendSmtpEmail.to = [{ "email": email }];
 
         await apiInstance.sendTransacEmail(sendSmtpEmail);
         res.json({ success: true, message: "Kode OTP telah dikirim ke email." });
     } catch (error) {
+        console.error("Forgot Password Error:", error);
         res.status(500).json({ success: false, message: "Gagal mengirim email." });
     }
 });
@@ -124,7 +129,8 @@ app.post('/auth/forgot-password', async (req, res) => {
 app.post('/auth/reset-password', async (req, res) => {
     try {
         const { email, otp, newPassword } = req.body;
-        const result = await pool.query("SELECT * FROM users WHERE username = $1 AND otp = $2", [email, otp]);
+        // Validasi ganda: Pastikan OTP tidak null dan cocok
+        const result = await pool.query("SELECT id FROM users WHERE username = $1 AND otp = $2 AND otp IS NOT NULL", [email, otp]);
 
         if (result.rowCount > 0) {
             const hashedPassword = await bcrypt.hash(newPassword, 10);
@@ -133,7 +139,10 @@ app.post('/auth/reset-password', async (req, res) => {
         } else {
             res.status(400).json({ success: false, message: "Kode OTP salah!" });
         }
-    } catch (e) { res.status(500).json({ success: false }); }
+    } catch (e) { 
+        console.error("Reset Password Error:", e);
+        res.status(500).json({ success: false }); 
+    }
 });
 
 // --- FITUR ADMIN: TAMBAH TOKEN ---
@@ -141,7 +150,6 @@ app.post('/admin/add-token', async (req, res) => {
     try {
         const { targetEmail, amount } = req.body;
 
-        // Cek Role Admin dari Session (Lebih Aman daripada kirim Email Admin di body)
         if (req.session.role !== 'admin') {
             return res.status(403).json({ success: false, message: "Anda bukan Admin!" });
         }
@@ -157,6 +165,7 @@ app.post('/admin/add-token', async (req, res) => {
 
         res.json({ success: true, message: `Berhasil! Total token sekarang: ${result.rows[0].quota}` });
     } catch (e) {
+        console.error("Admin Add Token Error:", e);
         res.status(500).json({ success: false, message: "Internal Server Error" });
     }
 });
@@ -172,7 +181,8 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
     try {
         if (!req.session.userId) return res.status(401).json({ success: false, message: "Sesi habis, silakan login ulang!" });
         
-        const result = await pool.query("SELECT * FROM users WHERE id = $1", [req.session.userId]);
+        // Ambil data terbaru user dari database
+        const result = await pool.query("SELECT id, is_premium, quota FROM users WHERE id = $1", [req.session.userId]);
         const user = result.rows[0];
 
         if (!user) return res.status(404).json({ success: false, message: "User tidak ditemukan" });
@@ -194,7 +204,7 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
             return res.status(500).json({ success: false, message: "AI gagal membaca gambar." });
         }
 
-        // Kurangi kuota di PostgreSQL
+        // Optimasi: Update kuota dan ambil hasil terbaru dalam satu query jika memungkinkan
         let finalQuota = user.quota;
         if (!user.is_premium && results.length > 0) {
             const updateRes = await pool.query(
