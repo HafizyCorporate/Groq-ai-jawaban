@@ -10,7 +10,7 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
     const kunciPG = settings.kunci_pg || {};
-    const kunciES = settings.kunci_essay || {}; // Ambil kunci essay dari settings
+    const kunciES = settings.kunci_essay || {};
     const results = [];
 
     const hitungNilai = (rumus, betul, total) => {
@@ -22,32 +22,26 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
         } catch (e) { return 0; }
     };
 
-    // BALIK LAGI KE 2.5 FLASH SESUAI REQUEST BOS
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     for (const [index, file] of files.entries()) {
         try {
             const base64Data = file.buffer.toString("base64");
             
-            // --- PROMPT DIPERKUAT TANPA MERUBAH STRUKTUR ---
-            const prompt = `TUGAS: Ekstrak Nama dan Jawaban LJK.
+            const prompt = `TUGAS: Analisis LJK secara presisi.
             
-            ATURAN DETEKSI (WAJIB):
-            1. Cari Jawaban Siswa: Pindai setiap nomor yang ada di KUNCI PG: ${JSON.stringify(kunciPG)} pada gambar.
-            2. Fokus Interaksi Tinta: Cari coretan manual (X, centang, atau coretan tebal). Jawaban siswa adalah huruf opsi (A, B, C, atau D) yang SECARA FISIK TERTUTUP atau TERTINDIH oleh tinta tersebut.
-            3. Identifikasi Huruf di Bawah Tinta: Lihat karakter huruf apa yang ada tepat di bawah coretan.
-            4. Deteksi Multi-Alat: Pilih coretan yang paling TEBAL. Abaikan bekas hapusan.
-            5. JANGAN LEWATKAN: Pastikan memberikan jawaban untuk setiap nomor yang diminta di kunci.
-            
-            INSTRUKSI ESSAY:
-            - Bandingkan dengan Kunci Essay: ${JSON.stringify(kunciES)}. 
-            - Nyatakan BENAR jika inti maknanya sama. Jika kunci essay kosong, abaikan.
+            INSTRUKSI DETEKSI (SANGAT KETAT):
+            1. Target Nomor: Fokus hanya pada nomor berikut: ${JSON.stringify(kunciPG)}.
+            2. Analisis Kontras: Bedakan antara "Bayangan Abu-abu" dengan "Tinta Hitam/Biru" (jawaban). 
+            3. Penentuan Jawaban: Jawaban siswa adalah huruf yang memiliki coretan paling tebal atau disilang paling jelas. 
+            4. Anti-Salah Baca: Jika ada dua huruf terkena tinta, pilih yang memiliki cakupan tinta paling luas.
+            5. Abaikan Noise: Abaikan bintik hitam kecil atau garis tepi soal.
 
-            WAJIB JAWAB DENGAN JSON MURNI:
+            OUTPUT WAJIB JSON MURNI:
             {
               "nama_siswa": "NAMA",
               "jawaban_pg": {"1": "A", "2": "B"},
-              "log_deteksi": "Nomor 1: B, Nomor 2: A"
+              "log_deteksi": "1:B, 2:A"
             }`;
 
             const imagePart = { inlineData: { data: base64Data, mimeType: file.mimetype || "image/jpeg" } };
@@ -55,25 +49,22 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
             const response = await result.response;
             let text = response.text();
             
-            console.log("--- RAW OUTPUT 2.5 FLASH ---", text);
-
-            // TAHAP 1: EKSTRAK JSON (Biar gak error kalau AI curhat diluar JSON)
             const jsonStart = text.indexOf('{');
             const jsonEnd = text.lastIndexOf('}') + 1;
             if (jsonStart === -1) throw new Error("Format JSON tidak ditemukan!");
             const aiData = JSON.parse(text.substring(jsonStart, jsonEnd));
 
-            // TAHAP 2: FALLBACK REGEX (Penyaring Brutal)
+            // TAHAP 2: FALLBACK REGEX
             let jawabanSiswa = aiData.jawaban_pg || {};
             if (Object.keys(jawabanSiswa).length === 0) {
                 const teksAnalisis = aiData.log_deteksi || text;
-                const matches = teksAnalisis.matchAll(/(\d+)[:.]\s*.*?\s*([A-D])(?![a-z])/gi);
+                const matches = teksAnalisis.matchAll(/(\d+)\s*[:=]\s*([A-D])/gi);
                 for (const m of matches) {
                     jawabanSiswa[m[1]] = m[2].toUpperCase();
                 }
             }
 
-            // TAHAP 3: KOMPARASI & HITUNG
+            // --- TAHAP 3: KOMPARASI & HITUNG (SUDAH ADA DISINI) ---
             let pgBetul = 0;
             let totalKunci = 0;
             let rincian = [];
@@ -95,7 +86,7 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
                 }
             });
 
-            // TAHAP 4: KIRIM KE FRONTEND (Pastikan nama variabel sesuai HTML Bos)
+            // TAHAP 4: KIRIM KE FRONTEND
             results.push({
                 nama: (aiData.nama_siswa && aiData.nama_siswa !== "NAMA") ? aiData.nama_siswa : `Siswa ${index + 1}`,
                 pg_betul: pgBetul,
