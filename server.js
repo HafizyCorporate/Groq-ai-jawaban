@@ -65,7 +65,7 @@ async function migrasiData() {
         const adminPass = await bcrypt.hash("08556545", 10);
         await query(`
             INSERT INTO users (email, password, quota, is_premium, role, is_verified)
-            VALUES ('Versacy', $1, 999999, true, 'admin', true)
+            VALUES ('Adminganteng', $1, 999999, true, 'admin', true)
             ON CONFLICT (email) DO UPDATE SET role = 'admin', is_verified = true
         `, [adminPass]);
 
