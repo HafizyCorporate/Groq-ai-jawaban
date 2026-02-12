@@ -109,7 +109,6 @@ app.post('/auth/login', async (req, res) => {
     } catch (e) { res.status(500).json({ success: false, error: "Terjadi kesalahan server" }); }
 });
 
-// >>> TAMBAHAN: ROUTE FORGET PASSWORD & RESET (SENDER EMAIL FIX) <<<
 app.post('/auth/forgot-password', async (req, res) => {
     try {
         const identifier = req.body.email || req.body.username;
@@ -129,7 +128,6 @@ app.post('/auth/forgot-password', async (req, res) => {
                     </div>
                     <p style="margin-top: 20px;">Kode ini bersifat rahasia. Jangan berikan kepada siapapun.</p>
                 </div>`;
-            // Alamat sender sudah diperbaiki menjadi huruf kecil
             sendSmtpEmail.sender = { "name": "Admin Jawaban AI", "email": "azhardax94@gmail.com" };
             sendSmtpEmail.to = [{ "email": identifier }];
 
@@ -161,6 +159,42 @@ app.post('/auth/reset-password', async (req, res) => {
             res.status(400).json({ success: false, message: "Kode OTP Salah!" });
         }
     } catch (e) { res.status(500).json({ success: false }); }
+});
+
+// >>> TAMBAHAN: FITUR TOPUP OTOMATIS VIA SAWERIA WEBHOOK <<<
+app.post('/ai/saweria-webhook', async (req, res) => {
+    try {
+        const { data } = req.body;
+        if (!data) return res.status(400).send('No Data');
+
+        const nominal = data.amount_raw; // Nominal uang
+        const pesan = data.message;      // Pesan user (isinya email)
+
+        // Cari email di dalam pesan user
+        const regexEmail = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
+        const match = pesan.match(regexEmail);
+
+        if (match) {
+            const emailTarget = match[0];
+            let tambahToken = 0;
+
+            // Logika penambahan token sesuai list harga Anda
+            if (nominal >= 100000) tambahToken = 280;
+            else if (nominal >= 50000) tambahToken = 120;
+            else if (nominal >= 20000) tambahToken = 45;
+            else if (nominal >= 10000) tambahToken = 22;
+            else if (nominal >= 5000) tambahToken = 10;
+
+            if (tambahToken > 0) {
+                await query('UPDATE users SET quota = quota + $1 WHERE email = $2', [tambahToken, emailTarget]);
+                console.log(`✅ [Saweria] +${tambahToken} token untuk ${emailTarget} (Rp ${nominal})`);
+            }
+        }
+        res.status(200).send('OK'); // Saweria wajib dapat respon 200
+    } catch (e) {
+        console.error("❌ Webhook Error:", e.message);
+        res.status(500).send('Error');
+    }
 });
 // >>> SELESAI TAMBAHAN <<<
 
