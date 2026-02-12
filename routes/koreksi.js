@@ -30,12 +30,17 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
             
             const prompt = `TUGAS: Analisis LJK secara presisi.
             
-            INSTRUKSI DETEKSI (SANGAT KETAT):
-            1. Target Nomor: Fokus hanya pada nomor berikut: ${JSON.stringify(kunciPG)}.
-            2. Analisis Kontras: Bedakan antara "Bayangan Abu-abu" dengan "Tinta Hitam/Biru" (jawaban). 
-            3. Penentuan Jawaban: Jawaban siswa adalah huruf yang memiliki coretan paling tebal atau disilang paling jelas. 
-            4. Anti-Salah Baca: Jika ada dua huruf terkena tinta, pilih yang memiliki cakupan tinta paling luas.
-            5. Abaikan Noise: Abaikan bintik hitam kecil atau garis tepi soal.
+            1.INSTRUKSI DETEKSI PG (SANGAT KETAT):
+            - Target Nomor: Fokus hanya pada nomor berikut: ${JSON.stringify(kunciPG)}.
+            - Analisis Kontras: Bedakan antara "Bayangan Abu-abu" dengan "Tinta Hitam/Biru" (jawaban). 
+            - Penentuan Jawaban: Jawaban siswa adalah huruf yang memiliki coretan paling tebal atau disilang paling jelas. 
+            - Anti-Salah Baca: Jika ada dua huruf terkena tinta, pilih yang memiliki cakupan tinta paling luas.
+            - Abaikan Noise: Abaikan bintik hitam kecil atau garis tepi soal.
+
+            2.DETEKSI ESSAY (SANGAT KETAT):
+            - Baca jawaban tulisan tangan siswa untuk soal essay.
+            - Bandingkan dengan Kunci Essay: ${JSON.stringify(kunciES)}.
+            - Berikan status "BENAR" jika inti jawabannya sama, "SALAH" jika beda jauh.
 
             OUTPUT WAJIB JSON MURNI:
             {
