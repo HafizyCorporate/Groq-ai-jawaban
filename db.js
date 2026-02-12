@@ -14,17 +14,31 @@ if (isCloud) {
     ssl: { rejectUnauthorized: false }
   });
 
-  // Bungkus pool agar kompatibel dengan pemanggilan di server.js
+  // Fungsi pembantu untuk konversi ? ke $1, $2 (agar kode server.js tetap konsisten)
+  const convertQuery = (query) => {
+    let index = 1;
+    return query.replace(/\?/g, () => `$${index++}`);
+  };
+
   db = {
-    query: (text, params) => pool.query(text, params),
-    // Method tambahan agar konsisten
-    get: async (text, params) => {
-      const res = await pool.query(text, params);
-      return res.rows[0];
+    // Digunakan oleh session store di server.js
+    pool: pool, 
+    query: (text, params) => pool.query(convertQuery(text), params),
+    // Method callback untuk mendukung kode lama kamu
+    run: (query, params, callback) => {
+      pool.query(convertQuery(query), params, (err, res) => { 
+        if (callback) callback(err, res); 
+      });
     },
-    all: async (text, params) => {
-      const res = await pool.query(text, params);
-      return res.rows;
+    all: (query, params, callback) => {
+      pool.query(convertQuery(query), params, (err, res) => { 
+        if (callback) callback(err, res ? res.rows : []); 
+      });
+    },
+    get: (query, params, callback) => {
+      pool.query(convertQuery(query), params, (err, res) => { 
+        if (callback) callback(err, res ? res.rows[0] : null); 
+      });
     }
   };
 
@@ -36,6 +50,7 @@ if (isCloud) {
         CREATE TABLE IF NOT EXISTS users (
           id SERIAL PRIMARY KEY,
           username TEXT UNIQUE NOT NULL,
+          email TEXT UNIQUE,
           password TEXT NOT NULL,
           quota INTEGER DEFAULT 10,
           is_premium BOOLEAN DEFAULT FALSE,
@@ -44,36 +59,32 @@ if (isCloud) {
         )
       `);
 
-      // 2. Tabel History Koreksi (JSONB)
+      // 2. Tabel History (Selaras dengan kebutuhan Soal AI kamu)
       await pool.query(`
-        CREATE TABLE IF NOT EXISTS history_koreksi (
+        CREATE TABLE IF NOT EXISTS history (
           id SERIAL PRIMARY KEY,
-          user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-          kunci_pg JSONB,
-          kriteria_essay JSONB,
-          hasil_koreksi JSONB,
-          skor_total NUMERIC,
+          user_id INTEGER,
+          soal TEXT,
+          jawaban TEXT,
+          subject TEXT,
+          level TEXT,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
       `);
 
-      console.log("✅ PostgreSQL Ready: Tabel & History berhasil diselaraskan.");
+      console.log("✅ PostgreSQL Ready: Tabel & Admin Versacy sedang dicek.");
 
-      // 3. Admin Otomatis dari ENV (Opsional)
-      const adminUser = process.env.ADMIN_USERNAME;
-      const adminPass = process.env.ADMIN_PASSWORD;
+      // 3. Admin Versacy Otomatis (Gunakan password dari file kamu)
+      const adminPass = '08556545';
+      const hashedPass = await bcrypt.hash(adminPass, 10);
+      
+      await pool.query(`
+        INSERT INTO users (username, password, role, quota, is_premium) 
+        VALUES ('Versacy', $1, 'admin', 999999, true) 
+        ON CONFLICT (username) DO UPDATE SET role = 'admin', quota = 999999;
+      `, [hashedPass]);
 
-      if (adminUser && adminPass) {
-        const checkAdmin = await pool.query("SELECT id FROM users WHERE username = $1", [adminUser]);
-        if (checkAdmin.rowCount === 0) {
-          const hashedPass = await bcrypt.hash(adminPass, 10);
-          await pool.query(
-            "INSERT INTO users (username, password, role, quota, is_premium) VALUES ($1, $2, 'admin', 999999, true)",
-            [adminUser, hashedPass]
-          );
-          console.log(`⭐ Akun Admin [${adminUser}] disiapkan.`);
-        }
-      }
+      console.log("⭐ Admin Versacy siap di Cloud.");
     } catch (err) {
       console.error("❌ PG Init Error:", err.message);
     }
@@ -86,6 +97,7 @@ if (isCloud) {
   const sqliteDb = new sqlite3.Database(dbPath);
 
   db = {
+    // SQLite tidak butuh konversi $1, ia menggunakan ? secara native
     query: (text, params) => {
       return new Promise((resolve, reject) => {
         const cmd = text.trim().toUpperCase();
@@ -102,15 +114,16 @@ if (isCloud) {
         }
       });
     },
-    get: (text, params) => new Promise((resolve, reject) => {
-      sqliteDb.get(text, params, (err, row) => err ? reject(err) : resolve(row));
-    })
+    run: (query, params, callback) => sqliteDb.run(query, params, callback),
+    all: (query, params, callback) => sqliteDb.all(query, params, callback),
+    get: (query, params, callback) => sqliteDb.get(query, params, callback)
   };
 
   sqliteDb.serialize(() => {
     sqliteDb.run(`CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       username TEXT UNIQUE NOT NULL,
+      email TEXT UNIQUE,
       password TEXT NOT NULL,
       quota INTEGER DEFAULT 10,
       is_premium BOOLEAN DEFAULT FALSE,
@@ -118,13 +131,13 @@ if (isCloud) {
       otp TEXT
     )`);
     
-    sqliteDb.run(`CREATE TABLE IF NOT EXISTS history_koreksi (
+    sqliteDb.run(`CREATE TABLE IF NOT EXISTS history (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER,
-      kunci_pg TEXT,
-      kriteria_essay TEXT,
-      hasil_koreksi TEXT,
-      skor_total REAL,
+      soal TEXT,
+      jawaban TEXT,
+      subject TEXT,
+      level TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
     console.log("✅ SQLite Ready: Mode Lokal Aktif.");
