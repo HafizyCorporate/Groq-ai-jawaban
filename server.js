@@ -20,11 +20,11 @@ const port = process.env.PORT || 8080;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Folder 'views' sebagai tempat HTML dan aset statis
+// Folder 'views' sebagai tempat HTML dan aset statis agar tampilan TIDAK BERUBAH
 app.use(express.static(path.join(__dirname, 'views')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// --- SESSION CONFIGURATION (HYBRID STORE) ---
+// --- SESSION CONFIGURATION ---
 app.set('trust proxy', 1);
 const sessionConfig = {
     name: 'jawaban_ai_session',
@@ -55,7 +55,7 @@ const upload = multer({
 });
 
 // ==========================================
-// 1. RUTE NAVIGASI (JAWABAN AI)
+// 1. RUTE NAVIGASI (Sesuai Struktur Views Kamu)
 // ==========================================
 
 app.get('/', (req, res) => {
@@ -63,9 +63,9 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'views', 'login.html'));
 });
 
-app.get('/register', (req, res) => {
-    res.sendFile(path.join(__dirname, 'views', 'register.html'));
-});
+// Tambahkan rute eksplisit agar link di HTML tidak error
+app.get('/login.html', (req, res) => res.redirect('/'));
+app.get('/register.html', (req, res) => res.sendFile(path.join(__dirname, 'views', 'register.html')));
 
 app.get('/dashboard', (req, res) => {
     if (!req.session.userId) return res.redirect('/');
@@ -73,34 +73,32 @@ app.get('/dashboard', (req, res) => {
 });
 
 // ==========================================
-// 2. AUTH ROUTES (LOGIN FIX)
+// 2. AUTH ROUTES (Disesuaikan dengan input 'username' di HTML)
 // ==========================================
 
 app.post('/auth/register', async (req, res) => {
     try {
-        const { email, password } = req.body;
-        if (!email || !password) return res.status(400).json({ success: false, message: "Data tidak lengkap" });
+        const { username, password } = req.body; // Menggunakan username sesuai register.html
+        if (!username || !password) return res.status(400).json({ success: false, error: "Data tidak lengkap" });
         
         const hashedPassword = await bcrypt.hash(password, 10);
         
-        // Simpan ke kolom tokens sesuai db.js baru
         await db.query(
             "INSERT INTO users (username, password, tokens, role) VALUES (?, ?, ?, ?)",
-            [email, hashedPassword, 10, 'user']
+            [username, hashedPassword, 10, 'user']
         );
 
         res.json({ success: true, message: "Pendaftaran JAWABAN AI Berhasil!" });
     } catch (e) { 
         console.error("Register Error:", e);
-        res.status(500).json({ success: false, message: "Email sudah terdaftar." }); 
+        res.status(500).json({ success: false, error: "Username sudah terdaftar." }); 
     }
 });
 
 app.post('/auth/login', async (req, res) => {
     try {
-        const { email, password } = req.body;
-        // Login tidak sensitif huruf besar/kecil (LOWER)
-        const user = await db.get("SELECT * FROM users WHERE LOWER(username) = LOWER(?)", [email]);
+        const { username, password } = req.body; // Menggunakan username sesuai login.html
+        const user = await db.get("SELECT * FROM users WHERE LOWER(username) = LOWER(?)", [username]);
         
         if (user && await bcrypt.compare(password, user.password)) {
             req.session.userId = user.id; 
@@ -110,21 +108,21 @@ app.post('/auth/login', async (req, res) => {
             req.session.save(() => {
                 res.json({ 
                     success: true, 
-                    quota: user.role === 'admin' ? 9999 : (user.tokens || 0),
+                    token: user.role === 'admin' ? 9999 : (user.tokens || 0),
                     role: user.role 
                 });
             });
         } else {
-            res.status(401).json({ success: false, message: "Email atau Password Salah!" });
+            res.status(401).json({ success: false, error: "Username atau Password Salah!" });
         }
     } catch (e) { 
         console.error("Login Error:", e);
-        res.status(500).json({ success: false }); 
+        res.status(500).json({ success: false, error: "Kesalahan Server" }); 
     }
 });
 
 // ==========================================
-// 3. CORE AI ROUTE (JAWABAN AI PROCESS)
+// 3. CORE AI ROUTE (Proses JAWABAN AI)
 // ==========================================
 
 app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
@@ -159,11 +157,20 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
     }
 });
 
-// Logout Rute
+// Fitur Admin untuk kirim token (Sesuai di dashboard.html kamu)
+app.post('/admin/add-token', async (req, res) => {
+    try {
+        if (req.session.role !== 'admin') return res.status(403).json({ success: false, message: "Forbidden" });
+        const { targetEmail, amount } = req.body;
+        
+        const result = await db.query("UPDATE users SET tokens = tokens + ? WHERE username = ?", [amount, targetEmail]);
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ success: false }); }
+});
+
+// Logout
 app.get('/auth/logout', (req, res) => {
-    req.session.destroy(() => {
-        res.redirect('/');
-    });
+    req.session.destroy(() => res.redirect('/'));
 });
 
 app.listen(port, "0.0.0.0", () => {
