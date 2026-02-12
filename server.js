@@ -20,7 +20,7 @@ const apiKey = defaultClient.authentications['api-key'];
 apiKey.apiKey = process.env.BREVO_API_KEY; 
 const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
 
-// --- 1. PROSES PINDAH DATA & PERBAIKAN STRUKTUR DB ---
+// --- 1. PROSES PINDAH DATA & PERBAIKAN STRUKTUR DB (TAMBALAN OTOMATIS) ---
 async function migrasiData() {
     try {
         // A. Buat Tabel Dasar jika belum ada
@@ -34,7 +34,8 @@ async function migrasiData() {
             )
         `);
 
-        // B. Tambahkan Kolom Tambahan secara manual (Mencegah Error "Column Not Exist")
+        // --- TAMBALAN KRUSIAL: Memaksa penambahan kolom jika belum ada ---
+        console.log("🛠️ Mengecek dan menambal struktur kolom database...");
         await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS device_id TEXT`);
         await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_verified BOOLEAN DEFAULT FALSE`);
         await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS otp TEXT`);
@@ -68,7 +69,7 @@ async function migrasiData() {
             ON CONFLICT (email) DO UPDATE SET role = 'admin', is_verified = true
         `, [adminPass]);
 
-        console.log("✅ Database Sinkron & Kolom is_verified Tersedia.");
+        console.log("✅ Database Sinkron, Kolom Tambahan Tersedia, & Admin Siap.");
 
     } catch (e) { 
         console.error("❌ Gagal migrasi:", e.message); 
@@ -95,7 +96,6 @@ const upload = multer({ storage: storage, limits: { fileSize: 25 * 1024 * 1024 }
 
 // --- 3. AUTH ROUTES ---
 
-// REGISTER: SEKARANG MENGISI is_verified = FALSE
 app.post('/auth/register', async (req, res) => {
     try {
         const identifier = (req.body.email || req.body.username).toLowerCase(); 
