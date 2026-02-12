@@ -1,7 +1,7 @@
 {
-  "name": "cektugas-ai-te-az-ha",
+  "name": "jawaban-ai-official",
   "version": "1.0.0",
-  "description": "Sistem Koreksi Tugas Sekolah Berbasis AI",
+  "description": "Sistem Koreksi Tugas & Jawaban Sekolah Berbasis AI",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
