@@ -150,7 +150,7 @@ app.post('/admin/add-token', async (req, res) => {
 
 // --- 6. PROSES KOREKSI AI ---
 const upload = multer({ storage: multer.memoryStorage() });
-const { prosesKoreksiLengkap } = require('./koreksi');
+const { prosesKoreksiLengkap } = require('.routes/koreksi');
 
 app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ success: false, message: "Sesi Habis" });
