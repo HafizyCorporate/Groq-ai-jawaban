@@ -8,80 +8,135 @@
     <style>
         body { background-color: #000; }
         .glass { background: rgba(17, 24, 39, 0.8); backdrop-filter: blur(10px); border: 1px solid rgba(31, 41, 55, 1); }
+        .otp-input { letter-spacing: 0.5rem; text-align: center; font-size: 2rem !important; }
     </style>
 </head>
 <body class="flex items-center justify-center min-h-screen p-4">
 
-    <div class="glass w-full max-w-md p-8 rounded-3xl shadow-2xl">
+    <div id="regBox" class="glass w-full max-w-md p-8 rounded-3xl shadow-2xl">
         <div class="text-center mb-8">
             <h1 class="text-3xl font-black text-blue-500 tracking-tighter">DAFTAR <span class="text-white">AKUN</span></h1>
-            <p class="text-gray-500 text-sm mt-2">Buat akun untuk sistem koreksi Te Az Ha</p>
+            <p class="text-gray-400 text-sm mt-2">1 HP Maksimal 2 Akun (Sistem OTP)</p>
         </div>
 
         <form id="registerForm" class="space-y-5">
             <div>
-                <label class="block text-xs font-bold text-gray-400 uppercase mb-2">Username</label>
-                <input type="text" name="username" required 
+                <label class="block text-xs font-bold text-gray-400 uppercase mb-2">Email Guru</label>
+                <input type="email" id="regEmail" required 
                     class="w-full p-4 bg-gray-900 border border-gray-800 rounded-2xl text-white focus:border-blue-500 outline-none transition"
-                    placeholder="Masukkan nama pengguna">
+                    placeholder="Contoh: guru@gmail.com">
             </div>
 
             <div>
                 <label class="block text-xs font-bold text-gray-400 uppercase mb-2">Password</label>
-                <input type="password" name="password" required 
+                <input type="password" id="regPass" required 
                     class="w-full p-4 bg-gray-900 border border-gray-800 rounded-2xl text-white focus:border-blue-500 outline-none transition"
                     placeholder="Minimal 6 karakter">
             </div>
 
             <button type="submit" id="btnRegister" 
                 class="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-2xl transition shadow-lg shadow-blue-900/20 uppercase tracking-widest">
-                BUAT AKUN SEKARANG
+                KIRIM KODE OTP KE EMAIL
             </button>
         </form>
+    </div>
 
-        <div class="mt-8 text-center">
-            <p class="text-gray-500 text-sm">Sudah punya akun? 
-                <a href="/login.html" class="text-blue-500 font-bold hover:underline">Login Disini</a>
-            </p>
+    <div id="otpModal" class="fixed inset-0 bg-black/90 backdrop-blur-md hidden flex items-center justify-center p-6 z-50">
+        <div class="glass w-full max-w-sm p-8 rounded-[40px] text-center border border-gray-700">
+            <div class="text-5xl mb-4">📧</div>
+            <h3 class="text-xl font-black text-white uppercase mb-2">Verifikasi Email</h3>
+            <p class="text-gray-400 text-sm mb-6">Masukkan 6 digit kode yang dikirim ke email anda</p>
+            
+            <input type="text" id="otpCode" placeholder="000000" maxlength="6" 
+                class="otp-input w-full p-4 bg-gray-900 text-blue-500 rounded-2xl font-black border border-gray-700 outline-none focus:border-blue-500 mb-4">
+            
+            <button onclick="verifikasiSekarang()" id="btnVerify"
+                class="w-full bg-emerald-600 text-white font-black py-4 rounded-2xl uppercase tracking-widest shadow-lg">
+                KONFIRMASI KODE
+            </button>
         </div>
     </div>
 
     <script>
-        document.getElementById('registerForm').onsubmit = async (e) => {
+        // FUNGSI RAHASIA: AMBIL ID HP (DEVICE ID)
+        function getDeviceId() {
+            const info = navigator.userAgent + screen.width + navigator.hardwareConcurrency;
+            return btoa(info); // Mengubah info HP jadi kode unik
+        }
+
+        const regForm = document.getElementById('registerForm');
+        const otpModal = document.getElementById('otpModal');
+
+        // TAHAP 1: KIRIM DATA & OTP
+        regForm.onsubmit = async (e) => {
             e.preventDefault();
             const btn = document.getElementById('btnRegister');
-            btn.innerText = "MEMPROSES...";
+            const email = document.getElementById('regEmail').value;
+            const password = document.getElementById('regPass').value;
+
+            btn.innerText = "MENGIRIM OTP...";
             btn.disabled = true;
 
-            // Mengambil data dari form
-            const formData = new FormData(e.target);
-            const dataObj = Object.fromEntries(formData.entries());
-
             try {
-                // Menembak endpoint /auth/register di server.js
                 const res = await fetch('/auth/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(dataObj)
+                    body: JSON.stringify({ 
+                        email: email, 
+                        password: password, 
+                        deviceId: getDeviceId() // Mengirim ID HP ke server
+                    })
                 });
 
                 const result = await res.json();
 
                 if (res.ok && result.success) {
-                    alert("Pendaftaran Berhasil! Silakan Login.");
-                    window.location.href = '/login.html';
+                    // Berhasil, tampilkan kotak OTP
+                    otpModal.classList.remove('hidden');
                 } else {
-                    alert(result.error || "Gagal mendaftar. Gunakan username lain.");
-                    btn.innerText = "BUAT AKUN SEKARANG";
+                    alert(result.error || "Gagal mendaftar.");
+                    btn.innerText = "KIRIM KODE OTP KE EMAIL";
                     btn.disabled = false;
                 }
             } catch (err) {
-                console.error("Register Error:", err);
-                alert("Kesalahan Server: Pastikan koneksi internet stabil.");
-                btn.innerText = "BUAT AKUN SEKARANG";
+                alert("Kesalahan Server!");
                 btn.disabled = false;
             }
         };
+
+        // TAHAP 2: VERIFIKASI KODE OTP
+        async function verifikasiSekarang() {
+            const email = document.getElementById('regEmail').value;
+            const otp = document.getElementById('otpCode').value;
+            const btn = document.getElementById('btnVerify');
+
+            if(otp.length < 6) return alert("Masukkan 6 digit kode!");
+
+            btn.innerText = "VERIFIKASI...";
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/auth/verify-register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: email, otp: otp })
+                });
+
+                const result = await res.json();
+
+                if (res.ok && result.success) {
+                    alert("AKUN AKTIF! Silakan login di halaman utama.");
+                    window.location.href = '/'; // Balik ke dashboard/login
+                } else {
+                    alert(result.message || "Kode OTP Salah!");
+                    btn.innerText = "KONFIRMASI KODE";
+                    btn.disabled = false;
+                }
+            } catch (err) {
+                alert("Gagal koneksi server.");
+                btn.disabled = false;
+            }
+        }
     </script>
 </body>
 </html>
