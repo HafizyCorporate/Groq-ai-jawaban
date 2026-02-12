@@ -4,12 +4,12 @@ const path = require('path');
 const dotenv = require('dotenv');
 const bcrypt = require('bcrypt'); 
 const session = require('express-session'); 
-const pgSession = require('connect-pg-simple')(session); // Tambahan untuk session di Postgres
+const pgSession = require('connect-pg-simple')(session); 
 const SibApiV3Sdk = require('sib-api-v3-sdk'); 
 
 dotenv.config();
 
-// --- IMPORT KONEKSI POSTGRESQL (GANTI LOWDB) ---
+// --- DATABASE POSTGRESQL ---
 const pool = require('./db'); 
 
 // --- PEMANGGILAN FILE KOREKSI.JS ---
@@ -28,12 +28,12 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
-// PERBAIKAN SESSION: Menggunakan PostgreSQL Store agar session tidak hilang saat server restart
+// --- SESSION CONFIGURATION (POSTGRESQL STORE) ---
 app.set('trust proxy', 1); 
 app.use(session({
     store: new pgSession({
         pool : pool,
-        tableName : 'session'
+        tableName : 'session' 
     }),
     name: 'gemini_session',
     secret: process.env.SESSION_SECRET || 'kunci-rahasia-gemini-vision',
@@ -41,7 +41,7 @@ app.use(session({
     saveUninitialized: false,
     cookie: { 
         maxAge: 24 * 60 * 60 * 1000,
-        secure: false, 
+        secure: process.env.NODE_ENV === 'production', // true jika https
         sameSite: 'lax'
     }
 }));
@@ -52,7 +52,7 @@ const upload = multer({
     limits: { fileSize: 25 * 1024 * 1024 } 
 });
 
-// --- AUTH ROUTES (POSTGRESQL) ---
+// --- AUTH ROUTES ---
 app.post('/auth/register', async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -60,9 +60,10 @@ app.post('/auth/register', async (req, res) => {
         
         const hashedPassword = await bcrypt.hash(password, 10);
         
+        // Menggunakan username sebagai email sesuai struktur sebelumnya
         await pool.query(
-            "INSERT INTO users (username, password, quota, is_premium) VALUES ($1, $2, $3, $4)",
-            [email, hashedPassword, 10, false]
+            "INSERT INTO users (username, password, quota, is_premium, role) VALUES ($1, $2, $3, $4, $5)",
+            [email, hashedPassword, 10, false, 'user']
         );
 
         res.json({ success: true, message: "Pendaftaran Berhasil! Jatah gratis: 10x Koreksi." });
@@ -79,7 +80,10 @@ app.post('/auth/login', async (req, res) => {
         const user = result.rows[0];
         
         if (user && await bcrypt.compare(password, user.password)) {
-            req.session.userId = user.username; 
+            req.session.userId = user.id; // Simpan ID user di session (lebih aman)
+            req.session.username = user.username;
+            req.session.role = user.role;
+
             req.session.save((err) => {
                 if(err) return res.status(500).json({ success: false });
                 res.json({ success: true, token: user.is_premium ? "UNLIMITED" : user.quota });
@@ -90,19 +94,18 @@ app.post('/auth/login', async (req, res) => {
     } catch (e) { res.status(500).json({ success: false }); }
 });
 
-// --- FITUR LUPA PASSWORD (POSTGRESQL + BREVO) ---
+// --- FITUR LUPA PASSWORD ---
 app.post('/auth/forgot-password', async (req, res) => {
     try {
         const { email } = req.body;
-        const result = await pool.query("SELECT * FROM users WHERE username = $1", [email]);
-        const user = result.rows[0];
-
-        if (!user) {
+        const result = await pool.query("SELECT id FROM users WHERE username = $1", [email]);
+        
+        if (result.rowCount === 0) {
             return res.status(404).json({ success: false, message: "Email tidak terdaftar!" });
         }
 
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        // Simpan OTP ke kolom password sementara atau kolom OTP jika Anda sudah menambahkannya di db.js
+        // Pastikan kolom 'otp' sudah ada di tabel users (Postgres)
         await pool.query("UPDATE users SET otp = $1 WHERE username = $2", [otp, email]);
 
         const sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
@@ -133,16 +136,20 @@ app.post('/auth/reset-password', async (req, res) => {
     } catch (e) { res.status(500).json({ success: false }); }
 });
 
-// --- FITUR ADMIN: TAMBAH TOKEN (POSTGRESQL) ---
+// --- FITUR ADMIN: TAMBAH TOKEN ---
 app.post('/admin/add-token', async (req, res) => {
     try {
-        const { adminEmail, targetEmail, amount } = req.body;
+        const { targetEmail, amount } = req.body;
 
-        if (adminEmail !== "Versacy") {
+        // Cek Role Admin dari Session (Lebih Aman daripada kirim Email Admin di body)
+        if (req.session.role !== 'admin') {
             return res.status(403).json({ success: false, message: "Anda bukan Admin!" });
         }
 
-        const result = await pool.query("UPDATE users SET quota = quota + $1 WHERE username = $2 RETURNING quota", [parseInt(amount), targetEmail]);
+        const result = await pool.query(
+            "UPDATE users SET quota = quota + $1 WHERE username = $2 RETURNING quota", 
+            [parseInt(amount), targetEmail]
+        );
         
         if (result.rowCount === 0) {
             return res.status(404).json({ success: false, message: "User tujuan tidak ditemukan!" });
@@ -158,14 +165,14 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'views', 'dashboard.html'));
 });
 
-// --- CORE AI ROUTE (POSTGRESQL) ---
+// --- CORE AI ROUTE ---
 app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
     req.setTimeout(60000); 
 
     try {
         if (!req.session.userId) return res.status(401).json({ success: false, message: "Sesi habis, silakan login ulang!" });
         
-        const result = await pool.query("SELECT * FROM users WHERE username = $1", [req.session.userId]);
+        const result = await pool.query("SELECT * FROM users WHERE id = $1", [req.session.userId]);
         const user = result.rows[0];
 
         if (!user) return res.status(404).json({ success: false, message: "User tidak ditemukan" });
@@ -191,8 +198,8 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
         let finalQuota = user.quota;
         if (!user.is_premium && results.length > 0) {
             const updateRes = await pool.query(
-                "UPDATE users SET quota = GREATEST(0, quota - $1) WHERE username = $2 RETURNING quota",
-                [req.files.length, req.session.userId]
+                "UPDATE users SET quota = GREATEST(0, quota - $1) WHERE id = $2 RETURNING quota",
+                [req.files.length, user.id]
             );
             finalQuota = updateRes.rows[0].quota;
         }
