@@ -2,7 +2,6 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Koreksi Jawaban AI</title>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -17,13 +16,7 @@
     <style>
         /* UKURAN DASAR (KOMPUTER/TABLET) */
         html { font-size: 18px; } 
-        body { 
-            font-size: 1rem; 
-            font-family: 'Plus_Jakarta_Sans', sans-serif;
-            /* Tambahan: Mencegah seleksi teks agar tidak mudah di-copy */
-            user-select: none;
-            -webkit-user-select: none;
-        }
+        body { font-size: 1rem; font-family: 'Plus_Jakarta_Sans', sans-serif; }
 
         .force-show { display: block !important; opacity: 1 !important; visibility: visible !important; }
         .loader {
@@ -360,28 +353,6 @@
     </div>
 
     <script>
-        /** * TAMBAHAN KEAMANAN: DEVICE FINGERPRINTING & INSPECT BLOCKER
-         */
-        // 1. Generate ID Unik Device (Simpan di LocalStorage)
-        function getDeviceId() {
-            let id = localStorage.getItem('my_device_id');
-            if (!id) {
-                id = 'DEV-' + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
-                localStorage.setItem('my_device_id', id);
-            }
-            return id;
-        }
-
-        // 2. Blokir Klik Kanan & Tombol Inspeksi (F12, Ctrl+Shift+I)
-        document.addEventListener('contextmenu', e => e.preventDefault());
-        document.onkeydown = function(e) {
-            if(e.keyCode == 123) return false; // F12
-            if(e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) return false; 
-            if(e.ctrlKey && e.shiftKey && e.keyCode == 'C'.charCodeAt(0)) return false; 
-            if(e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) return false; 
-            if(e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false; // View Source
-        }
-
         // LOGIKA ANIMASI SPLASH (MEGA INTRO)
         window.addEventListener('DOMContentLoaded', () => {
             const splash = document.getElementById('megaSplash');
@@ -553,25 +524,17 @@
             const btn = document.getElementById('btnAuthAction');
             const originalBtnText = btn.innerText;
             if(!email) return showAlert("Email wajib diisi!");
-            
             let endpoint = window.location.origin + '/auth/login';
             if(currentMode === 'reg') endpoint = window.location.origin + '/auth/register';
             if(currentMode === 'forgot') endpoint = window.location.origin + '/auth/forgot-password';
-            
             btn.disabled = true;
             btn.innerHTML = `<span class="loader" style="width:20px; height:20px; border-width:2px; vertical-align:middle; margin-right:8px"></span> MENGIRIM...`;
-            
             try {
                 const res = await fetch(endpoint, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     credentials: 'include',
-                    body: JSON.stringify({ 
-                        email: email.toLowerCase().trim(), 
-                        password,
-                        // Tambahan Keamanan: Kirim Device ID untuk Locking
-                        device_id: getDeviceId() 
-                    })
+                    body: JSON.stringify({ email, password })
                 });
                 const data = await res.json();
                 if(res.ok && data.success) {
