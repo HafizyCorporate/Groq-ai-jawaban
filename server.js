@@ -161,36 +161,48 @@ app.post('/auth/reset-password', async (req, res) => {
     } catch (e) { res.status(500).json({ success: false }); }
 });
 
-// >>> TAMBAHAN: FITUR TOPUP OTOMATIS VIA SAWERIA WEBHOOK <<<
+// >>> TAMBAHAN: FITUR TOPUP OTOMATIS VIA SAWERIA WEBHOOK (POSTGRES READY) <<<
 app.post('/ai/saweria-webhook', async (req, res) => {
     try {
-        const { data } = req.body;
-        if (!data) return res.status(400).send('No Data');
+        // Antisipasi struktur data dari Saweria
+        const payload = req.body.data ? req.body.data : req.body;
+        const nominal = payload.amount_raw; 
+        const pesan = payload.message || ""; 
 
-        const nominal = data.amount_raw; // Nominal uang
-        const pesan = data.message;      // Pesan user (isinya email)
-
-        // Cari email di dalam pesan user
+        // Cari email di dalam pesan user menggunakan Regex
         const regexEmail = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
         const match = pesan.match(regexEmail);
 
         if (match) {
-            const emailTarget = match[0];
-            let tambahToken = 0;
+            const emailTarget = match[0].toLowerCase().trim();
+            let tambahQuota = 0;
 
-            // Logika penambahan token sesuai list harga Anda
-            if (nominal >= 100000) tambahToken = 280;
-            else if (nominal >= 50000) tambahToken = 120;
-            else if (nominal >= 20000) tambahToken = 45;
-            else if (nominal >= 10000) tambahToken = 22;
-            else if (nominal >= 5000) tambahToken = 10;
+            // Logika penambahan quota sesuai list harga
+            if (nominal >= 100000) tambahQuota = 280;
+            else if (nominal >= 50000) tambahQuota = 120;
+            else if (nominal >= 20000) tambahQuota = 45;
+            else if (nominal >= 10000) tambahQuota = 22;
+            else if (nominal >= 5000) tambahQuota = 10;
 
-            if (tambahToken > 0) {
-                await query('UPDATE users SET quota = quota + $1 WHERE email = $2', [tambahToken, emailTarget]);
-                console.log(`✅ [Saweria] +${tambahToken} token untuk ${emailTarget} (Rp ${nominal})`);
+            if (tambahQuota > 0) {
+                // Update kolom quota di PostgreSQL
+                const result = await query(
+                    'UPDATE users SET quota = quota + $1 WHERE LOWER(email) = $2 RETURNING quota', 
+                    [tambahQuota, emailTarget]
+                );
+
+                if (result.rowCount > 0) {
+                    console.log(`✅ [Saweria] +${tambahQuota} Quota untuk ${emailTarget} (Rp ${nominal}). Total: ${result.rows[0].quota}`);
+                } else {
+                    console.log(`❌ [Saweria] User ${emailTarget} tidak ditemukan di DB.`);
+                }
             }
+        } else {
+            console.log(`⚠️ [Saweria] Pembayaran Rp ${nominal} tanpa email valid di pesan.`);
         }
-        res.status(200).send('OK'); // Saweria wajib dapat respon 200
+        
+        // Wajib kirim respons 200 OK ke Saweria
+        res.status(200).send('OK'); 
     } catch (e) {
         console.error("❌ Webhook Error:", e.message);
         res.status(500).send('Error');
