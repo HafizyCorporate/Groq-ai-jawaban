@@ -2,75 +2,216 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - CekTugas AI Te Az Ha</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Login - Jawaban AI</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus_Jakarta_Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        /* UKURAN DASAR & STYLE SAMA PERSIS */
+        html { font-size: 18px; } 
+        body { font-size: 1rem; font-family: 'Plus_Jakarta_Sans', sans-serif; background-color: #f1f5f9; }
+        .loader { border: 4px solid #f3f3f3; border-radius: 50%; border-top: 4px solid #3498db; width: 30px; height: 30px; animation: spin 1s linear infinite; display: inline-block; }
+        .spinner-mini { width: 20px; height: 20px; border: 3px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: #fff; animation: spin 0.8s ease-in-out infinite; display: inline-block; vertical-align: middle; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .modal-animate { animation: modalBounce 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes modalBounce { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        .otp-input { letter-spacing: 0.5rem; text-align: center; font-size: 2rem !important; }
+        
+        /* RESPONSIVE */
+        @media (max-width: 767px) { html { font-size: 15px; } body { padding: 12px; } .rounded-\[45px\] { border-radius: 28px !important; } .text-5xl { font-size: 2.5rem !important; } }
+        @media (min-width: 768px) { #authWrapper > div { max-width: 500px !important; margin: 2rem auto !important; padding: 2rem; background: #ffffff; border-radius: 50px; box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1); } }
+
+        /* ANIMASI SPLASH */
+        .zoom-out-bg { transform: scale(1.5); opacity: 0; transition: all 1.2s cubic-bezier(0.19, 1, 0.22, 1); }
+        @keyframes glow { 0%, 100% { filter: drop-shadow(0 0 20px rgba(37,99,235,0.4)); } 50% { filter: drop-shadow(0 0 50px rgba(37,99,235,0.8)); } }
+        .glow-active { animation: glow 2s infinite; }
+    </style>
 </head>
-<body class="bg-gray-900 text-white min-h-screen flex items-center justify-center p-5">
-    <div class="max-w-md w-full bg-gray-800 p-10 rounded-3xl shadow-2xl border border-gray-700">
-        <div class="text-center mb-8">
-            <h1 class="text-3xl font-black text-blue-500">AutoSoal <span class="text-white">AI</span></h1>
-            <p class="text-gray-400 mt-2">Masuk untuk mulai koreksi tugas</p>
+<body class="bg-slate-50 p-4 text-slate-900">
+
+    <div id="megaSplash" class="fixed inset-0 z-[500] bg-[#0f172a] flex flex-col items-center justify-center overflow-hidden">
+        <div class="absolute w-[500px] h-[500px] bg-blue-600/20 blur-[120px] rounded-full animate-pulse"></div>
+        <div class="relative text-center z-10">
+            <h1 id="mainTitle" class="text-7xl md:text-9xl font-black italic tracking-tighter text-white opacity-0 scale-50 transition-all duration-700">
+                JAWABAN <span class="text-blue-600">AI</span>
+            </h1>
+            <div id="subTitle" class="mt-4 opacity-0 transform translate-y-10 transition-all duration-1000">
+                <p class="text-blue-400 text-xl md:text-2xl font-bold tracking-[0.2em] uppercase">
+                    Design by <span class="text-white">Guru bantu Guru</span>
+                </p>
+            </div>
+            <div id="collabIcon" class="mt-12 text-8xl opacity-0 transform scale-0 transition-all duration-700">
+                🤝
+                <div class="text-xs text-blue-300 font-black tracking-[0.5em] mt-4 animate-pulse uppercase">Collaboration</div>
+            </div>
         </div>
+        <audio id="sndWoosh" src="https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3"></audio>
+        <audio id="sndMagic" src="https://assets.mixkit.co/active_storage/sfx/2432/2432-preview.mp3"></audio>
+    </div>
 
-        <form id="loginForm" class="space-y-6">
-            <div>
-                <label class="block text-sm font-medium text-gray-400 mb-2">Username</label>
-                <input type="text" name="username" required 
-                    class="w-full p-4 bg-gray-700 rounded-xl border border-gray-600 focus:ring-2 focus:ring-blue-500 outline-none transition"
-                    placeholder="Masukkan username">
+    <div id="customAlertOverlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] hidden flex items-center justify-center p-6">
+        <div class="bg-white w-full max-sm rounded-[40px] p-8 shadow-2xl modal-animate text-center border border-slate-100">
+            <div id="alertIcon" class="text-7xl mb-4">⚠️</div>
+            <h3 id="alertTitle" class="text-2xl font-black uppercase text-slate-800 mb-2">Pemberitahuan</h3>
+            <p id="alertMsg" class="text-lg font-bold text-slate-500 leading-relaxed mb-8 whitespace-pre-line"></p>
+            <div id="alertButtons" class="space-y-3">
+                <button onclick="closeAlert()" class="w-full bg-blue-600 text-white font-black py-6 rounded-[25px] text-sm uppercase">Oke</button>
             </div>
+        </div>
+    </div>
 
-            <div>
-                <label class="block text-sm font-medium text-gray-400 mb-2">Password</label>
-                <input type="password" name="password" required 
-                    class="w-full p-4 bg-gray-700 rounded-xl border border-gray-600 focus:ring-2 focus:ring-blue-500 outline-none transition"
-                    placeholder="••••••••">
+    <div id="otpModalOverlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[210] hidden flex items-center justify-center p-6">
+        <div class="bg-white w-full max-w-md rounded-[40px] p-8 shadow-2xl modal-animate border border-slate-100">
+            <div class="text-center mb-6">
+                <div class="text-6xl mb-4">📧</div>
+                <h3 class="text-2xl font-black uppercase text-slate-800">Verifikasi Kode</h3>
+                <p class="text-slate-500 font-bold">Masukkan kode 6 digit dari email & password baru</p>
             </div>
+            <div class="space-y-4">
+                <input type="text" id="otpCode" placeholder="000000" maxlength="6" class="otp-input w-full p-5 bg-slate-50 rounded-2xl font-black border border-slate-100 outline-none focus:border-blue-400">
+                <input type="password" id="otpNewPass" placeholder="Password Baru" class="w-full p-5 bg-slate-50 rounded-2xl text-lg font-bold border border-slate-100 outline-none focus:border-blue-400">
+                <button onclick="submitVerifyOTP()" class="w-full bg-blue-600 text-white font-black py-6 rounded-[30px] text-sm uppercase shadow-xl active:scale-95 transition">GANTI PASSWORD</button>
+                <button onclick="document.getElementById('otpModalOverlay').classList.add('hidden')" class="w-full text-slate-400 font-black py-2 text-xs uppercase">Batal</button>
+            </div>
+        </div>
+    </div>
 
-            <button type="submit" id="btnLogin" 
-                class="w-full bg-blue-600 hover:bg-blue-700 py-4 rounded-xl font-bold text-lg transition duration-300 shadow-lg shadow-blue-900/20">
-                MASUK SEKARANG
-            </button>
-        </form>
-
-        <div class="mt-8 text-center border-t border-gray-700 pt-6">
-            <p class="text-gray-400 text-sm">Belum punya akun? 
-                <a href="/register.html" class="text-blue-400 font-bold hover:underline">Daftar Gratis</a>
-            </p>
+    <div id="authWrapper" class="fixed inset-0 bg-slate-50 z-[100] flex flex-col items-center justify-center p-6">
+        <div class="max-w-md w-full space-y-8 text-center">
+            <h1 class="text-5xl font-black italic uppercase">JAWABAN <span class="text-blue-600">AI</span></h1>
+            <div class="bg-white p-10 rounded-[45px] shadow-sm border border-slate-100 space-y-6">
+                <p id="authTitle" class="text-sm font-black text-blue-600 uppercase tracking-widest">Selamat Datang Kembali</p>
+                <input type="email" id="authEmail" placeholder="Email Anda" class="w-full p-6 bg-slate-50 rounded-2xl text-lg font-bold border border-slate-100 outline-none focus:border-blue-400">
+                <input type="password" id="authPass" placeholder="Password" class="w-full p-6 bg-slate-50 rounded-2xl text-lg font-bold border border-slate-100 outline-none focus:border-blue-400">
+                <button id="btnAuthAction" onclick="submitAuth()" class="w-full bg-[#0f172a] text-white font-black py-7 rounded-[30px] text-sm uppercase shadow-xl active:scale-95 transition">MASUK SEKARANG</button>
+                <div class="flex justify-between px-2 text-xs font-bold uppercase">
+                    <button id="forgotBtn" onclick="changeAuthMode('forgot')" class="text-slate-400 hover:text-slate-600">Lupa?</button>
+                    <button id="authToggleBtn" onclick="changeAuthMode('reg')" class="text-blue-600 hover:text-blue-800">Daftar Akun</button>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
-        document.getElementById('loginForm').onsubmit = async (e) => {
-            e.preventDefault();
-            const btn = document.getElementById('btnLogin');
-            btn.innerText = "MENGECEK...";
-            btn.disabled = true;
+        // ANIMASI SPLASH
+        window.addEventListener('DOMContentLoaded', () => {
+            const splash = document.getElementById('megaSplash');
+            const title = document.getElementById('mainTitle');
+            const sub = document.getElementById('subTitle');
+            const icon = document.getElementById('collabIcon');
+            const sndWoosh = document.getElementById('sndWoosh');
+            const sndMagic = document.getElementById('sndMagic');
 
-            const formData = new Object();
-            new FormData(e.target).forEach((value, key) => formData[key] = value);
+            setTimeout(() => { title.classList.remove('opacity-0', 'scale-50'); title.classList.add('opacity-100', 'scale-100', 'glow-active'); sndWoosh.play().catch(e => {}); }, 500);
+            setTimeout(() => { sub.classList.remove('opacity-0', 'translate-y-10'); sub.classList.add('opacity-100', 'translate-y-0'); }, 1500);
+            setTimeout(() => { icon.classList.remove('opacity-0', 'scale-0'); icon.classList.add('opacity-100', 'scale-100'); sndMagic.play().catch(e => {}); }, 2200);
+            setTimeout(() => { splash.classList.add('zoom-out-bg'); setTimeout(() => { splash.remove(); }, 1200); }, 4500);
+        });
+
+        let currentMode = 'login';
+        
+        function showAlert(msg) {
+            document.getElementById('alertMsg').innerText = msg;
+            document.getElementById('customAlertOverlay').classList.remove('hidden');
+        }
+        function closeAlert() { document.getElementById('customAlertOverlay').classList.add('hidden'); }
+
+        function changeAuthMode(mode) {
+            const title = document.getElementById('authTitle');
+            const btn = document.getElementById('btnAuthAction');
+            const toggleBtn = document.getElementById('authToggleBtn');
+            const passInput = document.getElementById('authPass');
+            currentMode = mode;
+            if(mode === 'reg') {
+                title.innerText = "Daftar Akun Baru"; btn.innerText = "DAFTAR SEKARANG"; passInput.style.display = 'block';
+                toggleBtn.innerText = "Sudah punya akun? Login"; toggleBtn.onclick = () => changeAuthMode('login');
+            } else if (mode === 'forgot') {
+                title.innerText = "Pemulihan Akun"; btn.innerText = "KIRIM KODE"; passInput.style.display = 'none';
+                toggleBtn.innerText = "Kembali Login"; toggleBtn.onclick = () => changeAuthMode('login');
+            } else {
+                title.innerText = "Selamat Datang Kembali"; btn.innerText = "MASUK SEKARANG"; passInput.style.display = 'block';
+                toggleBtn.innerText = "Daftar Akun Baru"; toggleBtn.onclick = () => changeAuthMode('reg');
+            }
+        }
+
+        async function submitAuth() {
+            const email = document.getElementById('authEmail').value;
+            const password = document.getElementById('authPass').value;
+            const btn = document.getElementById('btnAuthAction');
+            const originalBtnText = btn.innerText;
+
+            if(!email) return showAlert("Email wajib diisi!");
+            
+            let endpoint = window.location.origin + '/auth/login';
+            if(currentMode === 'reg') endpoint = window.location.origin + '/auth/register';
+            if(currentMode === 'forgot') endpoint = window.location.origin + '/auth/forgot-password';
+
+            btn.disabled = true;
+            btn.innerHTML = `<span class="loader" style="width:20px; height:20px; border-width:2px; vertical-align:middle; margin-right:8px"></span> MENGIRIM...`;
 
             try {
-                const res = await fetch('/auth/login', {
+                const res = await fetch(endpoint, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(formData)
+                    headers: {'Content-Type': 'application/json'},
+                    credentials: 'include',
+                    body: JSON.stringify({ email, password })
                 });
                 const data = await res.json();
 
-                if (data.success) {
-                    window.location.href = '/dashboard';
+                if(res.ok && data.success) {
+                    if(currentMode === 'login') {
+                        // SIMPAN SESI KE LOCALSTORAGE AGAR BISA DIBACA DASHBOARD
+                        localStorage.setItem('jawaban_ai_email', email);
+                        localStorage.setItem('jawaban_ai_token', data.token || 0);
+                        
+                        // REDIRECT KE DASHBOARD
+                        window.location.href = 'dashboard.html';
+                    } else if (currentMode === 'forgot') {
+                        document.getElementById('otpModalOverlay').classList.remove('hidden');
+                        showAlert("KODE TERKIRIM! Cek email Anda.");
+                    } else {
+                        showAlert(data.message || "Berhasil! Silakan login.");
+                        changeAuthMode('login');
+                    }
                 } else {
-                    alert(data.error || "Login Gagal");
-                    btn.innerText = "MASUK SEKARANG";
-                    btn.disabled = false;
+                    showAlert(data.message || "Email salah atau tidak terdaftar!");
                 }
-            } catch (err) {
-                alert("Kesalahan Server");
-                btn.disabled = false;
+            } catch(e) { 
+                showAlert("Kesalahan Koneksi: " + e.message); 
+            } finally {
+                btn.disabled = false; btn.innerText = originalBtnText;
             }
-        };
+        }
+
+        async function submitVerifyOTP() {
+            const email = document.getElementById('authEmail').value;
+            const otp = document.getElementById('otpCode').value;
+            const newPassword = document.getElementById('otpNewPass').value;
+            const btn = document.querySelector("#otpModalOverlay button[onclick='submitVerifyOTP()']");
+            
+            if(!otp || !newPassword) return showAlert("Lengkapi kode dan password baru!");
+            
+            btn.disabled = true; btn.innerHTML = `<span class="spinner-mini"></span> MEMPROSES...`;
+
+            try {
+                const res = await fetch(window.location.origin + '/auth/reset-password', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    credentials: 'include',
+                    body: JSON.stringify({ email: email.trim(), otp: otp.trim(), newPassword: newPassword })
+                });
+                const data = await res.json();
+                if(data.success) {
+                    document.getElementById('otpModalOverlay').classList.add('hidden');
+                    showAlert("Berhasil! Password diperbarui. Silakan login.");
+                    changeAuthMode('login');
+                    document.getElementById('otpCode').value = "";
+                    document.getElementById('otpNewPass').value = "";
+                } else { showAlert(data.message || "Kode OTP salah atau kedaluwarsa!"); }
+            } catch(e) { showAlert("Gagal verifikasi ke server."); } finally {
+                btn.disabled = false; btn.innerText = "GANTI PASSWORD";
+            }
+        }
     </script>
 </body>
 </html>
