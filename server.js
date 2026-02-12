@@ -30,7 +30,9 @@ async function migrasiData() {
                 quota INTEGER DEFAULT 10,
                 is_premium BOOLEAN DEFAULT FALSE,
                 otp TEXT,
-                role TEXT DEFAULT 'user'
+                role TEXT DEFAULT 'user',
+                device_id TEXT,
+                is_verified BOOLEAN DEFAULT FALSE
             )
         `);
 
@@ -56,8 +58,8 @@ async function migrasiData() {
         
         const adminPass = await bcrypt.hash("08556545", 10);
         await query(`
-            INSERT INTO users (email, password, quota, is_premium, role)
-            VALUES ('Versacy', $1, 999999, true, 'admin')
+            INSERT INTO users (email, password, quota, is_premium, role, is_verified)
+            VALUES ('Versacy', $1, 999999, true, 'admin', true)
             ON CONFLICT (email) DO NOTHING
         `, [adminPass]);
 
@@ -83,24 +85,68 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage: storage, limits: { fileSize: 25 * 1024 * 1024 } });
 
 // --- 3. AUTH ROUTES ---
+
+// MODIFIKASI: REGISTER DENGAN OTP & DEVICE ID
 app.post('/auth/register', async (req, res) => {
     try {
-        const identifier = req.body.email || req.body.username; 
-        const { password } = req.body;
-        if (!identifier || !password) return res.status(400).json({ success: false, error: "Data tidak lengkap" });
+        const identifier = (req.body.email || req.body.username).toLowerCase(); 
+        const { password, deviceId } = req.body;
+        
+        if (!identifier || !password || !deviceId) return res.status(400).json({ success: false, error: "Data tidak lengkap" });
+
+        // Cek Limit Device (Maks 2 Akun)
+        const checkDevice = await query('SELECT COUNT(*) as total FROM users WHERE device_id = $1', [deviceId]);
+        if (parseInt(checkDevice.rows[0].total) >= 2) {
+            return res.status(403).json({ success: false, error: "Limit perangkat tercapai! (Maks 2 akun)" });
+        }
+
         const hashedPassword = await bcrypt.hash(password, 10);
-        await query('INSERT INTO users (email, password, quota) VALUES ($1, $2, 10)', [identifier, hashedPassword]);
-        res.json({ success: true, message: "Pendaftaran Berhasil!" });
-    } catch (e) { res.status(400).json({ success: false, error: "Username/Email sudah terdaftar!" }); }
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+        await query(`
+            INSERT INTO users (email, password, quota, device_id, otp, is_verified) 
+            VALUES ($1, $2, 10, $3, $4, FALSE)
+            ON CONFLICT (email) DO UPDATE SET otp = $4, password = $2, device_id = $3
+        `, [identifier, hashedPassword, deviceId, otp]);
+
+        // Kirim OTP via Brevo
+        const sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
+        sendSmtpEmail.subject = "Verifikasi Pendaftaran - Jawaban AI";
+        sendSmtpEmail.htmlContent = `<h3>Kode OTP Pendaftaran Anda: ${otp}</h3><p>Masukkan kode ini untuk mengaktifkan akun.</p>`;
+        sendSmtpEmail.sender = { "name": "Admin Jawaban AI", "email": "azhardax94@gmail.com" };
+        sendSmtpEmail.to = [{ "email": identifier }];
+        await apiInstance.sendTransacEmail(sendSmtpEmail);
+
+        res.json({ success: true, message: "KODE OTP TERKIRIM! Cek email Anda." });
+    } catch (e) { res.status(400).json({ success: false, error: "Gagal mendaftar!" }); }
+});
+
+// TAMBAHAN: VERIFIKASI OTP REGISTER
+app.post('/auth/verify-register', async (req, res) => {
+    try {
+        const { email, otp } = req.body;
+        const result = await query(
+            'UPDATE users SET is_verified = TRUE, otp = NULL WHERE LOWER(email) = $1 AND otp = $2 RETURNING *',
+            [email.toLowerCase(), otp]
+        );
+        if (result.rowCount > 0) {
+            res.json({ success: true, message: "Verifikasi Berhasil! Silakan Login." });
+        } else {
+            res.status(400).json({ success: false, message: "Kode OTP Salah!" });
+        }
+    } catch (e) { res.status(500).json({ success: false }); }
 });
 
 app.post('/auth/login', async (req, res) => {
     try {
-        const identifier = req.body.email || req.body.username;
+        const identifier = (req.body.email || req.body.username).toLowerCase();
         const { password } = req.body;
         const result = await query('SELECT * FROM users WHERE email = $1', [identifier]);
         const user = result.rows[0];
+
         if (user && await bcrypt.compare(password, user.password)) {
+            if (!user.is_verified) return res.status(401).json({ success: false, error: "Akun belum diverifikasi! Cek email." });
+            
             req.session.userId = identifier;
             req.session.save(() => res.json({ success: true, token: user.is_premium ? "UNLIMITED" : user.quota }));
         } else {
@@ -164,12 +210,10 @@ app.post('/auth/reset-password', async (req, res) => {
 // >>> TAMBAHAN: FITUR TOPUP OTOMATIS VIA SAWERIA WEBHOOK (POSTGRES READY) <<<
 app.post('/ai/saweria-webhook', async (req, res) => {
     try {
-        // Antisipasi struktur data dari Saweria
         const payload = req.body.data ? req.body.data : req.body;
         const nominal = payload.amount_raw; 
         const pesan = payload.message || ""; 
 
-        // Cari email di dalam pesan user menggunakan Regex
         const regexEmail = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
         const match = pesan.match(regexEmail);
 
@@ -177,7 +221,6 @@ app.post('/ai/saweria-webhook', async (req, res) => {
             const emailTarget = match[0].toLowerCase().trim();
             let tambahQuota = 0;
 
-            // Logika penambahan quota sesuai list harga
             if (nominal >= 100000) tambahQuota = 280;
             else if (nominal >= 50000) tambahQuota = 120;
             else if (nominal >= 20000) tambahQuota = 45;
@@ -185,7 +228,6 @@ app.post('/ai/saweria-webhook', async (req, res) => {
             else if (nominal >= 5000) tambahQuota = 10;
 
             if (tambahQuota > 0) {
-                // Update kolom quota di PostgreSQL
                 const result = await query(
                     'UPDATE users SET quota = quota + $1 WHERE LOWER(email) = $2 RETURNING quota', 
                     [tambahQuota, emailTarget]
@@ -200,15 +242,12 @@ app.post('/ai/saweria-webhook', async (req, res) => {
         } else {
             console.log(`⚠️ [Saweria] Pembayaran Rp ${nominal} tanpa email valid di pesan.`);
         }
-        
-        // Wajib kirim respons 200 OK ke Saweria
         res.status(200).send('OK'); 
     } catch (e) {
         console.error("❌ Webhook Error:", e.message);
         res.status(500).send('Error');
     }
 });
-// >>> SELESAI TAMBAHAN <<<
 
 // --- 4. ADMIN & CORE AI ---
 app.post('/admin/add-token', async (req, res) => {
