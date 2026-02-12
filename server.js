@@ -10,27 +10,15 @@ const low = require('lowdb');
 const FileSync = require('lowdb/adapters/FileSync');
 const fs = require('fs');
 
-// --- TAMBAHAN KEAMANAN BARU ---
-const helmet = require('helmet'); 
-const rateLimit = require('express-rate-limit');
-// ------------------------------
-
 dotenv.config();
 const app = express();
 const port = process.env.PORT || 8080; 
 
-// --- 0. KONFIGURASI API BREVO ---
+// --- 0. KONFIGURASI API BREVO (MENGGUNAKAN SDK API) ---
 const defaultClient = SibApiV3Sdk.ApiClient.instance;
 const apiKey = defaultClient.authentications['api-key'];
 apiKey.apiKey = process.env.BREVO_API_KEY; 
 const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
-
-// --- PENGATURAN RATE LIMIT (ANTI-HACKER/DOS) ---
-const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 menit
-    max: 100, // Maksimal 100 request per IP
-    message: { success: false, error: "Terlalu banyak request, silakan coba lagi nanti." }
-});
 
 // --- 1. PROSES PINDAH DATA (OTOMATIS & AMAN) ---
 async function migrasiData() {
@@ -42,8 +30,7 @@ async function migrasiData() {
                 quota INTEGER DEFAULT 10,
                 is_premium BOOLEAN DEFAULT FALSE,
                 otp TEXT,
-                role TEXT DEFAULT 'user',
-                device_id TEXT -- TAMBAHAN KOLOM UNTUK PENGAMANAN DEVICE
+                role TEXT DEFAULT 'user'
             )
         `);
 
@@ -79,7 +66,6 @@ async function migrasiData() {
 migrasiData();
 
 // --- 2. MIDDLEWARE & SESSION ---
-app.use(helmet()); // AKTIFKAN HELMET UNTUK KEAMANAN HEADER
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
@@ -97,33 +83,20 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage: storage, limits: { fileSize: 25 * 1024 * 1024 } });
 
 // --- 3. AUTH ROUTES ---
-// Tambahkan limiter khusus di register/login untuk cegah brute force
-app.post('/auth/register', limiter, async (req, res) => {
+app.post('/auth/register', async (req, res) => {
     try {
-        const identifier = (req.body.email || req.body.username || "").toLowerCase().trim(); 
-        const { password, device_id } = req.body; // MENERIMA DEVICE ID DARI FRONTEND
-
+        const identifier = req.body.email || req.body.username; 
+        const { password } = req.body;
         if (!identifier || !password) return res.status(400).json({ success: false, error: "Data tidak lengkap" });
-        
-        // PENGAMANAN: CEK APAKAH DEVICE SUDAH TERDAFTAR AKUN LAIN
-        if (device_id) {
-            const checkDev = await query('SELECT email FROM users WHERE device_id = $1', [device_id]);
-            if (checkDev.rowCount > 0) {
-                return res.status(403).json({ success: false, error: "Perangkat ini sudah terdaftar dengan akun lain!" });
-            }
-        }
-
         const hashedPassword = await bcrypt.hash(password, 10);
-        await query('INSERT INTO users (email, password, quota, device_id) VALUES ($1, $2, 10, $3)', 
-            [identifier, hashedPassword, device_id || null]);
-            
+        await query('INSERT INTO users (email, password, quota) VALUES ($1, $2, 10)', [identifier, hashedPassword]);
         res.json({ success: true, message: "Pendaftaran Berhasil!" });
     } catch (e) { res.status(400).json({ success: false, error: "Username/Email sudah terdaftar!" }); }
 });
 
-app.post('/auth/login', limiter, async (req, res) => {
+app.post('/auth/login', async (req, res) => {
     try {
-        const identifier = (req.body.email || req.body.username || "").toLowerCase().trim();
+        const identifier = req.body.email || req.body.username;
         const { password } = req.body;
         const result = await query('SELECT * FROM users WHERE email = $1', [identifier]);
         const user = result.rows[0];
@@ -136,9 +109,9 @@ app.post('/auth/login', limiter, async (req, res) => {
     } catch (e) { res.status(500).json({ success: false, error: "Terjadi kesalahan server" }); }
 });
 
-app.post('/auth/forgot-password', limiter, async (req, res) => {
+app.post('/auth/forgot-password', async (req, res) => {
     try {
-        const identifier = (req.body.email || req.body.username || "").toLowerCase().trim();
+        const identifier = req.body.email || req.body.username;
         const otp = Math.floor(100000 + Math.random() * 900000).toString(); 
         
         const result = await query('UPDATE users SET otp = $1 WHERE email = $2 RETURNING *', [otp, identifier]);
@@ -159,16 +132,21 @@ app.post('/auth/forgot-password', limiter, async (req, res) => {
             sendSmtpEmail.to = [{ "email": identifier }];
 
             await apiInstance.sendTransacEmail(sendSmtpEmail);
+
+            console.log(`🔑 OTP Terkirim ke ${identifier}: ${otp}`);
             res.json({ success: true, message: "KODE TERKIRIM! Cek kotak masuk atau spam email Anda." });
         } else {
             res.status(404).json({ success: false, message: "Email tidak terdaftar!" });
         }
-    } catch (e) { res.status(500).json({ success: false, message: "Gagal mengirim email." }); }
+    } catch (e) { 
+        console.error("❌ Error API Brevo:", e.message);
+        res.status(500).json({ success: false, message: "Gagal mengirim email." }); 
+    }
 });
 
 app.post('/auth/reset-password', async (req, res) => {
     try {
-        const identifier = (req.body.email || req.body.username || "").toLowerCase().trim();
+        const identifier = req.body.email || req.body.username;
         const { otp, newPassword } = req.body;
         const hashedPassword = await bcrypt.hash(newPassword, 10);
         const result = await query(
@@ -186,10 +164,12 @@ app.post('/auth/reset-password', async (req, res) => {
 // >>> TAMBAHAN: FITUR TOPUP OTOMATIS VIA SAWERIA WEBHOOK (POSTGRES READY) <<<
 app.post('/ai/saweria-webhook', async (req, res) => {
     try {
+        // Antisipasi struktur data dari Saweria
         const payload = req.body.data ? req.body.data : req.body;
         const nominal = payload.amount_raw; 
         const pesan = payload.message || ""; 
 
+        // Cari email di dalam pesan user menggunakan Regex
         const regexEmail = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
         const match = pesan.match(regexEmail);
 
@@ -197,6 +177,7 @@ app.post('/ai/saweria-webhook', async (req, res) => {
             const emailTarget = match[0].toLowerCase().trim();
             let tambahQuota = 0;
 
+            // Logika penambahan quota sesuai list harga
             if (nominal >= 100000) tambahQuota = 280;
             else if (nominal >= 50000) tambahQuota = 120;
             else if (nominal >= 20000) tambahQuota = 45;
@@ -204,16 +185,30 @@ app.post('/ai/saweria-webhook', async (req, res) => {
             else if (nominal >= 5000) tambahQuota = 10;
 
             if (tambahQuota > 0) {
-                await query('UPDATE users SET quota = quota + $1 WHERE LOWER(email) = $2', [tambahQuota, emailTarget]);
-                console.log(`✅ [Saweria] +${tambahQuota} Quota untuk ${emailTarget}`);
+                // Update kolom quota di PostgreSQL
+                const result = await query(
+                    'UPDATE users SET quota = quota + $1 WHERE LOWER(email) = $2 RETURNING quota', 
+                    [tambahQuota, emailTarget]
+                );
+
+                if (result.rowCount > 0) {
+                    console.log(`✅ [Saweria] +${tambahQuota} Quota untuk ${emailTarget} (Rp ${nominal}). Total: ${result.rows[0].quota}`);
+                } else {
+                    console.log(`❌ [Saweria] User ${emailTarget} tidak ditemukan di DB.`);
+                }
             }
+        } else {
+            console.log(`⚠️ [Saweria] Pembayaran Rp ${nominal} tanpa email valid di pesan.`);
         }
+        
+        // Wajib kirim respons 200 OK ke Saweria
         res.status(200).send('OK'); 
     } catch (e) {
         console.error("❌ Webhook Error:", e.message);
         res.status(500).send('Error');
     }
 });
+// >>> SELESAI TAMBAHAN <<<
 
 // --- 4. ADMIN & CORE AI ---
 app.post('/admin/add-token', async (req, res) => {
@@ -228,13 +223,10 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
     const userRes = await query('SELECT * FROM users WHERE email = $1', [req.session.userId]);
     const user = userRes.rows[0];
     if (!user.is_premium && user.quota < req.files.length) return res.json({ success: false, limitReached: true });
-    
     let settings = {};
     try { settings = (typeof req.body.data === 'string') ? JSON.parse(req.body.data) : (req.body.data || {}); } 
     catch (e) { settings = { kunci_pg: {}, kunci_essay: {} }; }
-    
     const results = await prosesKoreksiLengkap(req.files, settings, req.body.rumus_pg, req.body.rumus_es);
-    
     if (!user.is_premium && results.length > 0) {
         await query('UPDATE users SET quota = GREATEST(0, quota - $1) WHERE email = $2', [req.files.length, req.session.userId]);
     }
