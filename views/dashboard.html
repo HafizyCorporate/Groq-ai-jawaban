@@ -23,26 +23,15 @@
         .notice-red { background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%); border-left: 6px solid #e53e3e; }
         
         /* RESPONSIVE */
-        @media (max-width: 767px) { html { font-size: 15px; } body { padding: 12px; } .rounded-\[45px\], .rounded-\[40px\] { border-radius: 28px !important; } .rounded-\[35px\], .rounded-\[30px\] { border-radius: 20px !important; } .p-10 { padding: 1.5rem !important; } .p-8 { padding: 1.2rem !important; } .py-8 { padding-top: 1.5rem !important; padding-bottom: 1.5rem !important; } .text-5xl { font-size: 2.5rem !important; } .text-3xl { font-size: 1.75rem !important; } }
+        @media (max-width: 767px) { html { font-size: 15px; } body { padding: 12px; } .rounded-\[45px\], .rounded-\[40px\] { border-radius: 28px !important; } .rounded-\[35px\], .rounded-\[30px\] { border-radius: 20px !important; } .p-10 { padding: 1.5rem !important; } .p-8 { padding: 1.2rem !important; } .py-8 { padding-top: 1.5rem !important; padding-bottom: 1.5rem !important; } .text-5xl { font-size: 2.5rem !important; } .text-3xl { font-size: 1.75rem !important; } #gridPG { gap: 8px !important; } select.key-dropdown { font-size: 1.1rem !important; padding: 0.8rem 0.4rem !important; } }
         @media (min-width: 1024px) { #dashboardWrapper { max-width: 1200px !important; display: grid; grid-template-columns: 480px 1fr; gap: 2rem; align-items: start; } .header-area, #adminPanel, .upload-section, .notice-area { grid-column: span 2; } #resWrap { margin-top: 0 !important; padding-top: 0 !important; } }
         @media (min-width: 768px) { #dashboardWrapper { max-width: 650px; margin: 2rem auto !important; } }
 
-        /* MODIFIKASI KOTAK KUNCI JAWABAN JADI BESAR & KOTAK */
-        select.key-dropdown { 
-            appearance: none; 
-            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e"); 
-            background-repeat: no-repeat; 
-            background-position: center right 3px; 
-            background-size: 0.8em; 
-            font-size: 1.6rem !important; 
-            padding: 0 !important;
-            width: 65px !important;   /* Lebar tetap */
-            height: 65px !important;  /* Tinggi tetap (Kotak) */
-            text-align: center !important;
-            border-radius: 15px !important;
-        }
-
+        select.key-dropdown { appearance: none; background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 0.5rem center; background-size: 1.2em; font-size: 1.4rem !important; padding: 1rem !important; }
         details summary::-webkit-details-marker { display:none; } details summary { list-style: none; }
+        
+        /* CUSTOM: NOMOR PG AGAK BESAR & BOLD */
+        .nomor-pg { font-size: 14px !important; font-weight: 800 !important; color: #64748b !important; }
     </style>
 </head>
 <body class="bg-slate-50 p-4 text-slate-900">
@@ -63,11 +52,20 @@
             <div class="text-center mb-6">
                 <div class="text-6xl mb-4">💳</div>
                 <h3 class="text-2xl font-black uppercase text-slate-800">Topup Token</h3>
+                <p class="text-slate-500 font-bold text-sm">Pilih paket dan bayar otomatis via Saweria</p>
             </div>
-            <div class="space-y-3" id="listPaket">
+            <div class="notice-red p-4 rounded-2xl border border-red-200 mb-6">
+                <p class="text-[11px] font-black text-red-600 uppercase mb-1">⚠️ PENTING:</p>
+                <p class="text-[12px] font-bold text-slate-600 leading-tight">
+                    Saat di halaman Saweria, Anda <b>WAJIB</b> menuliskan <b>ALAMAT EMAIL</b> Anda di kolom "Pesan" agar token masuk otomatis.
+                </p>
+            </div>
+            <div class="space-y-3">
                 <button onclick="bayarSaweria('p5k')" class="w-full flex justify-between items-center p-5 bg-slate-50 rounded-2xl border border-slate-100 hover:border-blue-400 transition"><span class="font-black text-slate-700 uppercase text-xs">10 Token</span><span class="font-black text-blue-600">Rp 5.000</span></button>
                 <button onclick="bayarSaweria('p10k')" class="w-full flex justify-between items-center p-5 bg-slate-50 rounded-2xl border border-slate-100 hover:border-blue-400 transition"><span class="font-black text-slate-700 uppercase text-xs">22 Token</span><span class="font-black text-blue-600">Rp 10.000</span></button>
                 <button onclick="bayarSaweria('p20k')" class="w-full flex justify-between items-center p-5 bg-slate-50 rounded-2xl border border-slate-100 hover:border-blue-400 transition"><span class="font-black text-slate-700 uppercase text-xs">45 Token</span><span class="font-black text-blue-600">Rp 20.000</span></button>
+                <button onclick="bayarSaweria('p50k')" class="w-full flex justify-between items-center p-5 bg-slate-50 rounded-2xl border border-slate-100 hover:border-blue-400 transition"><span class="font-black text-slate-700 uppercase text-xs">120 Token</span><span class="font-black text-blue-600">Rp 50.000</span></button>
+                <button onclick="bayarSaweria('p100k')" class="w-full flex justify-between items-center p-5 bg-slate-50 rounded-2xl border border-slate-100 hover:border-blue-400 transition"><span class="font-black text-slate-700 uppercase text-xs">280 Token</span><span class="font-black text-blue-600">Rp 100.000</span></button>
             </div>
             <button onclick="document.getElementById('topupModalOverlay').classList.add('hidden')" class="w-full mt-6 text-slate-400 font-black py-2 text-xs uppercase">Batal</button>
         </div>
@@ -78,7 +76,9 @@
             <span class="text-xs font-black text-slate-400 uppercase italic">Token:</span>
             <span id="valToken" class="text-3xl font-black text-blue-600">...</span>
         </div>
-        <button onclick="openTopupModal()" class="bg-orange-500 text-white px-4 py-2 rounded-full text-[10px] font-black uppercase shadow-lg animate-bounce">+ ISI TOKEN</button>
+        <button onclick="openTopupModal()" class="bg-orange-500 text-white px-4 py-2 rounded-full text-[10px] font-black uppercase shadow-lg animate-bounce">
+            + ISI TOKEN
+        </button>
     </div>
 
     <div id="dashboardWrapper" class="max-w-md mx-auto space-y-6">
@@ -93,9 +93,20 @@
                 <input type="email" id="targetEmail" placeholder="Email User" class="w-full p-5 bg-slate-800 text-white rounded-2xl text-lg font-bold border border-slate-700">
                 <select id="paketToken" class="w-full p-5 bg-slate-800 text-white rounded-2xl text-lg font-bold border border-slate-700">
                     <option value="100">100 Token</option>
+                    <option value="210">210 Token</option>
+                    <option value="350">350 Token</option>
                 </select>
                 <button onclick="prosesTambahToken()" class="w-full bg-blue-600 text-white font-black py-5 rounded-2xl text-xs uppercase">Tambah Token</button>
             </div>
+        </div>
+
+        <div class="notice-area notice-red p-6 rounded-[30px] shadow-sm border border-red-200">
+            <p class="text-[13px] font-bold text-slate-600 leading-relaxed mb-1">
+                Tolong upload foto siswa **sesuai urutan**. Jika soal ada 2 lembar, pastikan foto lembar yang ada namanya dipilih **lebih dulu**.
+            </p>
+            <p class="text-[14px] font-black text-red-700 uppercase tracking-tighter bg-red-100 inline-block px-2 py-1 rounded-lg border border-red-300">
+                🚀 MAX 10 FOTO PER SESI
+            </p>
         </div>
 
         <div class="upload-section grid grid-cols-2 gap-4">
@@ -112,9 +123,8 @@
         <div class="left-col space-y-6">
             <div class="bg-white p-8 rounded-[45px] shadow-sm border border-slate-100">
                 <p class="text-xs font-black text-blue-600 uppercase mb-6 tracking-widest">Kunci PG (1-40)</p>
-                <div id="gridPG" class="grid grid-cols-4 sm:grid-cols-8 gap-y-6 gap-x-2 mb-10"></div>
-                
-                <p class="text-xs font-black text-emerald-500 uppercase mb-5 tracking-widest">Kunci Essay (Optional)</p>
+                <div id="gridPG" class="grid grid-cols-4 sm:grid-cols-5 gap-y-6 gap-x-3 mb-10"></div>
+                <p class="text-xs font-black text-emerald-500 uppercase mb-5 tracking-widest">Kunci Essay (1-20)</p>
                 <div id="gridES" class="space-y-4"></div>
             </div>
             <button id="btnAI" class="w-full bg-[#0f172a] text-white font-black py-8 rounded-[40px] text-lg uppercase shadow-xl transition active:scale-95">MULAI PROSES KOREKSI AI</button>
@@ -127,11 +137,12 @@
                 <button onclick="konfirmasiHapusRiwayat()" class="text-xs font-black text-red-500 uppercase">Bersihkan</button>
             </div>
             <div id="scanAwal" class="space-y-6"></div>
-            
             <div class="bg-white p-10 rounded-[45px] border-t-[6px] border-blue-600 space-y-6 shadow-xl mt-14">
                 <div class="notice-red p-6 rounded-[25px] border border-red-200">
-                    <p class="text-[13px] font-bold text-red-500 leading-relaxed">Masukkan rumus dan mapel untuk mencetak laporan akhir.</p>
+                    <div class="flex items-center gap-3 mb-2"><span class="text-2xl">⚠️</span><p class="text-xs font-black text-red-600 uppercase tracking-widest italic leading-none">PENTING: PETUNJUK GURU</p></div>
+                    <p class="text-[13px] font-bold text-red-500 leading-relaxed">Halo guru biarkan sampai guru selesai menginput nilai siswa ya baru Guru hitung rumusnya dibawah ini agar nanti laporan cetaknya semua masuk. Jangan lupa tulis mata pelajarannya agar laporan terpisah dengan mata pelajaran lain. Terimakasih</p>
                 </div>
+                <p class="text-center font-black text-blue-600 text-xs uppercase italic">Pengaturan Laporan & Nilai</p>
                 <div>
                     <p class="text-[10px] font-black text-slate-400 uppercase mb-2 ml-1 italic">Mata Pelajaran:</p>
                     <input type="text" id="mapel" placeholder="Contoh: Matematika" class="w-full p-5 bg-slate-50 rounded-2xl text-sm font-bold border border-slate-100 outline-none">
@@ -148,7 +159,6 @@
                 </div>
                 <button id="btnHitung" class="w-full bg-blue-600 text-white font-black py-7 rounded-[30px] text-sm uppercase shadow-lg">HITUNG NILAI AKHIR</button>
             </div>
-            
             <div id="exportMenu" class="hidden grid grid-cols-3 gap-2 px-2">
                 <button onclick="exportWord()" class="bg-blue-100 text-blue-700 py-4 rounded-2xl text-[10px] font-black uppercase border border-blue-200">DOCX</button>
                 <button onclick="exportPDF()" class="bg-red-100 text-red-700 py-4 rounded-2xl text-[10px] font-black uppercase border border-red-200">PDF</button>
@@ -159,7 +169,7 @@
     </div>
 
     <script>
-        // SCRIPT LOGIC (SAMA PERSIS DENGAN ASLINYA)
+        // CEK STATUS LOGIN SAAT LOAD
         let userEmail = "";
         let dbData = [];
         let exportData = [];
@@ -167,132 +177,179 @@
         window.onload = function() {
             userEmail = localStorage.getItem('jawaban_ai_email');
             const token = localStorage.getItem('jawaban_ai_token');
-            if(!userEmail) { window.location.href = 'login.html'; return; }
+            
+            if(!userEmail) {
+                window.location.href = 'login.html';
+                return;
+            }
+            
             document.getElementById('valToken').innerText = token || 0;
             if(userEmail.toLowerCase() === "versacy") document.getElementById('adminPanel').classList.remove('hidden');
+            
             muatRiwayat();
         };
 
         function logout() {
-            if(confirm("Keluar?")) { localStorage.clear(); window.location.href = 'login.html'; }
+            if(confirm("Keluar dan hapus semua riwayat di sesi ini?")) {
+                localStorage.removeItem('jawaban_ai_email');
+                localStorage.removeItem('jawaban_ai_token');
+                localStorage.removeItem('riwayat_ai_v2');
+                window.location.href = 'login.html';
+            }
         }
 
-        // INIT GRID KUNCI JAWABAN (DIUBAH MENJADI 40)
-        const gPG = document.getElementById('gridPG'); gPG.innerHTML = ''; 
-        for(let i=1; i<=40; i++) {
-            gPG.innerHTML += `
-            <div class="flex flex-col items-center gap-2">
-                <span class="text-[10px] font-black text-slate-400 uppercase italic leading-none">${i}</span>
-                <select id="p${i}" class="key-dropdown w-full bg-slate-50 rounded-xl font-black border border-slate-100 outline-none text-center">
-                    <option value="">-</option>
-                    <option>A</option><option>B</option><option>C</option><option>D</option><option>E</option>
-                </select>
-            </div>`;
-        }
-
-        const gES = document.getElementById('gridES'); gES.innerHTML = '';
-        for(let i=1; i<=5; i++) {
-            gES.innerHTML += `<div class="relative"><span class="absolute left-5 top-1/2 -translate-y-1/2 text-xs font-black text-slate-300 italic uppercase">No ${i}</span><input id="e${i}" placeholder="Kunci..." class="w-full pl-20 p-5 bg-slate-50 rounded-2xl text-lg font-bold border border-slate-100 outline-none"></div>`;
-        }
-
+        // FUNGSI UMUM
         function showAlert(msg, mode = 'alert') {
             const overlay = document.getElementById('customAlertOverlay');
-            document.getElementById('alertMsg').innerText = msg;
+            const msgEl = document.getElementById('alertMsg');
+            const titleEl = document.getElementById('alertTitle');
+            const iconEl = document.getElementById('alertIcon');
+            const btnArea = document.getElementById('alertButtons');
+            msgEl.innerText = msg;
+            btnArea.innerHTML = '';
+
+            if (mode === 'confirm') {
+                titleEl.innerText = "Konfirmasi"; iconEl.innerText = "🗑️";
+                btnArea.innerHTML = `
+                    <button onclick="hapusRiwayat()" class="w-full bg-red-500 text-white font-black py-6 rounded-[25px] text-sm uppercase">Ya, Hapus Semua</button>
+                    <button onclick="closeAlert()" class="w-full bg-slate-100 text-slate-500 font-black py-5 rounded-[25px] text-xs uppercase">Batal</button>`;
+            } else if (msg.toLowerCase().includes("habis")) {
+                titleEl.innerText = "Token Habis!"; iconEl.innerText = "🎫";
+                btnArea.innerHTML = `
+                    <button onclick="openTopupModal()" class="block w-full bg-blue-600 text-white font-black py-6 rounded-[25px] text-sm text-center uppercase">Topup Sekarang</button>
+                    <button onclick="closeAlert()" class="w-full bg-slate-100 text-slate-500 font-black py-5 rounded-[25px] text-xs uppercase">Tutup</button>`;
+            } else {
+                titleEl.innerText = msg.includes("Berhasil") ? "Sukses!" : "Pemberitahuan";
+                iconEl.innerText = msg.includes("Berhasil") ? "✅" : "⚠️";
+                btnArea.innerHTML = `<button onclick="closeAlert()" class="w-full bg-blue-600 text-white font-black py-6 rounded-[25px] text-sm uppercase">Oke</button>`;
+            }
             overlay.classList.remove('hidden');
         }
-        function closeAlert() { document.getElementById('customAlertOverlay').classList.add('hidden'); }
-        function openTopupModal() { document.getElementById('topupModalOverlay').classList.remove('hidden'); }
-        function triggerUpload(type) { document.getElementById('file').click(); }
-        function handleFileSelect(input) { document.getElementById('stts').innerText = '✅ ' + input.files.length + ' File Terpilih'; }
 
-        // TOMBOL AI MEMBACA 40 NOMOR
+        function closeAlert() { document.getElementById('customAlertOverlay').classList.add('hidden'); }
+        function konfirmasiHapusRiwayat() { showAlert("Bersihkan semua laporan?", 'confirm'); }
+        function hapusRiwayat() { dbData = []; localStorage.removeItem('riwayat_ai_v2'); location.reload(); }
+        
+        function openTopupModal() { document.getElementById('topupModalOverlay').classList.remove('hidden'); }
+        
+        function updateTokenDisplay(val) {
+            document.getElementById('valToken').innerText = val;
+            localStorage.setItem('jawaban_ai_token', val);
+        }
+
+        // INIT GRID KUNCI JAWABAN - PERUBAHAN: PG 40, ESSAY 20
+        const gPG = document.getElementById('gridPG'); gPG.innerHTML = ''; 
+        for(let i=1; i<=40; i++) {
+            gPG.innerHTML += `<div class="flex flex-col items-center gap-2"><span class="nomor-pg uppercase italic leading-none">${i}</span><select id="p${i}" class="key-dropdown w-full p-4 bg-slate-50 rounded-xl text-2xl font-black border border-slate-100 outline-none text-center"><option value="">-</option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option></select></div>`;
+        }
+        const gES = document.getElementById('gridES'); gES.innerHTML = '';
+        for(let i=1; i<=20; i++) {
+            gES.innerHTML += `<div class="relative"><span class="absolute left-5 top-1/2 -translate-y-1/2 text-xs font-black text-slate-300 italic uppercase">No ${i}</span><input id="e${i}" placeholder="Kunci Jawaban Essay..." class="w-full pl-20 p-5 bg-slate-50 rounded-2xl text-lg font-bold border border-slate-100 outline-none"></div>`;
+        }
+
+        // UPLOAD & AI LOGIC
+        function triggerUpload(type) {
+            const input = document.getElementById('file');
+            if (type === 'camera') { input.removeAttribute('multiple'); input.setAttribute('capture', 'environment'); } else { input.setAttribute('multiple', ''); input.removeAttribute('capture'); }
+            input.click();
+        }
+        function handleFileSelect(input) {
+            if (input.files.length > 10) { showAlert("Waduh! Kebanyakan Bos. Maksimal 10 foto saja sekali proses."); input.value = ""; return; }
+            document.getElementById('stts').innerText = '✅ ' + input.files.length + ' File Terpilih';
+        }
+
         document.getElementById('btnAI').onclick = async () => {
             const btn = document.getElementById('btnAI');
-            const files = document.getElementById('file').files;
+            const fileInput = document.getElementById('file');
+            const files = fileInput.files;
             if(!files.length) return showAlert("Pilih file!");
             
             btn.disabled = true; document.getElementById('loadingMsg').classList.remove('hidden');
+            const originalText = "MULAI PROSES KOREKSI AI";
             const conf = { kunci_pg: {}, kunci_essay: {} };
-            
-            // Loop membaca 40 input kunci
-            for(let i=1; i<=40; i++) { 
-                const v = document.getElementById(`p${i}`).value; 
-                if(v !== "") conf.kunci_pg[i] = v; 
-            }
-            for(let i=1; i<=5; i++) { 
-                const v = document.getElementById(`e${i}`).value; 
-                if(v !== "") conf.kunci_essay[i] = v; 
-            }
+            for(let i=1; i<=40; i++) { const v = document.getElementById(`p${i}`).value; if(v !== "") conf.kunci_pg[i] = v; }
+            for(let i=1; i<=20; i++) { const v = document.getElementById(`e${i}`).value; if(v !== "") conf.kunci_essay[i] = v; }
 
+            let namaTerakhir = "TIDAK DIKENAL";
             try {
                 for (let i = 0; i < files.length; i++) {
-                    btn.innerHTML = `ANALISIS ${i+1}/${files.length}...`;
-                    const fd = new FormData(); 
-                    fd.append('data', JSON.stringify(conf)); 
-                    fd.append('foto', files[i]);
-                    fd.append('rumus_pg', document.getElementById('r_pg').value || "betul * 1");
-
-                    const req = await fetch('/ai/proses-koreksi', { method: 'POST', body: fd });
-                    const res = await req.json();
-                    if(res.success) {
-                        dbData.push(Array.isArray(res.data) ? res.data[0] : res.data);
-                        if(res.current_token !== undefined) {
-                            document.getElementById('valToken').innerText = res.current_token;
-                            localStorage.setItem('jawaban_ai_token', res.current_token);
-                        }
-                        tampilkanHasilKeLayar();
-                        localStorage.setItem('riwayat_ai_v2', JSON.stringify(dbData));
-                    }
+                    btn.innerHTML = `<span class="spinner-mini"></span> <span class="ml-2">ANALISIS ${i+1}/${files.length}...</span>`;
+                    const fd = new FormData(); fd.append('data', JSON.stringify(conf)); fd.append('foto', files[i]);
+                    const controller = new AbortController(); const timeoutId = setTimeout(() => controller.abort(), 60000); 
+                    try {
+                        const req = await fetch(window.location.origin + '/ai/proses-koreksi', { method: 'POST', body: fd, credentials: 'include', signal: controller.signal });
+                        clearTimeout(timeoutId);
+                        if (req.status === 401) { showAlert("Sesi habis, silakan login ulang."); logout(); return; }
+                        const res = await req.json();
+                        if(res.success) {
+                            let itemData = Array.isArray(res.data) ? res.data[0] : res.data;
+                            if(!itemData.nama || itemData.nama.includes("TIDAK")) itemData.nama = namaTerakhir; else namaTerakhir = itemData.nama;
+                            dbData.push(itemData);
+                            if(res.current_token !== undefined) updateTokenDisplay(res.current_token);
+                            tampilkanHasilKeLayar(); simpanKeRiwayat();
+                        } else { showAlert("AI Gagal: " + res.message); if(res.limitReached) break; }
+                    } catch (e) { showAlert("GAGAL SCAN: " + e.message); break; }
                 }
-                btn.innerText = "SELESAI ✅";
-            } catch(e) { showAlert("Error!"); } finally {
-                document.getElementById('loadingMsg').classList.add('hidden');
-                setTimeout(() => { btn.disabled = false; btn.innerText = "MULAI PROSES KOREKSI AI"; }, 3000);
+                btn.innerText = "SELESAI ✅"; fileInput.value = ""; document.getElementById('stts').innerText = 'Belum ada file dipilih';
+            } catch(e) { showAlert("Terjadi kesalahan sistem!"); } finally {
+                document.getElementById('loadingMsg').classList.add('hidden'); setTimeout(() => { btn.disabled = false; btn.innerText = originalText; }, 3000);
             }
         };
 
         function tampilkanHasilKeLayar() {
             const container = document.getElementById('scanAwal');
-            container.innerHTML = [...dbData].reverse().map(s => `
-                <div class="bg-white rounded-[40px] p-8 border border-slate-200 shadow-sm mb-4">
-                    <div class="flex justify-between items-center">
-                        <h2 class="text-2xl font-black uppercase">${s.nama || 'SISWA'}</h2>
-                        <div class="bg-blue-600 text-white p-4 rounded-2xl text-center">
-                            <span class="block text-[10px]">BETUL</span>
-                            <span class="text-2xl font-black">${s.pg_betul || 0}</span>
+            if(!dbData.length) { container.innerHTML = ''; document.getElementById('resWrap').classList.add('hidden'); return; }
+            const card = (s) => `
+                <div class="bg-white overflow-hidden rounded-[40px] border border-slate-200 shadow-sm hover:shadow-md transition-all duration-300">
+                    <div class="p-8 space-y-6">
+                        <div class="flex justify-between items-center">
+                            <div class="flex flex-col max-w-[70%]"><span class="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1">DATA SISWA TERDETEKSI</span><h2 class="text-2xl font-black text-slate-800 uppercase truncate">${s.nama || 'NAMA TIDAK JELAS'}</h2></div>
+                            <div class="flex flex-col items-center justify-center bg-blue-600 text-white min-w-[70px] h-[70px] rounded-3xl shadow-lg shadow-blue-200"><span class="text-[9px] font-black uppercase opacity-80 leading-none mb-1">BETUL</span><span class="text-3xl font-black">${s.pg_betul || 0}</span></div>
+                        </div>
+                        <div class="bg-slate-50 rounded-[30px] p-6 border border-slate-100">
+                            <div class="flex items-center gap-2 mb-3"><span class="text-lg">📍</span><span class="text-[11px] font-black text-slate-400 uppercase tracking-widest italic">Pemetaan Jawaban Betul:</span></div>
+                            <p class="text-xl font-black text-slate-700 tracking-widest leading-relaxed">${s.nomor_pg_betul || 'Kosong'}</p>
                         </div>
                     </div>
-                </div>`).join('');
-            document.getElementById('resWrap').classList.remove('hidden');
-        }
-
-        function muatRiwayat() {
-            const saved = localStorage.getItem('riwayat_ai_v2');
-            if(saved) { dbData = JSON.parse(saved); tampilkanHasilKeLayar(); }
-        }
-
-        // HITUNG NILAI & EXPORT (Sesuai aslinya)
-        document.getElementById('btnHitung').onclick = () => {
-            let reportHtml = '';
-            const r_pg = (document.getElementById('r_pg').value || "betul * 1").toLowerCase();
-            dbData.forEach(s => {
-                let n = 0; 
-                try { n = eval(r_pg.replace(/betul/g, s.pg_betul).replace(/x/g, '*')); } catch(e){}
-                reportHtml += `
-                <div class="bg-white p-8 rounded-[40px] border-l-[12px] border-blue-600 shadow-xl mb-4">
-                    <div class="flex justify-between items-center">
-                        <span class="text-2xl font-black uppercase">${s.nama}</span>
-                        <span class="text-5xl font-black">${n}</span>
-                    </div>
                 </div>`;
+            container.innerHTML = [...dbData].reverse().map(card).join('');
+            document.getElementById('resWrap').classList.remove('hidden'); document.getElementById('resWrap').classList.add('force-show');
+        }
+        function simpanKeRiwayat() { localStorage.setItem('riwayat_ai_v2', JSON.stringify(dbData)); }
+        function muatRiwayat() { const saved = localStorage.getItem('riwayat_ai_v2'); if(saved) { dbData = JSON.parse(saved); if(dbData.length) tampilkanHasilKeLayar(); } }
+
+        // HITUNG & EXPORT
+        document.getElementById('btnHitung').onclick = () => {
+            if(!dbData.length) return showAlert("Data kosong!");
+            let reportHtml = `<p class="text-center font-black text-blue-600 uppercase text-xs tracking-widest mt-14 italic">REKAP NILAI AKHIR</p>`;
+            const r_pg = (document.getElementById('r_pg').value || "betul * 1").toLowerCase();
+            const mapel = document.getElementById('mapel').value || "Tidak Disebutkan";
+            const grouped = {}; dbData.forEach(s => { if(!grouped[s.nama]) grouped[s.nama] = {nama:s.nama, pg:0}; grouped[s.nama].pg += (s.pg_betul||0); });
+            exportData = []; let no = 1;
+            Object.values(grouped).forEach(s => {
+                let nilai = 0; try { nilai = eval(r_pg.replace(/betul/g, s.pg).replace(/x/g, '*')); } catch(e){}
+                exportData.push({no:no++, nama:s.nama, mapel, betul:s.pg, nilai});
+                reportHtml += `<div class="bg-white p-8 rounded-[40px] border-l-[12px] border-blue-600 shadow-xl space-y-4 mb-5"><div class="flex justify-between items-start"><div class="flex flex-col"><span class="text-[10px] font-black text-slate-400 uppercase italic mb-1">${mapel}</span><span class="text-2xl font-black text-slate-700 uppercase">${s.nama}</span></div><span class="text-6xl font-black text-slate-900">${nilai}</span></div></div>`;
             });
-            document.getElementById('laporanFinal').innerHTML = reportHtml;
-            document.getElementById('exportMenu').classList.remove('hidden');
+            document.getElementById('laporanFinal').innerHTML = reportHtml; document.getElementById('exportMenu').classList.remove('hidden');
         };
 
+        async function exportWord() { const {Document, Packer, Paragraph, Table, TableRow, TableCell} = docx; const blob = await Packer.toBlob(new Document({ sections: [{ children: [new Paragraph("LAPORAN NILAI"), new Table({ rows: [new TableRow({ children: ["NO","NAMA","MAPEL","BETUL","NILAI"].map(t=>new TableCell({children:[new Paragraph(t)]})) }), ...exportData.map(d => new TableRow({ children: [d.no,d.nama,d.mapel,d.betul,d.nilai].map(t=>new TableCell({children:[new Paragraph(t.toString())]})) })) ] })] }] })); saveAs(blob, `Nilai.docx`); }
+        function exportPDF() { const doc = new window.jspdf.jsPDF(); doc.autoTable({ head: [['NO','NAMA','MAPEL','BETUL','NILAI']], body: exportData.map(d=>[d.no,d.nama,d.mapel,d.betul,d.nilai]) }); doc.save(`Nilai.pdf`); }
+        function exportExcel() { const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(exportData), "Nilai"); XLSX.writeFile(wb, `Nilai.xlsx`); }
+
+        // TOPUP SAWERIA
         function bayarSaweria(p) {
-            const nominal = {p5k:5000, p10k:10000, p20k:20000}[p];
-            window.open(`https://saweria.co/GuruBantuGuru?amount=${nominal}`, '_blank');
+            const nominal = {p5k:5000, p10k:10000, p20k:20000, p50k:50000, p100k:100000}[p];
+            navigator.clipboard.writeText(userEmail).then(() => showAlert(`✅ EMAIL DISALIN: ${userEmail}\nPaste di kolom PESAN Saweria agar token masuk!`)).catch(()=>{});
+            setTimeout(() => { window.open(`https://saweria.co/GuruBantuGuru?amount=${nominal}`, '_blank'); document.getElementById('topupModalOverlay').classList.add('hidden'); }, 3000);
+        }
+
+        // ADMIN
+        async function prosesTambahToken() {
+            const tEmail = document.getElementById('targetEmail').value; const jml = document.getElementById('paketToken').value;
+            if(!tEmail || !confirm(`Kirim ${jml} ke ${tEmail}?`)) return;
+            try { await fetch(window.location.origin + '/admin/add-token', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({adminEmail:"Versacy", targetEmail:tEmail, amount:parseInt(jml)}) }); showAlert("Berhasil!"); } catch(e){ showAlert("Gagal!"); }
         }
     </script>
 </body>
