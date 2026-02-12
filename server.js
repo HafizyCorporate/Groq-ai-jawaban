@@ -20,7 +20,7 @@ const apiKey = defaultClient.authentications['api-key'];
 apiKey.apiKey = process.env.BREVO_API_KEY; 
 const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
 
-// --- 1. PROSES MIGRASI DATA (TIDAK BOLEH HILANG) ---
+// --- 1. PROSES MIGRASI DATA ---
 async function migrasiData() {
     try {
         await query(`
@@ -33,26 +33,20 @@ async function migrasiData() {
                 role TEXT DEFAULT 'user'
             )
         `);
-
-        // Migrasi dari db.json (LowDB) jika ada
         if (fs.existsSync('db.json')) {
             const adapter = new FileSync('db.json');
             const dbLow = low(adapter);
             const usersLama = dbLow.get('users').value() || [];
             for (let u of usersLama) {
                 const pass = u.password || await bcrypt.hash('123456', 10);
-                await query('INSERT INTO users (email, password, quota) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING', 
-                [u.email, pass, u.quota || 10]);
+                await query('INSERT INTO users (email, password, quota) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING', [u.email, pass, u.quota || 10]);
             }
         }
-        
-        // Migrasi dari SQLite jika ada
         if (sqliteDb) {
             sqliteDb.all("SELECT * FROM users", [], async (err, rows) => {
                 if (!err && rows) {
                     for (let r of rows) {
-                        await query('INSERT INTO users (email, password, quota) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING', 
-                        [r.email, r.password, r.quota]);
+                        await query('INSERT INTO users (email, password, quota) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING', [r.email, r.password, r.quota]);
                     }
                 }
             });
@@ -72,22 +66,36 @@ app.use(session({
     cookie: { maxAge: 24 * 60 * 60 * 1000 } 
 }));
 
-// --- 3. ROUTING VIEWS (SESUAI REQUEST ANDA) ---
 // --- 3. ROUTING VIEWS ---
 app.get('/', (req, res) => {
-    // Jika sudah ada sesi, langsung lempar ke /dashboard
     if (req.session.userId) return res.redirect('/dashboard');
     res.sendFile(path.join(__dirname, 'views', 'login.html'));
 });
 
-// Gunakan '/dashboard' saja, lebih bersih dan aman
 app.get('/dashboard', (req, res) => {
     if (!req.session.userId) return res.redirect('/');
     res.sendFile(path.join(__dirname, 'views', 'dashboard.html'));
 });
 
+// --- 4. API AUTHENTICATION ---
 
-// --- 4. API AUTHENTICATION (LENGKAP: LOGIN, REG, FORGET) ---
+// Endpoint Baru: Memberikan info user ke Dashboard (SANGAT PENTING)
+app.get('/auth/user-session', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ success: false });
+    try {
+        const result = await query('SELECT email, quota, is_premium FROM users WHERE email = $1', [req.session.userId]);
+        if (result.rows.length > 0) {
+            res.json({ 
+                success: true, 
+                email: result.rows[0].email, 
+                token: result.rows[0].quota, 
+                is_premium: result.rows[0].is_premium 
+            });
+        } else {
+            res.status(404).json({ success: false });
+        }
+    } catch (e) { res.status(500).json({ success: false }); }
+});
 
 app.post('/auth/register', async (req, res) => {
     const { email, password } = req.body;
@@ -111,14 +119,17 @@ app.post('/auth/login', async (req, res) => {
     res.status(401).json({ success: false, message: "Email/Password salah" });
 });
 
-// FITUR LUPA PASSWORD (BREVO)
+app.get('/auth/logout', (req, res) => {
+    req.session.destroy();
+    res.redirect('/');
+});
+
 app.post('/auth/forgot-password', async (req, res) => {
     const { email } = req.body;
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     try {
         const result = await query('UPDATE users SET otp = $1 WHERE email = $2 RETURNING *', [otp, email.trim()]);
         if (result.rows.length === 0) return res.status(404).json({ success: false, message: "Email tidak ditemukan" });
-
         await apiInstance.sendTransacEmail({
             sender: { email: "admin@jawabanai.com", name: "Jawaban AI" },
             to: [{ email: email.trim() }],
@@ -143,9 +154,7 @@ app.post('/auth/reset-password', async (req, res) => {
 // --- 5. FITUR ADMIN & SAWERIA ---
 app.post('/admin/add-token', async (req, res) => {
     const { adminEmail, targetEmail, amount } = req.body;
-    // Cek apakah yang akses adalah admin Versacy
     if (adminEmail !== 'Versacy') return res.status(403).json({ success: false });
-    
     try {
         await query('UPDATE users SET quota = quota + $1 WHERE email = $2', [parseInt(amount), targetEmail.trim()]);
         res.json({ success: true });
@@ -158,14 +167,11 @@ const { prosesKoreksiLengkap } = require('./routes/koreksi');
 
 app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ success: false, message: "Sesi Habis" });
-    
     const userRes = await query('SELECT * FROM users WHERE email = $1', [req.session.userId]);
     const user = userRes.rows[0];
-
     if (!user.is_premium && user.quota < req.files.length) {
         return res.json({ success: false, limitReached: true, message: "Token Habis" });
     }
-
     let settings = {};
     try { 
         settings = (typeof req.body.data === 'string') ? JSON.parse(req.body.data) : (req.body.data || {}); 
@@ -176,7 +182,6 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
     if (!user.is_premium && results.length > 0) {
         await query('UPDATE users SET quota = GREATEST(0, quota - $1) WHERE email = $2', [req.files.length, req.session.userId]);
     }
-
     const finalUser = await query('SELECT quota, is_premium FROM users WHERE email = $1', [req.session.userId]);
     res.json({ 
         success: true, 
