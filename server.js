@@ -74,11 +74,11 @@ app.use(session({
 
 // --- 3. ROUTING VIEWS (SESUAI REQUEST ANDA) ---
 app.get('/', (req, res) => {
-    if (req.session.userId) return res.redirect('/dashboard');
+    if (req.session.userId) return res.redirect('/views/dashboard');
     res.sendFile(path.join(__dirname, 'views', 'login.html'));
 });
 
-app.get('/dashboard', (req, res) => {
+app.get('/views/dashboard', (req, res) => {
     if (!req.session.userId) return res.redirect('/');
     res.sendFile(path.join(__dirname, 'views', 'dashboard.html'));
 });
