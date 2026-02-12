@@ -73,15 +73,19 @@ app.use(session({
 }));
 
 // --- 3. ROUTING VIEWS (SESUAI REQUEST ANDA) ---
+// --- 3. ROUTING VIEWS ---
 app.get('/', (req, res) => {
-    if (req.session.userId) return res.redirect('/views/dashboard');
+    // Jika sudah ada sesi, langsung lempar ke /dashboard
+    if (req.session.userId) return res.redirect('/dashboard');
     res.sendFile(path.join(__dirname, 'views', 'login.html'));
 });
 
-app.get('/views/dashboard', (req, res) => {
+// Gunakan '/dashboard' saja, lebih bersih dan aman
+app.get('/dashboard', (req, res) => {
     if (!req.session.userId) return res.redirect('/');
     res.sendFile(path.join(__dirname, 'views', 'dashboard.html'));
 });
+
 
 // --- 4. API AUTHENTICATION (LENGKAP: LOGIN, REG, FORGET) ---
 
