@@ -27,7 +27,6 @@ if (isCloud) {
     pool: pool, // Diekspor untuk session store di server.js
     query: (text, params) => pool.query(convertQuery(text), params),
     
-    // Fungsi dengan format Callback (agar cocok dengan kode server.js Anda)
     run: (query, params, callback) => {
       pool.query(convertQuery(query), params, (err, res) => {
         if (callback) callback(err, res);
@@ -45,7 +44,7 @@ if (isCloud) {
     }
   };
 
-  // --- INISIALISASI TABEL POSTGRES ---
+  // --- INISIALISASI TABEL POSTGRES (JAWABAN AI) ---
   async function initDatabase() {
     try {
       // Buat Tabel Users
@@ -56,7 +55,7 @@ if (isCloud) {
           email TEXT UNIQUE,
           password TEXT,
           role TEXT DEFAULT 'user',
-          quota INTEGER DEFAULT 10,
+          tokens INTEGER DEFAULT 10,
           is_premium BOOLEAN DEFAULT FALSE
         );
       `);
@@ -74,18 +73,18 @@ if (isCloud) {
         );
       `);
 
-      // Pastikan Admin Versacy terdaftar
+      // Pastikan Admin JAWABAN AI terdaftar
       const hashedPass = await bcrypt.hash('08556545', 10);
       const adminQuery = `
-        INSERT INTO users (username, password, role, quota, is_premium) 
-        VALUES ('Versacy', $1, 'admin', 999999, true) 
-        ON CONFLICT (username) DO UPDATE SET role = 'admin', quota = 999999;
+        INSERT INTO users (username, password, role, tokens, is_premium) 
+        VALUES ('Versacy', $1, 'admin', 9999, true) 
+        ON CONFLICT (username) DO UPDATE SET role = 'admin', tokens = 9999;
       `;
       await pool.query(adminQuery, [hashedPass]);
       
-      console.log("✅ PostgreSQL: Database & Admin Versacy Berhasil Disiapkan.");
+      console.log("✅ JAWABAN AI: Database & Admin Versacy Berhasil Disiapkan.");
     } catch (err) {
-      console.error("❌ PostgreSQL Init Error:", err);
+      console.error("❌ JAWABAN AI PostgreSQL Init Error:", err);
     }
   }
   initDatabase();
@@ -98,7 +97,6 @@ if (isCloud) {
   const sqliteDb = new sqlite3.Database(dbPath);
   
   db = {
-    // SQLite secara native mendukung tanda tanya (?)
     query: (text, params) => {
       return new Promise((resolve, reject) => {
         sqliteDb.all(text, params, (err, rows) => {
@@ -118,7 +116,7 @@ if (isCloud) {
       email TEXT UNIQUE, 
       password TEXT, 
       role TEXT DEFAULT 'user', 
-      quota INTEGER DEFAULT 10
+      tokens INTEGER DEFAULT 10
     )`);
     sqliteDb.run(`CREATE TABLE IF NOT EXISTS history (
       id INTEGER PRIMARY KEY AUTOINCREMENT, 
@@ -130,7 +128,7 @@ if (isCloud) {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
   });
-  console.log("✅ SQLite: Menggunakan Mode Lokal (database.db).");
+  console.log("✅ JAWABAN AI: Menggunakan Mode Lokal (database.db).");
 }
 
 module.exports = db;
