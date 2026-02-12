@@ -65,55 +65,55 @@
     </div>
 
     <script>
-        // FUNGSI UNTUK MENDAPATKAN ID UNIK HP (ANTI-SPAM)
+        // FUNGSI UNTUK MENDAPATKAN ID UNIK HP
         function getDeviceId() {
             const info = navigator.userAgent + screen.width + (navigator.hardwareConcurrency || "unknown");
-            return btoa(info); //
+            return btoa(info); 
         }
 
         const regForm = document.getElementById('registerForm');
         const otpModal = document.getElementById('otpModal');
 
-        // TAHAP 1: KIRIM DATA PENDAFTARAN & REQUEST OTP
+        // TAHAP 1: KIRIM REQUEST OTP KE EMAIL
         regForm.onsubmit = async (e) => {
             e.preventDefault();
             const btn = document.getElementById('btnRegister');
             const email = document.getElementById('regEmail').value.toLowerCase().trim();
-            const password = document.getElementById('regPass').value;
 
             btn.innerText = "MENGIRIM OTP...";
             btn.disabled = true;
 
             try {
-                const res = await fetch('/auth/register', {
+                // Sesuai server.js: Menggunakan /auth/send-otp-register
+                const res = await fetch('/auth/send-otp-register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
                         email: email, 
-                        password: password, 
-                        deviceId: getDeviceId() // Kirim Device ID ke server
+                        deviceId: getDeviceId() 
                     })
                 });
 
                 const result = await res.json();
 
                 if (res.ok && result.success) {
-                    // Munculkan modal OTP jika pendaftaran tahap awal berhasil
+                    alert("KODE TERKIRIM! Silakan cek Inbox atau folder SPAM email Anda.");
                     otpModal.classList.remove('hidden');
                 } else {
-                    alert(result.error || "Gagal mendaftar. Email mungkin sudah digunakan atau limit HP tercapai.");
-                    btn.innerText = "KIRIM KODE OTP KE EMAIL";
-                    btn.disabled = false;
+                    alert(result.error || "Gagal mengirim OTP. Email mungkin sudah terdaftar.");
                 }
             } catch (err) {
                 alert("Kesalahan Server: Pastikan koneksi internet stabil.");
+            } finally {
+                btn.innerText = "KIRIM KODE OTP KE EMAIL";
                 btn.disabled = false;
             }
         };
 
-        // TAHAP 2: VERIFIKASI KODE OTP DARI EMAIL
+        // TAHAP 2: VERIFIKASI KODE & DAFTAR (AKTIVASI PASSWORD)
         async function verifikasiSekarang() {
             const email = document.getElementById('regEmail').value.toLowerCase().trim();
+            const password = document.getElementById('regPass').value;
             const otp = document.getElementById('otpCode').value.trim();
             const btn = document.getElementById('btnVerify');
 
@@ -123,24 +123,29 @@
             btn.disabled = true;
 
             try {
-                const res = await fetch('/auth/verify-register', {
+                // Sesuai server.js: /auth/register sekarang menerima (email, password, otp)
+                const res = await fetch('/auth/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: email, otp: otp }) // Kirim ke route verifikasi
+                    body: JSON.stringify({ 
+                        email: email, 
+                        password: password, 
+                        otp: otp 
+                    })
                 });
 
                 const result = await res.json();
 
                 if (res.ok && result.success) {
-                    alert("AKUN AKTIF! Silakan login di halaman utama.");
-                    window.location.href = '/login.html'; // Pindah ke login
+                    alert("PENDAFTARAN BERHASIL! Akun sudah aktif.");
+                    window.location.href = '/login.html';
                 } else {
-                    alert(result.message || "Kode OTP Salah atau sudah tidak berlaku!");
-                    btn.innerText = "KONFIRMASI KODE";
-                    btn.disabled = false;
+                    alert(result.error || "Kode OTP Salah atau sudah tidak berlaku!");
                 }
             } catch (err) {
                 alert("Gagal koneksi ke server.");
+            } finally {
+                btn.innerText = "KONFIRMASI KODE";
                 btn.disabled = false;
             }
         }
