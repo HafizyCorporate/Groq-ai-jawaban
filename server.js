@@ -55,10 +55,16 @@ async function migrasiData() {
 }
 migrasiData();
 
-// --- 2. MIDDLEWARE ---
+// --- 2. MIDDLEWARE (DIUBAH SEDIKIT AGAR BISA BACA FOLDER VIEWS) ---
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static('public')); 
+
+// PENTING: Folder 'public' hanya untuk file statis (CSS/JS/Gambar)
+app.use(express.static(path.join(__dirname, 'public'))); 
+
+// Tambahkan ini agar Express tahu folder views berisi file template/html
+app.set('views', path.join(__dirname, 'views'));
+
 app.use(session({
     secret: 'jawaban-ai-secret-key',
     resave: false,
@@ -66,23 +72,22 @@ app.use(session({
     cookie: { maxAge: 24 * 60 * 60 * 1000 } 
 }));
 
-// --- 3. ROUTING VIEWS ---
+// --- 3. ROUTING VIEWS (PERBAIKAN PATH) ---
 app.get('/', (req, res) => {
-    // Jika sudah login, lempar ke route /dashboard
     if (req.session.userId) return res.redirect('/dashboard');
     res.sendFile(path.join(__dirname, 'views', 'login.html'));
 });
 
-// Route ini namanya '/dashboard', BUKAN '/dashboard.html'
 app.get('/dashboard', (req, res) => {
+    // Jika tidak ada session, tendang ke login
     if (!req.session.userId) return res.redirect('/');
+    // Mengambil file dashboard.html dari dalam folder views
     res.sendFile(path.join(__dirname, 'views', 'dashboard.html'));
 });
 
 
 // --- 4. API AUTHENTICATION ---
 
-// Endpoint Baru: Memberikan info user ke Dashboard (SANGAT PENTING)
 app.get('/auth/user-session', async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ success: false });
     try {
