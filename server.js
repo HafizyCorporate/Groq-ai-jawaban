@@ -267,9 +267,10 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
         };
     } catch (e) { settings = { kunci_pg: {}, kunci_essay: {} }; }
 
-    const results = await prosesKoreksiLengkap(req.files, settings, req.body.rumus_pg, req.body.rumus_es);
+    // PERBAIKAN DI SINI: Menggunakan req.body.r_pg dan req.body.r_essay sesuai Dashboard
+    const results = await prosesKoreksiLengkap(req.files, settings, req.body.r_pg, req.body.r_essay);
 
-    // HANYA POTONG KUOTA (History sekarang dipindah ke save-history saat Terbitkan Nilai)
+    // HANYA POTONG KUOTA
     if (results.length > 0) {
         if (!user.is_premium) {
             await query('UPDATE users SET quota = GREATEST(0, quota - $1) WHERE email = $2', [req.files.length, req.session.userId]);
