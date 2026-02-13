@@ -1,7 +1,7 @@
 /**
  * FILE: koreksi.js 
  * MODEL: Gemini 2.5 Flash (RE-FIXED)
- * UPDATE: Logika Pembulatan Kustom (0.5 ke bawah = 0)
+ * UPDATE: Logika Pembulatan Kustom (0.5 ke bawah = 0) & Fix Tampilan 0
  */
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const dotenv = require('dotenv');
@@ -70,10 +70,12 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
             }
 
             let pgBetul = 0;
+            let esBetul = 0; // Tambahkan penampung hitungan essay
             let totalKunci = 0;
             let rincian = [];
             let listNoBetul = [];
 
+            // Hitung PG
             Object.keys(kunciPG).forEach(no => {
                 if (kunciPG[no] && kunciPG[no] !== "") {
                     totalKunci++;
@@ -90,10 +92,15 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
                 }
             });
 
+            // Hitung Essay: Mencari kata "BENAR" dari hasil analisis teks AI
+            const esMatches = text.match(/BENAR/g);
+            esBetul = esMatches ? esMatches.length : 0;
+
             // TAHAP 4: KIRIM KE FRONTEND (LOGIKA PEMBULATAN BARU)
             results.push({
                 nama: (aiData.nama_siswa && aiData.nama_siswa !== "NAMA") ? aiData.nama_siswa : `Siswa ${index + 1}`,
                 pg_betul: pgBetul,
+                essay_betul: esBetul, // SEKARANG DIKIRIM AGAR TIDAK 0
                 nomor_pg_betul: listNoBetul.join(', ') || "TIDAK ADA",
                 log_detail: rincian,
                 nilai_akhir: (function(n) {
@@ -106,6 +113,8 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
             console.error("CRITICAL ERROR:", err);
             results.push({ 
                 nama: "ERROR SCAN", 
+                pg_betul: 0,
+                essay_betul: 0,
                 log_detail: ["Gagal baca data: " + err.message], 
                 nomor_pg_betul: "KOSONG", 
                 nilai_akhir: 0 
