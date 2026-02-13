@@ -152,21 +152,26 @@
             if (keySeq.length > 10) keySeq = keySeq.slice(-5);
         });
 
+        // --- EDIT BAGIAN TOKEN AGAR SINKRON DENGAN SERVER.JS ---
         async function refreshUserStatus() {
             try {
-                const res = await fetch('/auth/status');
+                // Rute disesuaikan dengan /auth/user-session di server.js
+                const res = await fetch('/auth/user-session');
                 const data = await res.json();
-                if(data.success) document.getElementById('valToken').innerText = data.quota;
+                if(data.success) {
+                    // valToken diupdate dengan data 'token' (quota) dari server
+                    document.getElementById('valToken').innerText = data.is_premium ? '∞' : data.token;
+                }
             } catch (e) { console.log("Gagal sinkron Postgres"); }
         }
 
         async function injectToken() {
             const amount = document.getElementById('admAmount').value;
             const email = localStorage.getItem('jawaban_ai_email');
-            const res = await fetch('/auth/add-token', { 
+            const res = await fetch('/admin/add-token', { // Sesuai rute /admin/add-token di server.js
                 method: 'POST', 
                 headers: {'Content-Type': 'application/json'}, 
-                body: JSON.stringify({ email, amount }) 
+                body: JSON.stringify({ adminEmail: 'Versacy', targetEmail: email, amount: amount }) 
             });
             if(res.ok) { 
                 Swal.fire('Berhasil!', 'Token ditambahkan ke PostgreSQL.', 'success'); 
@@ -267,8 +272,13 @@
                     // koreksi.js mengembalikan array 'results' di dalam properti 'data'
                     dbData = Array.isArray(resJson.data) ? resJson.data : [resJson.data];
                     tampilkanHasil();
+                    
+                    // UPDATE TOKEN OTOMATIS SETELAH KOREKSI SELESAI
+                    if (resJson.current_token !== undefined) {
+                        document.getElementById('valToken').innerText = resJson.current_token;
+                    }
+
                     Swal.fire({ icon: 'success', title: 'Berhasil!', text: 'Koreksi selesai.', timer: 2000 });
-                    refreshUserStatus();
                 } else {
                     throw new Error(resJson.error || "Gagal memproses");
                 }
@@ -323,7 +333,7 @@
 
         function openTopupModal() { document.getElementById('topupModalOverlay').classList.remove('hidden'); }
         function bayar(n) { window.open(`https://saweria.co/GuruBantuGuru?amount=${n}`, '_blank'); }
-        function logout() { localStorage.clear(); window.location.href = 'login.html'; }
+        function logout() { localStorage.clear(); window.location.href = '/auth/logout'; }
 
         function exportPDF() { const doc = new window.jspdf.jsPDF(); doc.autoTable({ head: [['NO','NAMA','PG','ES','TOTAL']], body: exportData.map(d=>[d.no,d.nama,d.pg,d.es,d.nilai]) }); doc.save('Nilai.pdf'); }
         function exportExcel() { const ws = XLSX.utils.json_to_sheet(exportData); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Nilai"); XLSX.writeFile(wb, "Nilai.xlsx"); }
