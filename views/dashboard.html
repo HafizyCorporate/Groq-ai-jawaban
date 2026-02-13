@@ -106,6 +106,21 @@
                     </div>
                 </div>
 
+                <div class="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 overflow-hidden">
+                    <div class="flex justify-between items-center mb-6">
+                        <p class="text-[11px] font-black text-blue-600 uppercase italic tracking-widest">RIWAYAT TERAKHIR</p>
+                        <button onclick="loadHistory()" class="text-slate-400 hover:text-blue-600">🔄</button>
+                    </div>
+                    <div class="space-y-3 max-h-60 overflow-y-auto custom-scroll pr-2" id="historyList">
+                        <p class="text-[10px] text-center font-bold text-slate-400 py-4">Belum ada riwayat...</p>
+                    </div>
+                    <div id="historyExportBtns" class="hidden grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-slate-100">
+                        <button onclick="exportHistoryExcel()" class="bg-emerald-100 text-emerald-700 text-[10px] font-black py-2 rounded-xl hover:bg-emerald-200">EXCEL</button>
+                        <button onclick="exportHistoryPDF()" class="bg-red-100 text-red-700 text-[10px] font-black py-2 rounded-xl hover:bg-red-200">PDF</button>
+                        <button onclick="exportHistoryWord()" class="bg-blue-100 text-blue-700 text-[10px] font-black py-2 rounded-xl hover:bg-blue-200">WORD</button>
+                    </div>
+                </div>
+
                 <div class="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
                     <p class="text-[11px] font-black text-blue-600 uppercase mb-6 text-center italic tracking-widest">KUNCI JAWABAN</p>
                     <div class="mb-8">
@@ -157,8 +172,9 @@
         let selectedFiles = [];
         let dbData = [];
         let exportData = [];
+        let rawHistoryData = []; // Untuk simpan data history mentah
 
-        window.onload = function() { initGrids(); refreshUserStatus(); };
+        window.onload = function() { initGrids(); refreshUserStatus(); loadHistory(); };
 
         async function refreshUserStatus() {
             try {
@@ -175,6 +191,70 @@
                 }
             } catch (e) { console.log("Postgres Offline"); }
         }
+
+        // --- FUNGSI HISTORY BARU ---
+        async function loadHistory() {
+            try {
+                const res = await fetch('/ai/history');
+                const json = await res.json();
+                const container = document.getElementById('historyList');
+                if(json.success && json.history.length > 0) {
+                    rawHistoryData = json.history;
+                    document.getElementById('historyExportBtns').classList.remove('hidden');
+                    container.innerHTML = json.history.map(h => `
+                        <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                            <div class="flex justify-between items-start">
+                                <span class="text-[10px] font-black text-blue-600 uppercase tracking-tighter">${h.mapel}</span>
+                                <span class="text-[8px] font-bold text-slate-400">${new Date(h.waktu).toLocaleDateString()}</span>
+                            </div>
+                            <p class="text-xs font-black text-slate-800 uppercase mt-1 truncate">${h.nama_siswa}</p>
+                        </div>
+                    `).join('');
+                }
+            } catch (e) { console.log("Gagal muat riwayat"); }
+        }
+
+        function exportHistoryExcel() {
+            if(rawHistoryData.length === 0) return;
+            const ws = XLSX.utils.json_to_sheet(rawHistoryData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Riwayat");
+            XLSX.writeFile(wb, "Riwayat_Koreksi.xlsx");
+        }
+
+        function exportHistoryPDF() {
+            if(rawHistoryData.length === 0) return;
+            const doc = new window.jspdf.jsPDF();
+            doc.setFontSize(16); doc.text("RIWAYAT KOREKSI JAWABAN AI", 14, 15);
+            doc.autoTable({
+                startY: 20,
+                head: [['NAMA SISWA', 'MATA PELAJARAN', 'WAKTU']],
+                body: rawHistoryData.map(h => [h.nama_siswa, h.mapel, new Date(h.waktu).toLocaleString()])
+            });
+            doc.save("Riwayat_Koreksi.pdf");
+        }
+
+        async function exportHistoryWord() {
+            if(rawHistoryData.length === 0) return;
+            const { Document, Packer, Paragraph, Table, TableRow, TableCell, TextRun } = window.docx;
+            const rows = [new TableRow({ children: [
+                new TableCell({ children: [new Paragraph("NAMA SISWA")] }),
+                new TableCell({ children: [new Paragraph("MAPEL")] }),
+                new TableCell({ children: [new Paragraph("WAKTU")] })
+            ]})];
+            rawHistoryData.forEach(h => rows.push(new TableRow({ children: [
+                new TableCell({ children: [new Paragraph(h.nama_siswa)] }),
+                new TableCell({ children: [new Paragraph(h.mapel)] }),
+                new TableCell({ children: [new Paragraph(new Date(h.waktu).toLocaleString())] })
+            ]})));
+            const doc = new Document({ sections: [{ children: [
+                new Paragraph({ children: [new TextRun({ text: "LAPORAN RIWAYAT KOREKSI", bold: true, size: 24 })] }),
+                new Table({ rows })
+            ]}]});
+            const blob = await Packer.toBlob(doc);
+            saveAs(blob, "Riwayat_Koreksi.docx");
+        }
+        // --- AKHIR FUNGSI HISTORY BARU ---
 
         async function injectToken() {
             const target = document.getElementById('admTargetEmail').value;
@@ -193,37 +273,37 @@
         }
 
         function openSaweria() {
-    const userEmail = localStorage.getItem('jawaban_ai_email');
-    Swal.fire({
-        title: 'Isi Token Otomatis',
-        html: `
-            <div class="text-left mb-4">
-                <label class="text-[10px] font-black text-slate-400 uppercase italic">Email Akun Anda:</label>
-                <input id="swEmail" type="email" value="${userEmail}" class="w-full p-3 mt-1 bg-slate-100 rounded-xl font-bold border-2 border-blue-500" readonly>
-                <p class="text-[10px] text-red-500 mt-2 font-bold italic">*PENTING: Masukkan email di atas pada kolom "PESAN" atau "EMAIL" di halaman Saweria agar token masuk otomatis!</p>
-            </div>
-            <div class="flex flex-col gap-2">
-                <button onclick="window.open('https://saweria.co/GuruBantuGuru', '_blank')" class="bg-slate-800 text-white p-4 rounded-2xl font-black uppercase text-left flex justify-between items-center transition hover:bg-blue-600">
-                    <span>📦 Paket Hemat (10 Token)</span><span class="bg-blue-500 px-3 py-1 rounded-lg text-xs font-black">Rp 5rb</span>
-                </button>
-                <button onclick="window.open('https://saweria.co/GuruBantuGuru', '_blank')" class="bg-slate-800 text-white p-4 rounded-2xl font-black uppercase text-left flex justify-between items-center transition hover:bg-blue-600">
-                    <span>🚀 Paket Kilat (22 Token)</span><span class="bg-blue-500 px-3 py-1 rounded-lg text-xs font-black">Rp 10rb</span>
-                </button>
-                <button onclick="window.open('https://saweria.co/GuruBantuGuru', '_blank')" class="bg-slate-800 text-white p-4 rounded-2xl font-black uppercase text-left flex justify-between items-center transition hover:bg-blue-600">
-                    <span>🔥 Paket Super (50 Token)</span><span class="bg-blue-500 px-3 py-1 rounded-lg text-xs font-black">Rp 20rb</span>
-                </button>
-                <button onclick="window.open('https://saweria.co/GuruBantuGuru', '_blank')" class="bg-slate-800 text-white p-4 rounded-2xl font-black uppercase text-left flex justify-between items-center transition hover:bg-blue-600">
-                    <span>🎓 Paket Guru (125 Token)</span><span class="bg-blue-500 px-3 py-1 rounded-lg text-xs font-black">Rp 50rb</span>
-                </button>
-                <button onclick="window.open('https://saweria.co/GuruBantuGuru', '_blank')" class="bg-slate-800 text-white p-4 rounded-2xl font-black uppercase text-left flex justify-between items-center transition hover:bg-blue-600">
-                    <span>👑 Paket Sultan (300 Token)</span><span class="bg-blue-500 px-3 py-1 rounded-lg text-xs font-black">Rp 100rb</span>
-                </button>
-            </div>
-        `,
-        showConfirmButton: false, 
-        showCloseButton: true
-    });
-}
+            const userEmail = localStorage.getItem('jawaban_ai_email');
+            Swal.fire({
+                title: 'Isi Token Otomatis',
+                html: `
+                    <div class="text-left mb-4">
+                        <label class="text-[10px] font-black text-slate-400 uppercase italic">Email Akun Anda:</label>
+                        <input id="swEmail" type="email" value="${userEmail}" class="w-full p-3 mt-1 bg-slate-100 rounded-xl font-bold border-2 border-blue-500" readonly>
+                        <p class="text-[10px] text-red-500 mt-2 font-bold italic">*PENTING: Masukkan email di atas pada kolom "PESAN" atau "EMAIL" di halaman Saweria agar token masuk otomatis!</p>
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <button onclick="window.open('https://saweria.co/GuruBantuGuru', '_blank')" class="bg-slate-800 text-white p-4 rounded-2xl font-black uppercase text-left flex justify-between items-center transition hover:bg-blue-600">
+                            <span>📦 Paket Hemat (10 Token)</span><span class="bg-blue-500 px-3 py-1 rounded-lg text-xs font-black">Rp 5rb</span>
+                        </button>
+                        <button onclick="window.open('https://saweria.co/GuruBantuGuru', '_blank')" class="bg-slate-800 text-white p-4 rounded-2xl font-black uppercase text-left flex justify-between items-center transition hover:bg-blue-600">
+                            <span>🚀 Paket Kilat (22 Token)</span><span class="bg-blue-500 px-3 py-1 rounded-lg text-xs font-black">Rp 10rb</span>
+                        </button>
+                        <button onclick="window.open('https://saweria.co/GuruBantuGuru', '_blank')" class="bg-slate-800 text-white p-4 rounded-2xl font-black uppercase text-left flex justify-between items-center transition hover:bg-blue-600">
+                            <span>🔥 Paket Super (50 Token)</span><span class="bg-blue-500 px-3 py-1 rounded-lg text-xs font-black">Rp 20rb</span>
+                        </button>
+                        <button onclick="window.open('https://saweria.co/GuruBantuGuru', '_blank')" class="bg-slate-800 text-white p-4 rounded-2xl font-black uppercase text-left flex justify-between items-center transition hover:bg-blue-600">
+                            <span>🎓 Paket Guru (125 Token)</span><span class="bg-blue-500 px-3 py-1 rounded-lg text-xs font-black">Rp 50rb</span>
+                        </button>
+                        <button onclick="window.open('https://saweria.co/GuruBantuGuru', '_blank')" class="bg-slate-800 text-white p-4 rounded-2xl font-black uppercase text-left flex justify-between items-center transition hover:bg-blue-600">
+                            <span>👑 Paket Sultan (300 Token)</span><span class="bg-blue-500 px-3 py-1 rounded-lg text-xs font-black">Rp 100rb</span>
+                        </button>
+                    </div>
+                `,
+                showConfirmButton: false, 
+                showCloseButton: true
+            });
+        }
 
         function initGrids() {
             const pg = document.getElementById('gridPG');
@@ -272,6 +352,7 @@
             formData.append('kunci_essay', JSON.stringify(k_es));
             formData.append('rumus_pg', document.getElementById('r_pg').value);
             formData.append('rumus_es', document.getElementById('r_essay').value);
+            formData.append('mapel', document.getElementById('mapel').value || "Ujian"); // Tambahan untuk history
 
             try {
                 const res = await fetch('/ai/proses-koreksi', { method: 'POST', body: formData });
@@ -280,6 +361,7 @@
                     dbData = json.data;
                     renderHasilKoreksi();
                     if(json.current_token) document.getElementById('valToken').innerText = json.current_token;
+                    loadHistory(); // Refresh riwayat setelah koreksi
                     Swal.fire('Selesai!', 'AI telah menyelesaikan koreksi.', 'success');
                 }
             } catch (e) { Swal.fire('Error', 'Gagal menyambung ke koreksi.js', 'error'); }
