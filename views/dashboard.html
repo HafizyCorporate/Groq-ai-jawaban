@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Jawaban AI - Final Version</title>
+    <title>Jawaban AI - Professional Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://unpkg.com/docx@7.1.0/build/index.js"></script>
@@ -15,117 +15,111 @@
     <style>
         body { font-family: 'Plus_Jakarta_Sans', sans-serif; background-color: #f8fafc; }
         select.key-dropdown { appearance: none; background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 0.5rem center; background-size: 1.2em; font-weight: 900 !important; color: #000 !important; font-size: 24px !important; border: 2px solid #cbd5e1; border-radius: 12px; }
-        .file-card { background: #eff6ff; padding: 14px 20px; border-radius: 20px; border: 1px solid #3b82f6; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1); animation: fadeIn 0.3s ease; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-        .swal2-popup { border-radius: 35px !important; }
+        .result-card { background: white; border-radius: 40px; padding: 30px; border: 2px solid #e2e8f0; margin-bottom: 20px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+        .detail-item { font-size: 18px; font-weight: 800; margin-bottom: 4px; }
     </style>
 </head>
-<body class="p-4">
+<body class="p-4 pb-20">
 
     <div class="fixed top-4 right-4 z-[110] flex flex-col items-end gap-2">
         <div class="bg-white/95 backdrop-blur-md border border-blue-100 px-6 py-4 rounded-full shadow-2xl flex items-center gap-3">
             <span class="text-[10px] font-black text-slate-400 uppercase italic">Token:</span>
             <span id="valToken" class="text-3xl font-black text-blue-600">...</span>
         </div>
-        <button onclick="openTopupModal()" class="bg-orange-500 text-white px-5 py-2 rounded-full text-[10px] font-black uppercase shadow-lg">+ ISI TOKEN</button>
     </div>
 
-    <div class="max-w-md mx-auto py-8">
+    <div class="max-w-xl mx-auto py-8">
         <div class="flex justify-between items-center mb-8 px-2">
             <h1 class="text-2xl font-black italic uppercase tracking-tighter">JAWABAN <span class="text-blue-600">AI</span></h1>
-            <button onclick="logout()" class="text-red-500 text-[10px] font-black uppercase">Keluar</button>
+            <button onclick="logout()" class="text-red-500 text-[10px] font-black uppercase underline">Keluar Sistem</button>
         </div>
 
-        <div id="secretAdminPanel" class="hidden mb-8 p-6 bg-slate-900 rounded-[40px] border-4 border-orange-500 shadow-2xl text-white text-center">
-            <p class="text-xs font-black text-orange-400 uppercase mb-4 italic">Admin Manual Injector (PostgreSQL)</p>
-            <input type="number" id="admAmount" placeholder="Jumlah Token" class="w-full p-4 bg-slate-800 text-white rounded-2xl mb-3 outline-none border border-slate-700 font-bold">
-            <button onclick="injectToken()" class="w-full bg-orange-500 text-white font-black py-4 rounded-2xl text-xs uppercase">Suntik Token</button>
-        </div>
-
-        <div class="bg-white p-6 rounded-[35px] border border-slate-100 shadow-sm mb-6">
-            <h2 class="text-lg font-black text-slate-800 mb-1">Halo Ibu Bapak guru ✋</h2>
-            <p class="text-sm font-bold text-slate-600 mb-4">Selamat datang di Jawaban AI. AI cerdas untuk memeriksa soal Siswa.</p>
-            <div class="bg-blue-50 p-4 rounded-2xl border-l-4 border-blue-500 text-[11px] font-bold text-blue-900 leading-relaxed">
-                ⚠️ <b>PENGINGAT:</b> Maksimal 10 foto. Jika lembar jawaban tidak ada nama, AI otomatis menghitungnya sebagai 1 siswa.
+        <div class="mb-10 p-8 bg-slate-900 rounded-[45px] border-4 border-orange-500 shadow-2xl text-white">
+            <div class="flex items-center gap-3 mb-6">
+                <span class="text-3xl">🔑</span>
+                <div>
+                    <h3 class="text-lg font-black uppercase italic leading-none">Admin Panel</h3>
+                    <p class="text-[10px] text-orange-400 font-bold uppercase tracking-widest">Suntik Token Manual</p>
+                </div>
+            </div>
+            <div class="flex gap-3">
+                <input type="number" id="admAmount" placeholder="Jumlah" class="flex-1 p-5 bg-slate-800 text-white rounded-3xl outline-none border-2 border-slate-700 font-black text-xl">
+                <button onclick="injectToken()" class="bg-orange-500 hover:bg-orange-600 text-white font-black px-8 rounded-3xl text-sm uppercase transition-all shadow-lg active:scale-95">ISI</button>
             </div>
         </div>
 
-        <div class="grid grid-cols-2 gap-4 mb-4">
-            <button onclick="document.getElementById('camFile').click()" class="bg-white p-6 rounded-[35px] border-2 border-slate-100 flex flex-col items-center shadow-sm active:scale-95 transition">
-                <span class="text-4xl mb-1">📸</span>
-                <span class="text-[10px] font-black uppercase text-slate-500 italic">Kamera</span>
+        <div class="bg-white p-8 rounded-[40px] border border-slate-100 shadow-sm mb-8">
+            <h2 class="text-2xl font-black text-slate-800 mb-2">Halo Ibu Bapak Guru ✋</h2>
+            <p class="text-base font-bold text-slate-500 leading-relaxed">Silakan unggah maksimal 10 foto lembar jawaban. Jika tanpa nama, AI akan menamai otomatis.</p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 mb-6">
+            <button onclick="document.getElementById('camFile').click()" class="bg-white p-8 rounded-[40px] border-2 border-slate-100 flex flex-col items-center shadow-sm active:scale-95 transition hover:border-blue-400">
+                <span class="text-5xl mb-2">📸</span>
+                <span class="text-xs font-black uppercase text-slate-600 italic">Ambil Foto</span>
             </button>
-            <button onclick="document.getElementById('galFile').click()" class="bg-white p-6 rounded-[35px] border-2 border-slate-100 flex flex-col items-center shadow-sm active:scale-95 transition">
-                <span class="text-4xl mb-1">🖼️</span>
-                <span class="text-[10px] font-black uppercase text-slate-500 italic">Galeri</span>
+            <button onclick="document.getElementById('galFile').click()" class="bg-white p-8 rounded-[40px] border-2 border-slate-100 flex flex-col items-center shadow-sm active:scale-95 transition hover:border-blue-400">
+                <span class="text-5xl mb-2">🖼️</span>
+                <span class="text-xs font-black uppercase text-slate-600 italic">Pilih Galeri</span>
             </button>
             <input type="file" id="camFile" capture="environment" class="hidden" onchange="handleFileSelection(this)" accept="image/*">
             <input type="file" id="galFile" multiple class="hidden" onchange="handleFileSelection(this)" accept="image/*">
         </div>
 
-        <div id="fileListContainer" class="mb-8 hidden px-2">
-            <div class="flex justify-between items-center mb-3 px-1">
-                <p class="text-[10px] font-black text-blue-600 uppercase italic">File di Dashboard (<span id="fileCount">0</span>/10):</p>
-                <button onclick="clearFiles()" class="text-[9px] font-black text-red-400 uppercase">Bersihkan</button>
+        <div id="fileListContainer" class="mb-10 hidden px-2">
+            <div class="flex justify-between items-center mb-4">
+                <p class="text-xs font-black text-blue-600 uppercase italic tracking-wider">File di Dashboard (<span id="fileCount">0</span>/10)</p>
+                <button onclick="clearFiles()" class="text-[10px] font-black text-red-500 uppercase">Hapus Semua</button>
             </div>
-            <div id="fileList"></div>
+            <div id="fileList" class="space-y-2"></div>
         </div>
 
-        <div class="bg-white p-8 rounded-[45px] shadow-sm border border-slate-100 mb-6">
-            <p class="text-[10px] font-black text-blue-600 uppercase mb-6 text-center italic tracking-widest">Kunci PG (1-40)</p>
-            <div id="gridPG" class="grid grid-cols-4 gap-4 mb-10"></div>
-            <p class="text-[10px] font-black text-emerald-500 uppercase mb-5 text-center italic tracking-widest">Kunci Essay (1-20)</p>
-            <div id="gridES" class="space-y-3"></div>
-        </div>
-
-        <button id="btnAI" class="w-full bg-slate-900 text-white font-black py-8 rounded-[40px] text-lg uppercase shadow-xl active:scale-95 transition">MULAI KOREKSI AI</button>
-
-        <div id="resWrap" class="hidden mt-12 space-y-6 pb-24">
-            <div id="scanAwal" class="space-y-4"></div>
+        <div class="bg-white p-8 rounded-[50px] shadow-lg border border-slate-100 mb-10">
+            <p class="text-[11px] font-black text-blue-600 uppercase mb-8 text-center italic tracking-[0.2em]">Kunci Jawaban PG (1-40)</p>
+            <div id="gridPG" class="grid grid-cols-4 sm:grid-cols-5 gap-4 mb-12"></div>
             
-            <div class="bg-white p-8 rounded-[45px] border border-blue-100 shadow-xl">
-                <div class="bg-slate-50 p-5 rounded-2xl mb-6">
-                    <p class="text-[11px] font-bold text-slate-600 leading-relaxed italic">
-                        "Bapak dan Ibu Guru ini adalah fitur dari kami menghitung nilai murid, untuk fitur ini bisa Bapak/Ibu Guru masukan rumusnya yang biasa Bapak ibu gunakan" <br><br>
-                        "hitungan rumus ai diawali dengan soal siswa betul berapa, contoh siswa 1 betul 10 maka ai langsung masukan angka 10 diawalnya"
+            <p class="text-[11px] font-black text-emerald-500 uppercase mb-6 text-center italic tracking-[0.2em]">Kunci Jawaban Essay (1-20)</p>
+            <div id="gridES" class="space-y-4"></div>
+        </div>
+
+        <button id="btnAI" class="w-full bg-slate-900 text-white font-black py-10 rounded-[50px] text-xl uppercase shadow-2xl active:scale-95 transition mb-20 hover:bg-blue-700">MULAI KOREKSI AI</button>
+
+        <div id="resWrap" class="hidden mt-10 space-y-8">
+            <div id="scanAwal"></div>
+            
+            <div class="bg-white p-10 rounded-[50px] border-2 border-blue-100 shadow-2xl">
+                <div class="mb-8">
+                    <p class="text-xs font-black text-slate-400 uppercase mb-2 ml-2">Mata Pelajaran</p>
+                    <input type="text" id="mapel" placeholder="Contoh: PAI, Matematika, IPA..." class="w-full p-6 bg-slate-50 rounded-[30px] font-black text-xl outline-none border-2 border-transparent focus:border-blue-500 transition">
+                </div>
+
+                <div class="grid grid-cols-2 gap-6 mb-8">
+                    <div>
+                        <p class="text-xs font-black text-blue-600 uppercase mb-2 ml-2">Rumus PG</p>
+                        <input type="text" id="r_pg" class="w-full p-6 bg-blue-50 rounded-[30px] font-black outline-none text-lg" value="*2.5">
+                    </div>
+                    <div>
+                        <p class="text-xs font-black text-emerald-600 uppercase mb-2 ml-2">Rumus Essay</p>
+                        <input type="text" id="r_essay" class="w-full p-6 bg-emerald-50 rounded-[30px] font-black outline-none text-lg" value="*5">
+                    </div>
+                </div>
+
+                <div class="bg-slate-50 p-6 rounded-3xl mb-8">
+                    <p class="text-[12px] font-bold text-slate-500 italic leading-relaxed text-center">
+                        "Nilai akhir dihitung otomatis berdasarkan jumlah betul dikali rumus di atas. Hasil dibulatkan sesuai permintaan."
                     </p>
                 </div>
-                
-                <input type="text" id="mapel" placeholder="Nama Mata Pelajaran" class="w-full p-4 bg-slate-50 rounded-2xl mb-4 font-black outline-none">
-                
-                <div class="grid grid-cols-2 gap-4 mb-6">
-                    <div>
-                        <p class="text-[9px] font-black text-blue-600 uppercase mb-1 ml-2">Rumus PG</p>
-                        <input type="text" id="r_pg" class="w-full p-4 bg-blue-50 rounded-2xl font-black outline-none text-sm" value="*2.5">
-                    </div>
-                    <div>
-                        <p class="text-[9px] font-black text-emerald-600 uppercase mb-1 ml-2">Rumus Essay</p>
-                        <input type="text" id="r_essay" class="w-full p-4 bg-emerald-50 rounded-2xl font-black outline-none text-sm" value="*5">
-                    </div>
-                </div>
-                <button id="btnHitung" class="w-full bg-blue-600 text-white font-black py-6 rounded-3xl text-sm uppercase shadow-lg">HITUNG NILAI AKHIR</button>
+
+                <button id="btnHitung" class="w-full bg-blue-600 text-white font-black py-8 rounded-[35px] text-lg uppercase shadow-xl hover:bg-blue-700 transition">HITUNG & TERBITKAN NILAI</button>
             </div>
 
-            <div id="exportMenu" class="hidden grid grid-cols-3 gap-2">
-                <button onclick="exportPDF()" class="bg-red-600 text-white py-4 rounded-2xl text-[10px] font-black uppercase shadow-md">PDF</button>
-                <button onclick="exportExcel()" class="bg-emerald-600 text-white py-4 rounded-2xl text-[10px] font-black uppercase shadow-md">EXCEL</button>
-                <button onclick="exportWord()" class="bg-blue-600 text-white py-4 rounded-2xl text-[10px] font-black uppercase shadow-md">WORD</button>
+            <div id="exportMenu" class="hidden grid grid-cols-3 gap-4">
+                <button onclick="exportPDF()" class="bg-red-500 text-white py-6 rounded-3xl font-black uppercase shadow-lg hover:bg-red-600">PDF</button>
+                <button onclick="exportExcel()" class="bg-emerald-500 text-white py-6 rounded-3xl font-black uppercase shadow-lg hover:bg-emerald-600">EXCEL</button>
+                <button onclick="exportWord()" class="bg-blue-500 text-white py-6 rounded-3xl font-black uppercase shadow-lg hover:bg-blue-600">WORD</button>
             </div>
-            <div id="laporanFinal"></div>
-        </div>
-    </div>
 
-    <div id="topupModalOverlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[220] hidden flex items-center justify-center p-6">
-        <div class="bg-white w-full max-md rounded-[40px] p-8 shadow-2xl text-center">
-            <h3 class="text-xl font-black uppercase mb-6 italic">ISI TOKEN</h3>
-            <div class="space-y-2">
-                <button onclick="bayar(5000)" class="w-full flex justify-between p-4 bg-slate-50 rounded-2xl border font-black"><span>10 TOKEN</span> <span class="text-blue-600">Rp 5rb</span></button>
-                <button onclick="bayar(10000)" class="w-full flex justify-between p-4 bg-slate-50 rounded-2xl border font-black"><span>22 TOKEN</span> <span class="text-blue-600">Rp 10rb</span></button>
-                <button onclick="bayar(20000)" class="w-full flex justify-between p-4 bg-slate-50 rounded-2xl border font-black"><span>45 TOKEN</span> <span class="text-blue-600">Rp 20rb</span></button>
-                <button onclick="bayar(50000)" class="w-full flex justify-between p-4 bg-emerald-50 rounded-2xl border font-black"><span>120 TOKEN</span> <span class="text-emerald-600">Rp 50rb</span></button>
-                <button onclick="bayar(100000)" class="w-full flex justify-between p-4 bg-blue-50 rounded-2xl border font-black"><span>280 TOKEN</span> <span class="text-blue-600">Rp 100rb</span></button>
-            </div>
-            <button onclick="document.getElementById('topupModalOverlay').classList.add('hidden')" class="mt-6 text-slate-400 font-black uppercase text-xs">Batal</button>
+            <div id="laporanFinal" class="pb-20"></div>
         </div>
     </div>
 
@@ -133,46 +127,26 @@
         let selectedFiles = [];
         let dbData = [];
         let exportData = [];
-        let keySeq = "";
 
-        window.onload = function() {
-            initGrids();
-            refreshUserStatus();
-        };
-
-        // ADMIN ACCESS (Ketik "suelo")
-        document.addEventListener('keydown', (e) => {
-            keySeq += e.key.toLowerCase();
-            if (keySeq.includes("suelo")) {
-                document.getElementById('secretAdminPanel').classList.remove('hidden');
-                keySeq = "";
-                Swal.fire({ icon: 'info', title: 'Admin Panel Aktif', timer: 1000, showConfirmButton: false });
-            }
-            if (keySeq.length > 10) keySeq = keySeq.slice(-5);
-        });
+        window.onload = function() { initGrids(); refreshUserStatus(); };
 
         async function refreshUserStatus() {
             try {
                 const res = await fetch('/auth/user-session');
                 const data = await res.json();
-                if(data.success) {
-                    document.getElementById('valToken').innerText = data.is_premium ? '∞' : data.token;
-                }
-            } catch (e) { console.log("Gagal sinkron Postgres"); }
+                if(data.success) document.getElementById('valToken').innerText = data.is_premium ? '∞' : data.token;
+            } catch (e) { console.log("Postgres Offline"); }
         }
 
         async function injectToken() {
             const amount = document.getElementById('admAmount').value;
-            const email = localStorage.getItem('jawaban_ai_email');
+            if(!amount) return;
             const res = await fetch('/admin/add-token', {
                 method: 'POST', 
                 headers: {'Content-Type': 'application/json'}, 
-                body: JSON.stringify({ adminEmail: 'Versacy', targetEmail: email, amount: amount }) 
+                body: JSON.stringify({ adminEmail: 'Versacy', targetEmail: localStorage.getItem('jawaban_ai_email'), amount: amount }) 
             });
-            if(res.ok) { 
-                Swal.fire('Berhasil!', 'Token ditambahkan.', 'success'); 
-                refreshUserStatus(); 
-            }
+            if(res.ok) { Swal.fire('Berhasil!', 'Token telah ditambahkan.', 'success'); refreshUserStatus(); }
         }
 
         function initGrids() {
@@ -182,136 +156,157 @@
             }
             const es = document.getElementById('gridES');
             for(let i=1; i<=20; i++) {
-                es.innerHTML += `<input id="e${i}" placeholder="Kunci Essay No ${i}" class="w-full p-4 bg-slate-50 rounded-2xl font-bold border-none outline-none">`;
+                es.innerHTML += `<input id="e${i}" placeholder="Kunci Essay No ${i}" class="w-full p-5 bg-slate-50 rounded-2xl font-bold border-2 border-transparent focus:border-emerald-300 outline-none transition">`;
             }
         }
 
         function handleFileSelection(input) {
             const files = Array.from(input.files);
             if(selectedFiles.length + files.length > 10) {
-                Swal.fire('Batas Penuh!', 'Maksimal 10 foto Bapak/Ibu.', 'warning');
-                input.value = ""; return;
+                Swal.fire('Batas Penuh', 'Maksimal 10 file sekaligus.', 'warning');
+                return;
             }
             selectedFiles = [...selectedFiles, ...files];
-            renderDashboardFiles();
-            Swal.fire({ icon: 'success', title: 'File Masuk', text: `${files.length} file ditambahkan.`, timer: 1500, showConfirmButton: false, toast: true, position: 'top-end' });
-            input.value = ""; 
+            renderFileList();
+            input.value = "";
         }
 
-        function renderDashboardFiles() {
+        function renderFileList() {
             const container = document.getElementById('fileListContainer');
             const list = document.getElementById('fileList');
             if(selectedFiles.length > 0) {
                 container.classList.remove('hidden');
                 document.getElementById('fileCount').innerText = selectedFiles.length;
-                list.innerHTML = selectedFiles.map((file, index) => `
-                    <div class="file-card">
-                        <span class="text-[11px] font-black text-blue-800 italic uppercase truncate pr-4">📄 ${file.name}</span>
-                        <button onclick="removeFile(${index})" class="text-red-500 font-black text-[10px] bg-white border border-red-200 px-3 py-1 rounded-full">Hapus</button>
-                    </div>
-                `).join('');
+                list.innerHTML = selectedFiles.map((f, i) => `<div class="bg-blue-50 p-4 rounded-2xl border border-blue-200 flex justify-between items-center font-black text-xs text-blue-800 italic uppercase"><span>📄 ${f.name}</span><button onclick="removeFile(${i})" class="text-red-500">Hapus</button></div>`).join('');
             } else { container.classList.add('hidden'); }
         }
 
-        function removeFile(i) { selectedFiles.splice(i, 1); renderDashboardFiles(); }
-        function clearFiles() { selectedFiles = []; renderDashboardFiles(); }
+        function removeFile(i) { selectedFiles.splice(i, 1); renderFileList(); }
+        function clearFiles() { selectedFiles = []; renderFileList(); }
 
         document.getElementById('btnAI').onclick = async () => {
-            if(selectedFiles.length === 0) return Swal.fire('Dashboard Kosong', 'Silakan pilih foto dulu.', 'info');
-            Swal.fire({ title: 'AI Sedang Mengoreksi', html: 'Sedang memproses data...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
+            if(selectedFiles.length === 0) return Swal.fire('Info', 'Pilih foto dulu Bapak/Ibu.', 'info');
+            Swal.fire({ title: 'AI Memproses...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
-            const kunci_pg = {};
-            for(let i=1; i<=40; i++) { 
-                const v = document.getElementById(`p${i}`).value;
-                if(v && v !== "-") kunci_pg[i] = v;
-            }
-            const kunci_essay = {};
-            for(let i=1; i<=20; i++) {
-                const v = document.getElementById(`e${i}`).value;
-                if(v) kunci_essay[i] = v;
-            }
+            const formData = new FormData();
+            selectedFiles.forEach(f => formData.append('foto', f));
+            
+            const k_pg = {}; for(let i=1; i<=40; i++) { let v=document.getElementById(`p${i}`).value; if(v && v!=="-") k_pg[i]=v; }
+            const k_es = {}; for(let i=1; i<=20; i++) { let v=document.getElementById(`e${i}`).value; if(v) k_es[i]=v; }
+            
+            formData.append('kunci_pg', JSON.stringify(k_pg));
+            formData.append('kunci_essay', JSON.stringify(k_es));
+            formData.append('rumus_pg', document.getElementById('r_pg').value);
+            formData.append('rumus_es', document.getElementById('r_essay').value);
 
             try {
-                const formData = new FormData();
-                selectedFiles.forEach(file => formData.append('foto', file));
-                formData.append('kunci_pg', JSON.stringify(kunci_pg));
-                formData.append('kunci_essay', JSON.stringify(kunci_essay));
-                formData.append('rumus_pg', document.getElementById('r_pg').value);
-                formData.append('rumus_es', document.getElementById('r_essay').value);
-
-                const response = await fetch('/ai/proses-koreksi', { method: 'POST', body: formData });
-                const resJson = await response.json();
-                
-                if(resJson.success) {
-                    dbData = Array.isArray(resJson.data) ? resJson.data : [resJson.data];
-                    tampilkanHasil();
-                    if (resJson.current_token !== undefined) document.getElementById('valToken').innerText = resJson.current_token;
-                    Swal.fire({ icon: 'success', title: 'Berhasil!', text: 'Koreksi selesai.', timer: 2000 });
-                } else { throw new Error(resJson.error); }
-            } catch (error) { Swal.fire('Gagal', error.message, 'error'); }
+                const res = await fetch('/ai/proses-koreksi', { method: 'POST', body: formData });
+                const json = await res.json();
+                if(json.success) {
+                    dbData = Array.isArray(json.data) ? json.data : [json.data];
+                    renderHasilKoreksi();
+                    if(json.current_token) document.getElementById('valToken').innerText = json.current_token;
+                    Swal.fire('Selesai!', 'Koreksi AI Berhasil.', 'success');
+                }
+            } catch (e) { Swal.fire('Error', 'Gagal menghubungi server AI', 'error'); }
         };
 
-        function tampilkanHasil() {
+        function renderHasilKoreksi() {
             document.getElementById('resWrap').classList.remove('hidden');
             document.getElementById('scanAwal').innerHTML = dbData.map(s => {
-                const listPgBenar = s.list_detail_pg ? `<p class="text-[10px] text-blue-600 mt-2 font-black">PG Benar No: ${s.list_detail_pg}</p>` : '';
-                const listEsBenar = s.list_detail_es ? `<p class="text-[10px] text-emerald-600 font-black">Essay Benar No: ${s.list_detail_es}</p>` : '';
-
+                // Parse rincian detail
+                let pgList = s.log_detail ? s.log_detail.map(l => `<div class="detail-item">${l}</div>`).join('') : '<p>Tidak ada detail PG</p>';
+                
                 return `
-                <div class="bg-white p-6 rounded-[35px] border border-slate-200 shadow-sm mb-4">
-                    <div class="flex justify-between items-center mb-3">
-                        <div>
-                            <p class="text-[9px] font-black text-slate-400 uppercase italic">Identitas:</p>
-                            <p class="font-black uppercase text-slate-800 text-lg leading-tight">${s.nama || "Siswa Tanpa Nama"}</p>
+                <div class="result-card">
+                    <p class="text-[10px] font-black text-slate-400 uppercase italic mb-1">Identitas Siswa:</p>
+                    <h2 class="text-3xl font-black text-slate-800 uppercase mb-6">${s.nama}</h2>
+                    
+                    <div class="grid grid-cols-2 gap-4 mb-8">
+                        <div class="bg-blue-600 text-white p-4 rounded-3xl text-center">
+                            <p class="text-[10px] font-bold uppercase opacity-80">PG Betul</p>
+                            <p class="text-3xl font-black">${s.pg_betul}</p>
                         </div>
-                        <div class="flex gap-2 font-black text-[10px]">
-                            <span class="bg-blue-50 text-blue-600 px-3 py-1 rounded-xl border border-blue-100">PG: ${s.pg_betul ?? 0}</span>
-                            <span class="bg-emerald-50 text-emerald-600 px-3 py-1 rounded-xl border border-emerald-100">ES: ${s.essay_betul ?? 0}</span>
+                        <div class="bg-emerald-600 text-white p-4 rounded-3xl text-center">
+                            <p class="text-[10px] font-bold uppercase opacity-80">Essay Betul</p>
+                            <p class="text-3xl font-black">${s.essay_betul}</p>
                         </div>
                     </div>
-                    <div class="bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
-                        <p class="text-[9px] font-black text-slate-400 uppercase mb-1 italic tracking-widest">Detail Jawaban Betul:</p>
-                        ${listPgBenar || '<p class="text-[10px] text-slate-300 italic">Tidak ada data detail PG</p>'}
-                        ${listEsBenar || '<p class="text-[10px] text-slate-300 italic">Tidak ada data detail Essay</p>'}
+
+                    <div class="bg-slate-50 p-6 rounded-[30px] border border-slate-100">
+                        <p class="text-xs font-black text-slate-500 uppercase mb-4 italic underline">Rincian Jawaban PG:</p>
+                        <div class="max-h-60 overflow-y-auto pr-2 custom-scroll">
+                            ${pgList}
+                        </div>
+                        <hr class="my-4">
+                        <p class="text-xs font-black text-slate-500 uppercase mb-2 italic underline">Keterangan Essay:</p>
+                        <p class="text-lg font-black text-emerald-600 italic">✅ ${s.essay_betul} Soal terjawab dengan benar sesuai kunci.</p>
                     </div>
                 </div>`;
             }).join('');
         }
 
         document.getElementById('btnHitung').onclick = () => {
-            const r_pg = document.getElementById('r_pg').value || "*1";
-            const r_essay = document.getElementById('r_essay').value || "*1";
             const mapel = document.getElementById('mapel').value || "Mata Pelajaran";
-            Swal.fire({ title: 'Menghitung...', timer: 1000, didOpen: () => Swal.showLoading() }).then(() => {
-                let html = `<p class="text-center font-black text-blue-600 text-[10px] mt-10 mb-4 uppercase italic">Nilai Akhir</p>`;
-                exportData = [];
-                dbData.forEach((s, idx) => {
-                    let nPG = eval((s.pg_betul || 0) + r_pg.replace(/x/g, '*'));
-                    let nES = eval((s.essay_betul || 0) + r_essay.replace(/x/g, '*'));
-                    let nFinal = Math.round(nPG + nES);
-                    exportData.push({no: idx+1, nama: s.nama, mapel, pg: s.pg_betul, es: s.essay_betul, nilai: nFinal});
-                    html += `<div class="bg-white p-8 rounded-[40px] border-l-[10px] border-blue-600 shadow-lg mb-4 flex justify-between items-center">
-                        <div><p class="text-[10px] font-black text-slate-400 uppercase">${mapel}</p><p class="text-xl font-black text-slate-800">${s.nama}</p></div>
-                        <div class="text-5xl font-black text-slate-900">${nFinal}</div>
-                    </div>`;
-                });
-                document.getElementById('laporanFinal').innerHTML = html;
-                document.getElementById('exportMenu').classList.remove('hidden');
+            const r_pg = document.getElementById('r_pg').value;
+            const r_es = document.getElementById('r_essay').value;
+            
+            let html = `<p class="text-center font-black text-blue-600 text-xs mb-6 uppercase italic tracking-widest">Laporan Nilai Akhir - ${mapel}</p>`;
+            exportData = [];
+
+            dbData.forEach((s, i) => {
+                let nPG = eval(s.pg_betul + r_pg.replace(/x/g, '*'));
+                let nES = eval(s.essay_betul + r_es.replace(/x/g, '*'));
+                let nFinal = Math.round(nPG + nES);
+                
+                exportData.push({no: i+1, nama: s.nama, mapel: mapel, pg: s.pg_betul, es: s.essay_betul, total: nFinal});
+
+                html += `
+                <div class="bg-white p-8 rounded-[40px] shadow-xl border-l-[12px] border-blue-600 mb-4 flex justify-between items-center">
+                    <div>
+                        <p class="text-[10px] font-black text-slate-400 uppercase italic">${mapel}</p>
+                        <h3 class="text-2xl font-black text-slate-800 uppercase">${s.nama}</h3>
+                    </div>
+                    <div class="text-6xl font-black text-slate-900">${nFinal}</div>
+                </div>`;
             });
+            document.getElementById('laporanFinal').innerHTML = html;
+            document.getElementById('exportMenu').classList.remove('hidden');
         };
 
-        function openTopupModal() { document.getElementById('topupModalOverlay').classList.remove('hidden'); }
-        function bayar(n) { window.open(`https://saweria.co/GuruBantuGuru?amount=${n}`, '_blank'); }
-        function logout() { localStorage.clear(); window.location.href = '/auth/logout'; }
-        function exportPDF() { const doc = new window.jspdf.jsPDF(); doc.autoTable({ head: [['NO','NAMA','PG','ES','TOTAL']], body: exportData.map(d=>[d.no,d.nama,d.pg,d.es,d.nilai]) }); doc.save('Nilai.pdf'); }
-        function exportExcel() { const ws = XLSX.utils.json_to_sheet(exportData); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Nilai"); XLSX.writeFile(wb, "Nilai.xlsx"); }
-        async function exportWord() {
-            const { Document, Packer, Paragraph, Table, TableRow, TableCell } = window.docx;
-            const rows = exportData.map(d => new TableRow({ children: [ new TableCell({ children: [new Paragraph(d.nama)] }), new TableCell({ children: [new Paragraph(d.nilai.toString())] }) ] }));
-            const doc = new Document({ sections: [{ children: [new Table({ rows })] }] });
-            const blob = await Packer.toBlob(doc);
-            saveAs(blob, "Nilai.docx");
+        // EXPORT LOGIC
+        function exportPDF() { 
+            const doc = new window.jspdf.jsPDF(); 
+            doc.text(`LAPORAN NILAI: ${document.getElementById('mapel').value}`, 14, 15);
+            doc.autoTable({ 
+                startY: 20,
+                head: [['NO','NAMA SISWA','MAPEL','PG','ES','TOTAL']], 
+                body: exportData.map(d=>[d.no, d.nama, d.mapel, d.pg, d.es, d.total]) 
+            }); 
+            doc.save(`Nilai_${document.getElementById('mapel').value}.pdf`); 
         }
+        function exportExcel() { const ws = XLSX.utils.json_to_sheet(exportData); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Hasil"); XLSX.writeFile(wb, "Nilai.xlsx"); }
+        async function exportWord() {
+            const { Document, Packer, Paragraph, Table, TableRow, TableCell, TextRun } = window.docx;
+            const rows = [
+                new TableRow({ children: [
+                    new TableCell({ children: [new Paragraph("NAMA SISWA")] }),
+                    new TableCell({ children: [new Paragraph("MATA PELAJARAN")] }),
+                    new TableCell({ children: [new Paragraph("NILAI AKHIR")] })
+                ]})
+            ];
+            exportData.forEach(d => {
+                rows.push(new TableRow({ children: [
+                    new TableCell({ children: [new Paragraph(d.nama)] }),
+                    new TableCell({ children: [new Paragraph(d.mapel)] }),
+                    new TableCell({ children: [new Paragraph(d.total.toString())] })
+                ]}));
+            });
+            const doc = new Document({ sections: [{ children: [new Paragraph({ children: [new TextRun({ text: "LAPORAN HASIL KOREKSI AI", bold: true, size: 32 })] }), new Table({ rows })] }] });
+            const blob = await Packer.toBlob(doc);
+            saveAs(blob, "Laporan_Nilai.docx");
+        }
+        function logout() { localStorage.clear(); window.location.href = '/auth/logout'; }
     </script>
 </body>
 </html>
