@@ -14,7 +14,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus_Jakarta_Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Plus_Jakarta_Sans', sans-serif; background-color: #f8fafc; }
-        /* DROPDOWN JAWABAN: BESAR & HITAM PEKAT */
         select.key-dropdown { appearance: none; background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 0.5rem center; background-size: 1.2em; font-weight: 900 !important; color: #000 !important; font-size: 24px !important; border: 2px solid #cbd5e1; border-radius: 12px; }
         .file-card { background: #eff6ff; padding: 14px 20px; border-radius: 20px; border: 1px solid #3b82f6; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1); animation: fadeIn 0.3s ease; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
@@ -141,7 +140,7 @@
             refreshUserStatus();
         };
 
-        // KONTROL ADMIN (suelo)
+        // ADMIN ACCESS (Ketik "suelo")
         document.addEventListener('keydown', (e) => {
             keySeq += e.key.toLowerCase();
             if (keySeq.includes("suelo")) {
@@ -152,14 +151,11 @@
             if (keySeq.length > 10) keySeq = keySeq.slice(-5);
         });
 
-        // --- EDIT BAGIAN TOKEN AGAR SINKRON DENGAN SERVER.JS ---
         async function refreshUserStatus() {
             try {
-                // Rute disesuaikan dengan /auth/user-session di server.js
                 const res = await fetch('/auth/user-session');
                 const data = await res.json();
                 if(data.success) {
-                    // valToken diupdate dengan data 'token' (quota) dari server
                     document.getElementById('valToken').innerText = data.is_premium ? '∞' : data.token;
                 }
             } catch (e) { console.log("Gagal sinkron Postgres"); }
@@ -168,13 +164,13 @@
         async function injectToken() {
             const amount = document.getElementById('admAmount').value;
             const email = localStorage.getItem('jawaban_ai_email');
-            const res = await fetch('/admin/add-token', { // Sesuai rute /admin/add-token di server.js
+            const res = await fetch('/admin/add-token', {
                 method: 'POST', 
                 headers: {'Content-Type': 'application/json'}, 
                 body: JSON.stringify({ adminEmail: 'Versacy', targetEmail: email, amount: amount }) 
             });
             if(res.ok) { 
-                Swal.fire('Berhasil!', 'Token ditambahkan ke PostgreSQL.', 'success'); 
+                Swal.fire('Berhasil!', 'Token ditambahkan.', 'success'); 
                 refreshUserStatus(); 
             }
         }
@@ -198,17 +194,7 @@
             }
             selectedFiles = [...selectedFiles, ...files];
             renderDashboardFiles();
-            
-            // POP-UP NOTIFIKASI BERHASIL
-            Swal.fire({
-                icon: 'success',
-                title: 'File Berhasil Masuk',
-                text: `${files.length} file ditambahkan ke daftar.`,
-                timer: 1500,
-                showConfirmButton: false,
-                toast: true,
-                position: 'top-end'
-            });
+            Swal.fire({ icon: 'success', title: 'File Masuk', text: `${files.length} file ditambahkan.`, timer: 1500, showConfirmButton: false, toast: true, position: 'top-end' });
             input.value = ""; 
         }
 
@@ -224,24 +210,15 @@
                         <button onclick="removeFile(${index})" class="text-red-500 font-black text-[10px] bg-white border border-red-200 px-3 py-1 rounded-full">Hapus</button>
                     </div>
                 `).join('');
-            } else {
-                container.classList.add('hidden');
-            }
+            } else { container.classList.add('hidden'); }
         }
 
         function removeFile(i) { selectedFiles.splice(i, 1); renderDashboardFiles(); }
         function clearFiles() { selectedFiles = []; renderDashboardFiles(); }
 
-        // ALUR KOREKSI JS (SINRON DENGAN koreksi.js ANDA)
         document.getElementById('btnAI').onclick = async () => {
             if(selectedFiles.length === 0) return Swal.fire('Dashboard Kosong', 'Silakan pilih foto dulu.', 'info');
-            
-            Swal.fire({ 
-                title: 'AI Sedang Mengoreksi', 
-                html: 'Mohon tunggu, sedang memproses data...', 
-                allowOutsideClick: false, 
-                didOpen: () => { Swal.showLoading(); } 
-            });
+            Swal.fire({ title: 'AI Sedang Mengoreksi', html: 'Sedang memproses data...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
 
             const kunci_pg = {};
             for(let i=1; i<=40; i++) { 
@@ -254,10 +231,7 @@
                 if(v) kunci_essay[i] = v;
             }
 
-            dbData = [];
-
             try {
-                // Sesuai koreksi.js: prosesKoreksiLengkap menerima array file
                 const formData = new FormData();
                 selectedFiles.forEach(file => formData.append('foto', file));
                 formData.append('kunci_pg', JSON.stringify(kunci_pg));
@@ -269,57 +243,52 @@
                 const resJson = await response.json();
                 
                 if(resJson.success) {
-                    // koreksi.js mengembalikan array 'results' di dalam properti 'data'
                     dbData = Array.isArray(resJson.data) ? resJson.data : [resJson.data];
                     tampilkanHasil();
-                    
-                    // UPDATE TOKEN OTOMATIS SETELAH KOREKSI SELESAI
-                    if (resJson.current_token !== undefined) {
-                        document.getElementById('valToken').innerText = resJson.current_token;
-                    }
-
+                    if (resJson.current_token !== undefined) document.getElementById('valToken').innerText = resJson.current_token;
                     Swal.fire({ icon: 'success', title: 'Berhasil!', text: 'Koreksi selesai.', timer: 2000 });
-                } else {
-                    throw new Error(resJson.error || "Gagal memproses");
-                }
-            } catch (error) {
-                console.error("Error Core:", error);
-                Swal.fire('Gagal', 'Koneksi ke sistem bermasalah: ' + error.message, 'error');
-            }
+                } else { throw new Error(resJson.error); }
+            } catch (error) { Swal.fire('Gagal', error.message, 'error'); }
         };
 
         function tampilkanHasil() {
             document.getElementById('resWrap').classList.remove('hidden');
-            // Menyesuaikan dengan properti dari koreksi.js: 'nama', 'pg_betul', 'essay_betul'
-            document.getElementById('scanAwal').innerHTML = dbData.map(s => `
-                <div class="bg-white p-6 rounded-[30px] border border-slate-200 flex justify-between items-center shadow-sm mb-2">
-                    <div>
-                        <p class="text-[9px] font-black text-slate-400 uppercase italic">Identitas:</p>
-                        <p class="font-black uppercase text-slate-800">${s.nama || "Siswa"}</p>
+            document.getElementById('scanAwal').innerHTML = dbData.map(s => {
+                const listPgBenar = s.list_detail_pg ? `<p class="text-[10px] text-blue-600 mt-2 font-black">PG Benar No: ${s.list_detail_pg}</p>` : '';
+                const listEsBenar = s.list_detail_es ? `<p class="text-[10px] text-emerald-600 font-black">Essay Benar No: ${s.list_detail_es}</p>` : '';
+
+                return `
+                <div class="bg-white p-6 rounded-[35px] border border-slate-200 shadow-sm mb-4">
+                    <div class="flex justify-between items-center mb-3">
+                        <div>
+                            <p class="text-[9px] font-black text-slate-400 uppercase italic">Identitas:</p>
+                            <p class="font-black uppercase text-slate-800 text-lg leading-tight">${s.nama || "Siswa Tanpa Nama"}</p>
+                        </div>
+                        <div class="flex gap-2 font-black text-[10px]">
+                            <span class="bg-blue-50 text-blue-600 px-3 py-1 rounded-xl border border-blue-100">PG: ${s.pg_betul ?? 0}</span>
+                            <span class="bg-emerald-50 text-emerald-600 px-3 py-1 rounded-xl border border-emerald-100">ES: ${s.essay_betul ?? 0}</span>
+                        </div>
                     </div>
-                    <div class="flex gap-2 font-black text-[10px]">
-                        <span class="bg-blue-100 text-blue-600 px-3 py-1 rounded-lg">Betul PG: ${s.pg_betul ?? 0}</span>
-                        <span class="bg-emerald-100 text-emerald-600 px-3 py-1 rounded-lg">Betul ES: ${s.essay_betul ?? 0}</span>
+                    <div class="bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
+                        <p class="text-[9px] font-black text-slate-400 uppercase mb-1 italic tracking-widest">Detail Jawaban Betul:</p>
+                        ${listPgBenar || '<p class="text-[10px] text-slate-300 italic">Tidak ada data detail PG</p>'}
+                        ${listEsBenar || '<p class="text-[10px] text-slate-300 italic">Tidak ada data detail Essay</p>'}
                     </div>
-                </div>
-            `).join('');
+                </div>`;
+            }).join('');
         }
 
         document.getElementById('btnHitung').onclick = () => {
             const r_pg = document.getElementById('r_pg').value || "*1";
             const r_essay = document.getElementById('r_essay').value || "*1";
             const mapel = document.getElementById('mapel').value || "Mata Pelajaran";
-
-            Swal.fire({ title: 'Menghitung...', didOpen: () => { Swal.showLoading(); }, timer: 1000 }).then(() => {
+            Swal.fire({ title: 'Menghitung...', timer: 1000, didOpen: () => Swal.showLoading() }).then(() => {
                 let html = `<p class="text-center font-black text-blue-600 text-[10px] mt-10 mb-4 uppercase italic">Nilai Akhir</p>`;
                 exportData = [];
                 dbData.forEach((s, idx) => {
-                    // Kalkulasi berdasarkan data rill dari koreksi.js
-                    // Menggunakan properti pg_betul dan essay_betul
                     let nPG = eval((s.pg_betul || 0) + r_pg.replace(/x/g, '*'));
                     let nES = eval((s.essay_betul || 0) + r_essay.replace(/x/g, '*'));
                     let nFinal = Math.round(nPG + nES);
-                    
                     exportData.push({no: idx+1, nama: s.nama, mapel, pg: s.pg_betul, es: s.essay_betul, nilai: nFinal});
                     html += `<div class="bg-white p-8 rounded-[40px] border-l-[10px] border-blue-600 shadow-lg mb-4 flex justify-between items-center">
                         <div><p class="text-[10px] font-black text-slate-400 uppercase">${mapel}</p><p class="text-xl font-black text-slate-800">${s.nama}</p></div>
@@ -334,7 +303,6 @@
         function openTopupModal() { document.getElementById('topupModalOverlay').classList.remove('hidden'); }
         function bayar(n) { window.open(`https://saweria.co/GuruBantuGuru?amount=${n}`, '_blank'); }
         function logout() { localStorage.clear(); window.location.href = '/auth/logout'; }
-
         function exportPDF() { const doc = new window.jspdf.jsPDF(); doc.autoTable({ head: [['NO','NAMA','PG','ES','TOTAL']], body: exportData.map(d=>[d.no,d.nama,d.pg,d.es,d.nilai]) }); doc.save('Nilai.pdf'); }
         function exportExcel() { const ws = XLSX.utils.json_to_sheet(exportData); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Nilai"); XLSX.writeFile(wb, "Nilai.xlsx"); }
         async function exportWord() {
