@@ -169,6 +169,41 @@ app.post('/admin/add-token', async (req, res) => {
     } catch (e) { res.status(500).json({ success: false }); }
 });
 
+// --- FITUR WEBHOOK SAWERIA OTOMATIS ---
+app.post('/webhook/saweria', async (req, res) => {
+    const { amount_raw, customer_email, msg } = req.body;
+
+    // Logika Paket Token (Sesuai Dashboard)
+    let tokenBonus = 0;
+    if (amount_raw >= 100000) tokenBonus = 300;
+    else if (amount_raw >= 50000) tokenBonus = 125;
+    else if (amount_raw >= 20000) tokenBonus = 50;
+    else if (amount_raw >= 10000) tokenBonus = 22;
+    else if (amount_raw >= 5000) tokenBonus = 10;
+
+    if (tokenBonus > 0) {
+        try {
+            // Ambil email dari data saweria (customer_email atau isi pesan/msg)
+            const emailTarget = (customer_email || msg || "").trim();
+            
+            if (emailTarget) {
+                const result = await query(
+                    'UPDATE users SET quota = quota + $1 WHERE email = $2 RETURNING email', 
+                    [tokenBonus, emailTarget]
+                );
+                
+                if (result.rows.length > 0) {
+                    console.log(`[Saweria] Berhasil tambah ${tokenBonus} token ke ${emailTarget}`);
+                    return res.status(200).send('Success');
+                }
+            }
+        } catch (e) {
+            console.error("[Saweria Error]", e);
+        }
+    }
+    res.status(200).send('Processed');
+});
+
 // --- 6. PROSES KOREKSI AI (BAGIAN YANG DIPERBAIKI) ---
 const upload = multer({ storage: multer.memoryStorage() });
 const { prosesKoreksiLengkap } = require('./routes/koreksi');
