@@ -133,6 +133,7 @@
                     </div>
                 </div>
 
+                <button onclick="loadHistory()" class="w-full bg-blue-50 text-blue-600 font-black py-4 rounded-[30px] text-sm uppercase shadow-sm border-2 border-blue-100 hover:bg-blue-100 transition mb-2">🔄 Segarkan Riwayat</button>
                 <button id="btnAI" class="w-full bg-slate-900 text-white font-black py-8 rounded-[45px] text-xl uppercase shadow-2xl hover:bg-blue-700 active:scale-95 transition-all">MULAI KOREKSI AI</button>
             </div>
 
@@ -172,7 +173,7 @@
         let selectedFiles = [];
         let dbData = [];
         let exportData = [];
-        let rawHistoryData = []; // Untuk simpan data history mentah
+        let rawHistoryData = []; 
 
         window.onload = function() { initGrids(); refreshUserStatus(); loadHistory(); };
 
@@ -192,7 +193,6 @@
             } catch (e) { console.log("Postgres Offline"); }
         }
 
-        // --- FUNGSI HISTORY BARU ---
         async function loadHistory() {
             try {
                 const res = await fetch('/ai/history');
@@ -201,17 +201,67 @@
                 if(json.success && json.history.length > 0) {
                     rawHistoryData = json.history;
                     document.getElementById('historyExportBtns').classList.remove('hidden');
-                    container.innerHTML = json.history.map(h => `
-                        <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100">
-                            <div class="flex justify-between items-start">
-                                <span class="text-[10px] font-black text-blue-600 uppercase tracking-tighter">${h.mapel}</span>
-                                <span class="text-[8px] font-bold text-slate-400">${new Date(h.waktu).toLocaleDateString()}</span>
+                    
+                    // Grouping berdasarkan Mapel
+                    const grouped = json.history.reduce((acc, item) => {
+                        const m = item.mapel || "Lainnya";
+                        if (!acc[m]) acc[m] = [];
+                        acc[m].push(item);
+                        return acc;
+                    }, {});
+
+                    let htmlOutput = "";
+                    for (const mapel in grouped) {
+                        htmlOutput += `
+                            <div class="mt-4 mb-2 flex justify-between items-center border-b border-slate-100 pb-1">
+                                <span class="text-[10px] font-black text-blue-600 uppercase tracking-widest">📂 ${mapel}</span>
+                                <button onclick="deleteHistoryByMapel('${mapel}')" class="text-[8px] text-red-400 font-bold hover:underline uppercase">Hapus</button>
                             </div>
-                            <p class="text-xs font-black text-slate-800 uppercase mt-1 truncate">${h.nama_siswa}</p>
-                        </div>
-                    `).join('');
+                        `;
+
+                        grouped[mapel].forEach(h => {
+                            const tgl = new Date(h.waktu).toLocaleDateString('id-ID', { day:'2-digit', month:'short' });
+                            htmlOutput += `
+                                <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100 mb-2 flex justify-between items-center transition hover:bg-white">
+                                    <div class="overflow-hidden">
+                                        <p class="text-[10px] font-black text-slate-800 uppercase truncate">${h.nama_siswa}</p>
+                                        <p class="text-[8px] font-bold text-slate-400">${tgl}</p>
+                                    </div>
+                                    <div class="bg-blue-600 px-2 py-1 rounded-lg">
+                                        <span class="text-[10px] font-black text-white">${h.nilai_akhir || 0}</span>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                    }
+                    
+                    htmlOutput += `
+                        <button onclick="deleteAllHistory()" class="w-full mt-4 py-2 text-[9px] font-black text-slate-400 uppercase border-2 border-dashed border-slate-100 rounded-xl hover:text-red-500 transition">
+                            🗑️ Bersihkan Semua
+                        </button>
+                    `;
+                    container.innerHTML = htmlOutput;
+                } else {
+                    container.innerHTML = `<p class="text-[10px] text-center font-bold text-slate-400 py-4">Belum ada riwayat...</p>`;
+                    document.getElementById('historyExportBtns').classList.add('hidden');
                 }
             } catch (e) { console.log("Gagal muat riwayat"); }
+        }
+
+        async function deleteHistoryByMapel(mapel) {
+            const confirm = await Swal.fire({ title: 'Hapus Mapel?', text: `Hapus semua data riwayat ${mapel}?`, icon: 'warning', showCancelButton: true });
+            if (confirm.isConfirmed) {
+                await fetch(`/ai/delete-history?mapel=${encodeURIComponent(mapel)}`, { method: 'DELETE' });
+                loadHistory();
+            }
+        }
+
+        async function deleteAllHistory() {
+            const confirm = await Swal.fire({ title: 'Kosongkan?', text: 'Semua riwayat akan dihapus permanen!', icon: 'error', showCancelButton: true });
+            if (confirm.isConfirmed) {
+                await fetch('/ai/delete-all-history', { method: 'DELETE' });
+                loadHistory();
+            }
         }
 
         function exportHistoryExcel() {
@@ -228,8 +278,8 @@
             doc.setFontSize(16); doc.text("RIWAYAT KOREKSI JAWABAN AI", 14, 15);
             doc.autoTable({
                 startY: 20,
-                head: [['NAMA SISWA', 'MATA PELAJARAN', 'WAKTU']],
-                body: rawHistoryData.map(h => [h.nama_siswa, h.mapel, new Date(h.waktu).toLocaleString()])
+                head: [['NAMA SISWA', 'MATA PELAJARAN', 'NILAI', 'WAKTU']],
+                body: rawHistoryData.map(h => [h.nama_siswa, h.mapel, h.nilai_akhir, new Date(h.waktu).toLocaleString()])
             });
             doc.save("Riwayat_Koreksi.pdf");
         }
@@ -240,11 +290,13 @@
             const rows = [new TableRow({ children: [
                 new TableCell({ children: [new Paragraph("NAMA SISWA")] }),
                 new TableCell({ children: [new Paragraph("MAPEL")] }),
+                new TableCell({ children: [new Paragraph("NILAI")] }),
                 new TableCell({ children: [new Paragraph("WAKTU")] })
             ]})];
             rawHistoryData.forEach(h => rows.push(new TableRow({ children: [
                 new TableCell({ children: [new Paragraph(h.nama_siswa)] }),
                 new TableCell({ children: [new Paragraph(h.mapel)] }),
+                new TableCell({ children: [new Paragraph(h.nilai_akhir?.toString() || "0")] }),
                 new TableCell({ children: [new Paragraph(new Date(h.waktu).toLocaleString())] })
             ]})));
             const doc = new Document({ sections: [{ children: [
@@ -254,7 +306,6 @@
             const blob = await Packer.toBlob(doc);
             saveAs(blob, "Riwayat_Koreksi.docx");
         }
-        // --- AKHIR FUNGSI HISTORY BARU ---
 
         async function injectToken() {
             const target = document.getElementById('admTargetEmail').value;
@@ -352,7 +403,7 @@
             formData.append('kunci_essay', JSON.stringify(k_es));
             formData.append('rumus_pg', document.getElementById('r_pg').value);
             formData.append('rumus_es', document.getElementById('r_essay').value);
-            formData.append('mapel', document.getElementById('mapel').value || "Ujian"); // Tambahan untuk history
+            formData.append('mapel', document.getElementById('mapel').value || "Ujian");
 
             try {
                 const res = await fetch('/ai/proses-koreksi', { method: 'POST', body: formData });
@@ -361,7 +412,7 @@
                     dbData = json.data;
                     renderHasilKoreksi();
                     if(json.current_token) document.getElementById('valToken').innerText = json.current_token;
-                    loadHistory(); // Refresh riwayat setelah koreksi
+                    loadHistory();
                     Swal.fire('Selesai!', 'AI telah menyelesaikan koreksi.', 'success');
                 }
             } catch (e) { Swal.fire('Error', 'Gagal menyambung ke koreksi.js', 'error'); }
@@ -391,12 +442,13 @@
             `).join('');
         }
 
-        document.getElementById('btnHitung').onclick = () => {
+        document.getElementById('btnHitung').onclick = async () => {
             const mapel = document.getElementById('mapel').value || "Mata Pelajaran";
             const r_pg = document.getElementById('r_pg').value;
             const r_es = document.getElementById('r_essay').value;
             let html = `<p class="text-center font-black text-blue-600 text-sm mb-6 uppercase italic tracking-[0.3em]">LAPORAN AKHIR: ${mapel}</p>`;
             exportData = [];
+            
             dbData.forEach((s, i) => {
                 let nPG = eval(s.pg_betul + r_pg.replace(/x/g, '*'));
                 let nES = eval(s.essay_betul + r_es.replace(/x/g, '*'));
@@ -410,6 +462,22 @@
             });
             document.getElementById('laporanFinal').innerHTML = html;
             document.getElementById('exportMenu').classList.remove('hidden');
+
+            if (exportData.length > 0) {
+                const payload = exportData.map(d => ({
+                    nama_siswa: d.nama,
+                    mapel: d.mapel,
+                    nilai_akhir: d.total
+                }));
+                try {
+                    await fetch('/ai/save-history', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ data: payload })
+                    });
+                    loadHistory(); 
+                } catch (e) { console.log("Gagal simpan riwayat"); }
+            }
         };
 
         function exportPDF() { 
