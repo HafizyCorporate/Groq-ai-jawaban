@@ -37,6 +37,10 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
             - Penentuan Jawaban: Jawaban siswa adalah huruf yang memiliki coretan paling tebal atau disilang paling jelas. 
             - Anti-Salah Baca: Jika ada dua huruf terkena tinta, pilih yang memiliki cakupan tinta paling luas.
             - Abaikan Noise: Abaikan bintik hitam kecil atau garis tepi soal.
+            - Siswa mungkin menjawab dengan Silang (X), Centang (V), atau Bulatan kecil.
+            - Deteksi Tinta Tipis: Meskipun coretan sangat tipis atau hampir samar dengan warna teks, identifikasi keberadaan TINTA BARU (pulpen/pensil) di atas pilihan jawaban.
+            - Prioritas: Jika ada bercak tinta yang melintasi huruf (A, B, C, D, atau E), itu adalah jawaban siswa.
+            - Kasus Ragu: Jika ada dua coretan, pilih coretan yang paling baru atau paling tegas. Jika sangat tipis, jangan langsung dianggap kosong, perhatikan perubahan tekstur pada area huruf.
 
             2.DETEKSI ESSAY (SANGAT KETAT):
             - Baca jawaban tulisan tangan siswa untuk soal essay.
