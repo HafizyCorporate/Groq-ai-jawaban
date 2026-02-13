@@ -169,28 +169,41 @@ app.post('/admin/add-token', async (req, res) => {
     } catch (e) { res.status(500).json({ success: false }); }
 });
 
-// --- 6. PROSES KOREKSI AI ---
+// --- 6. PROSES KOREKSI AI (BAGIAN YANG DIPERBAIKI) ---
 const upload = multer({ storage: multer.memoryStorage() });
 const { prosesKoreksiLengkap } = require('./routes/koreksi');
 
 app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ success: false, message: "Sesi Habis" });
+    
     const userRes = await query('SELECT * FROM users WHERE email = $1', [req.session.userId]);
     const user = userRes.rows[0];
+    
     if (!user.is_premium && user.quota < req.files.length) {
         return res.json({ success: false, limitReached: true, message: "Token Habis" });
     }
+
+    // Perbaikan pengambilan data kunci agar sinkron dengan dashboard
     let settings = {};
     try { 
-        settings = (typeof req.body.data === 'string') ? JSON.parse(req.body.data) : (req.body.data || {}); 
-    } catch (e) { settings = {}; }
+        settings = {
+            kunci_pg: req.body.kunci_pg ? JSON.parse(req.body.kunci_pg) : {},
+            kunci_essay: req.body.kunci_essay ? JSON.parse(req.body.kunci_essay) : {}
+        };
+    } catch (e) { 
+        settings = { kunci_pg: {}, kunci_essay: {} }; 
+    }
 
+    // Menjalankan fungsi koreksi
     const results = await prosesKoreksiLengkap(req.files, settings, req.body.rumus_pg, req.body.rumus_es);
 
+    // Potong kuota user PostgreSQL
     if (!user.is_premium && results.length > 0) {
         await query('UPDATE users SET quota = GREATEST(0, quota - $1) WHERE email = $2', [req.files.length, req.session.userId]);
     }
+    
     const finalUser = await query('SELECT quota, is_premium FROM users WHERE email = $1', [req.session.userId]);
+    
     res.json({ 
         success: true, 
         data: results, 
