@@ -34,13 +34,14 @@ async function migrasiData() {
             )
         `);
 
-        // TAMBAHAN: Tabel History
+        // TAMBAHAN: Tabel History (Nilai Akhir ditambahkan)
         await query(`
             CREATE TABLE IF NOT EXISTS history (
                 id SERIAL PRIMARY KEY,
                 email TEXT,
                 nama_siswa TEXT,
                 mapel TEXT,
+                nilai_akhir INTEGER,
                 waktu TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         `);
@@ -197,15 +198,50 @@ app.post('/webhook/saweria', async (req, res) => {
     res.status(200).send('Processed');
 });
 
-// --- 6. API HISTORY ---
+// --- 6. API HISTORY (UPDATED) ---
 app.get('/ai/history', async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ success: false });
     try {
+        // Diurutkan berdasarkan mapel agar mudah di grouping di frontend
         const result = await query(
-            'SELECT nama_siswa, mapel, waktu FROM history WHERE email = $1 ORDER BY waktu DESC LIMIT 10', 
+            'SELECT id, nama_siswa, mapel, nilai_akhir, waktu FROM history WHERE email = $1 ORDER BY mapel ASC, waktu DESC', 
             [req.session.userId]
         );
         res.json({ success: true, history: result.rows });
+    } catch (e) { res.status(500).json({ success: false }); }
+});
+
+// Endpoint baru: Simpan riwayat setelah klik "Terbitkan Nilai"
+app.post('/ai/save-history', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ success: false });
+    const { data } = req.body; // Array berisi {nama_siswa, mapel, nilai_akhir}
+    try {
+        for (let item of data) {
+            await query(
+                'INSERT INTO history (email, nama_siswa, mapel, nilai_akhir) VALUES ($1, $2, $3, $4)',
+                [req.session.userId, item.nama_siswa, item.mapel, item.nilai_akhir]
+            );
+        }
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ success: false }); }
+});
+
+// Endpoint baru: Hapus per Mapel
+app.delete('/ai/delete-history', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ success: false });
+    const { mapel } = req.query;
+    try {
+        await query('DELETE FROM history WHERE email = $1 AND mapel = $2', [req.session.userId, mapel]);
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ success: false }); }
+});
+
+// Endpoint baru: Hapus Semua
+app.delete('/ai/delete-all-history', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ success: false });
+    try {
+        await query('DELETE FROM history WHERE email = $1', [req.session.userId]);
+        res.json({ success: true });
     } catch (e) { res.status(500).json({ success: false }); }
 });
 
@@ -233,15 +269,8 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
 
     const results = await prosesKoreksiLengkap(req.files, settings, req.body.rumus_pg, req.body.rumus_es);
 
-    // SIMPAN KE HISTORY & POTONG KUOTA
+    // HANYA POTONG KUOTA (History sekarang dipindah ke save-history saat Terbitkan Nilai)
     if (results.length > 0) {
-        for (let r of results) {
-            await query(
-                'INSERT INTO history (email, nama_siswa, mapel) VALUES ($1, $2, $3)',
-                [req.session.userId, r.nama || 'Tanpa Nama', req.body.mapel || 'Ujian']
-            );
-        }
-
         if (!user.is_premium) {
             await query('UPDATE users SET quota = GREATEST(0, quota - $1) WHERE email = $2', [req.files.length, req.session.userId]);
         }
