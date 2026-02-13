@@ -122,14 +122,25 @@
                             <input type="text" id="r_essay" class="w-full p-6 bg-emerald-50 rounded-[30px] font-black outline-none text-2xl" value="*5">
                         </div>
                     </div>
-
-                    <div class="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-2xl mb-8">
-                        <p class="text-[11px] font-bold text-amber-800 leading-relaxed">
-                            💡 <strong>INFO PENTING:</strong> Bapak & Ibu Guru cukup memasukkan angka pengali/pembagi saja. 
-                            Sistem otomatis mengambil jumlah jawaban siswa yang benar. 
-                            <br><em>Contoh: Andi betul 5 PG, maka cukup tulis <strong>*2.5</strong> untuk hasil 12.5</em>
-                        </p>
-                    </div>
+<div class="bg-amber-100 border-l-[12px] border-amber-500 p-8 rounded-[35px] mb-10 shadow-md animate-pulse">
+    <div class="flex items-start gap-6">
+        <span class="text-5xl">💡</span>
+        <div>
+            <p class="text-2xl font-black text-amber-900 uppercase tracking-tighter mb-3">
+                PANDUAN PENTING PENGISIAN RUMUS:
+            </p>
+            <p class="text-xl font-bold text-amber-800 leading-tight">
+                Bapak & Ibu Guru <span class="underline decoration-4">CUKUP MASUKKAN ANGKA</span> pengali atau pembagi saja. 
+                Sistem kami otomatis menghitung dari jumlah jawaban benar siswa.
+            </p>
+            <div class="mt-5 bg-white/60 p-5 rounded-3xl border-2 border-amber-300">
+                <p class="text-lg font-black text-amber-900 italic">
+                    CONTOH: Jika skor per soal PG adalah 2.5, cukup tulis <span class="text-3xl text-blue-700 font-extrabold">*2.5</span>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
 
                     <button id="btnHitung" class="w-full bg-blue-600 text-white font-black py-8 rounded-[40px] text-2xl uppercase shadow-xl hover:bg-blue-700 transition">TERBITKAN NILAI</button>
                     
