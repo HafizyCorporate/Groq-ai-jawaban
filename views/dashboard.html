@@ -227,7 +227,7 @@
         function removeFile(i) { selectedFiles.splice(i, 1); renderDashboardFiles(); }
         function clearFiles() { selectedFiles = []; renderDashboardFiles(); }
 
-        // ALUR KOREKSI JS (FIXED)
+        // ALUR KOREKSI JS (FIXED DENGAN PENANGKAPAN DATA koreksi.js)
         document.getElementById('btnAI').onclick = async () => {
             if(selectedFiles.length === 0) return Swal.fire('Dashboard Kosong', 'Silakan pilih foto dulu.', 'info');
             
@@ -257,18 +257,24 @@
                     formData.append('foto', selectedFiles[i]);
                     formData.append('kunci_pg', JSON.stringify(kunci_pg));
                     formData.append('kunci_essay', JSON.stringify(kunci_essay));
+                    // Mengirim rumus agar diproses di koreksi.js
+                    formData.append('rumus_pg', document.getElementById('r_pg').value);
+                    formData.append('rumus_es', document.getElementById('r_essay').value);
 
                     const response = await fetch('/ai/proses-koreksi', { method: 'POST', body: formData });
                     const resJson = await response.json();
                     
                     if(resJson.success) {
-                        dbData.push(resJson.data);
+                        // Jika koreksi.js mengirim array di 'data', ambil item pertama
+                        const dataHasil = Array.isArray(resJson.data) ? resJson.data[0] : resJson.data;
+                        dbData.push(dataHasil);
                     }
                 }
                 tampilkanHasil();
                 Swal.fire({ icon: 'success', title: 'Berhasil!', text: 'Koreksi selesai.', timer: 2000 });
                 refreshUserStatus();
             } catch (error) {
+                console.error("Error Core:", error);
                 Swal.fire('Gagal', 'Koneksi ke koreksi.js bermasalah.', 'error');
             }
         };
@@ -276,11 +282,14 @@
         function tampilkanHasil() {
             document.getElementById('resWrap').classList.remove('hidden');
             document.getElementById('scanAwal').innerHTML = dbData.map(s => `
-                <div class="bg-white p-6 rounded-[30px] border border-slate-200 flex justify-between items-center shadow-sm">
-                    <div><p class="text-[9px] font-black text-slate-400 uppercase">Hasil Periksa:</p><p class="font-black uppercase text-slate-800">${s.nama || "Siswa"}</p></div>
+                <div class="bg-white p-6 rounded-[30px] border border-slate-200 flex justify-between items-center shadow-sm mb-2">
+                    <div>
+                        <p class="text-[9px] font-black text-slate-400 uppercase italic">Identitas:</p>
+                        <p class="font-black uppercase text-slate-800">${s.nama || "Siswa"}</p>
+                    </div>
                     <div class="flex gap-2 font-black text-[10px]">
-                        <span class="bg-blue-100 text-blue-600 px-3 py-1 rounded-lg">Betul PG: ${s.pg_betul}</span>
-                        <span class="bg-emerald-100 text-emerald-600 px-3 py-1 rounded-lg">Betul ES: ${s.essay_betul}</span>
+                        <span class="bg-blue-100 text-blue-600 px-3 py-1 rounded-lg">Betul PG: ${s.pg_betul || 0}</span>
+                        <span class="bg-emerald-100 text-emerald-600 px-3 py-1 rounded-lg">Betul ES: ${s.essay_betul || 0}</span>
                     </div>
                 </div>
             `).join('');
@@ -295,8 +304,9 @@
                 let html = `<p class="text-center font-black text-blue-600 text-[10px] mt-10 mb-4 uppercase italic">Nilai Akhir</p>`;
                 exportData = [];
                 dbData.forEach((s, idx) => {
-                    let nPG = eval(s.pg_betul + r_pg.replace(/x/g, '*'));
-                    let nES = eval(s.essay_betul + r_essay.replace(/x/g, '*'));
+                    // Kalkulasi berdasarkan data riil dari koreksi.js
+                    let nPG = eval((s.pg_betul || 0) + r_pg.replace(/x/g, '*'));
+                    let nES = eval((s.essay_betul || 0) + r_essay.replace(/x/g, '*'));
                     let nFinal = Math.round(nPG + nES);
                     
                     exportData.push({no: idx+1, nama: s.nama, mapel, pg: s.pg_betul, es: s.essay_betul, nilai: nFinal});
