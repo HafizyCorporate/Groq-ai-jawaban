@@ -23,8 +23,17 @@
         .custom-scroll::-webkit-scrollbar { width: 6px; }
         .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         .result-card { background: white; border-radius: 40px; padding: 35px; border: 2px solid #e2e8f0; box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
+        
+        /* MODIFIKASI: Tampilan Komputer Lebih Besar & Lebar */
         @media (min-width: 1024px) {
-            .desktop-layout { display: grid; grid-template-columns: 480px 1fr; gap: 40px; align-items: start; max-width: 1400px; margin: 0 auto; }
+            .desktop-layout { 
+                display: grid; 
+                grid-template-columns: 550px 1fr; /* Lebarkan panel kiri */
+                gap: 50px; 
+                align-items: start; 
+                max-width: 1600px; /* Lebarkan kontainer utama */
+                margin: 0 auto; 
+            }
             .sticky-panel { position: sticky; top: 20px; max-height: 95vh; overflow-y: auto; padding-right: 15px; }
         }
     </style>
@@ -39,10 +48,9 @@
         </div>
     </div>
 
-    <div class="max-w-7xl mx-auto">
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 px-2 gap-4">
+    <div class="max-w-[1600px] mx-auto"> <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 px-2 gap-4">
             <div class="flex items-center gap-4">
-                <h1 class="text-3xl font-extrabold italic uppercase tracking-tighter">JAWABAN <span class="text-blue-600">AI</span></h1>
+                <h1 class="text-4xl font-extrabold italic uppercase tracking-tighter">JAWABAN <span class="text-blue-600">AI</span></h1>
                 <button onclick="openHistoryModal()" class="bg-blue-600 text-white px-5 py-2 rounded-full text-[10px] font-black uppercase hover:bg-blue-700 transition shadow-lg shadow-blue-200">📂 Riwayat Koreksi</button>
             </div>
             <button onclick="logout()" class="text-red-500 text-[10px] font-black uppercase underline">Keluar Sistem</button>
@@ -65,17 +73,16 @@
                     </div>
                 </div>
 
-                <div class="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
-                    <h2 class="text-2xl font-black text-slate-800 mb-2">Halo Ibu Bapak Guru ✋</h2>
-                    <p class="text-sm font-bold text-slate-500 mb-8 leading-relaxed">Silakan unggah maksimal 10 foto lembar jawaban. Jika tanpa nama, AI akan menamai otomatis.</p>
+                <div class="bg-white p-10 rounded-[40px] shadow-sm border border-slate-100"> <h2 class="text-3xl font-black text-slate-800 mb-2">Halo Ibu Bapak Guru ✋</h2>
+                    <p class="text-md font-bold text-slate-500 mb-8 leading-relaxed">Silakan unggah maksimal 10 foto lembar jawaban.</p>
                     
                     <div class="grid grid-cols-2 gap-4">
-                        <button onclick="document.getElementById('camFile').click()" class="bg-slate-50 p-8 rounded-[35px] border-2 border-dashed border-slate-200 flex flex-col items-center hover:border-blue-500 transition">
-                            <span class="text-5xl mb-2">📸</span>
+                        <button onclick="document.getElementById('camFile').click()" class="bg-slate-50 p-10 rounded-[35px] border-2 border-dashed border-slate-200 flex flex-col items-center hover:border-blue-500 transition">
+                            <span class="text-6xl mb-2">📸</span>
                             <span class="text-xs font-black uppercase text-slate-600">Kamera</span>
                         </button>
-                        <button onclick="document.getElementById('galFile').click()" class="bg-slate-50 p-8 rounded-[35px] border-2 border-dashed border-slate-200 flex flex-col items-center hover:border-blue-500 transition">
-                            <span class="text-5xl mb-2">🖼️</span>
+                        <button onclick="document.getElementById('galFile').click()" class="bg-slate-50 p-10 rounded-[35px] border-2 border-dashed border-slate-200 flex flex-col items-center hover:border-blue-500 transition">
+                            <span class="text-6xl mb-2">🖼️</span>
                             <span class="text-xs font-black uppercase text-slate-600">Galeri</span>
                         </button>
                     </div>
@@ -88,8 +95,8 @@
                     </div>
                 </div>
 
-                <div class="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
-                    <p class="text-[11px] font-black text-blue-600 uppercase mb-6 text-center italic tracking-widest">KUNCI JAWABAN</p>
+                <div class="bg-white p-10 rounded-[40px] shadow-sm border border-slate-100">
+                    <p class="text-[14px] font-black text-blue-600 uppercase mb-6 text-center italic tracking-widest">KUNCI JAWABAN</p>
                     <div class="mb-8">
                         <p class="text-xs font-black text-slate-400 uppercase mb-4">Pilihan Ganda (1-40)</p>
                         <div id="gridPG" class="grid grid-cols-5 gap-3 max-h-80 overflow-y-auto pr-2 custom-scroll"></div>
@@ -100,57 +107,55 @@
                     </div>
                 </div>
 
-                <button id="btnAI" class="w-full bg-slate-900 text-white font-black py-8 rounded-[45px] text-xl uppercase shadow-2xl hover:bg-blue-700 active:scale-95 transition-all">MULAI KOREKSI AI</button>
+                <button id="btnAI" class="w-full bg-slate-900 text-white font-black py-10 rounded-[45px] text-2xl uppercase shadow-2xl hover:bg-blue-700 active:scale-95 transition-all">MULAI KOREKSI AI</button>
             </div>
 
             <div id="resWrap" class="hidden space-y-8">
                 <div id="scanAwal" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
                 
-                <div class="bg-white p-10 rounded-[50px] border-4 border-blue-100 shadow-2xl">
-                    <p class="text-[10px] font-black text-blue-600 uppercase mb-6 text-center italic tracking-widest">PENGATURAN NILAI AKHIR</p>
+                <div class="bg-white p-12 rounded-[50px] border-4 border-blue-100 shadow-2xl">
+                    <p class="text-[12px] font-black text-blue-600 uppercase mb-6 text-center italic tracking-widest">PENGATURAN NILAI AKHIR</p>
                     <div class="mb-8">
-                        <p class="text-xs font-black text-slate-400 uppercase mb-2 ml-2">Mata Pelajaran</p>
-                        <input type="text" id="mapel" placeholder="Contoh: Matematika" class="w-full p-6 bg-slate-50 rounded-[30px] font-black text-2xl outline-none border-2 border-transparent focus:border-blue-500">
+                        <p class="text-sm font-black text-slate-400 uppercase mb-2 ml-2">Mata Pelajaran</p>
+                        <input type="text" id="mapel" placeholder="Contoh: Matematika" class="w-full p-8 bg-slate-50 rounded-[30px] font-black text-3xl outline-none border-2 border-transparent focus:border-blue-500">
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                         <div>
                             <p class="text-xs font-black text-blue-600 uppercase mb-2 ml-2">Rumus PG (cth: *2.5)</p>
-                            <input type="text" id="r_pg" class="w-full p-6 bg-blue-50 rounded-[30px] font-black outline-none text-2xl" value="*2.5">
+                            <input type="text" id="r_pg" class="w-full p-8 bg-blue-50 rounded-[30px] font-black outline-none text-4xl" value="*2.5">
                         </div>
                         <div>
                             <p class="text-xs font-black text-emerald-600 uppercase mb-2 ml-2">Rumus Essay (cth: *5)</p>
-                            <input type="text" id="r_essay" class="w-full p-6 bg-emerald-50 rounded-[30px] font-black outline-none text-2xl" value="*5">
+                            <input type="text" id="r_essay" class="w-full p-8 bg-emerald-50 rounded-[30px] font-black outline-none text-4xl" value="*5">
                         </div>
                     </div>
-<div class="bg-amber-100 border-l-[12px] border-amber-500 p-8 rounded-[35px] mb-10 shadow-md animate-pulse">
-    <div class="flex items-start gap-6">
-        <span class="text-5xl">💡</span>
-        <div>
-            <p class="text-2xl font-black text-amber-900 uppercase tracking-tighter mb-3">
-                PANDUAN PENTING PENGISIAN RUMUS:
-            </p>
-            <p class="text-xl font-bold text-amber-800 leading-tight">
-                Bapak & Ibu Guru <span class="underline decoration-4">CUKUP MASUKKAN ANGKA</span> pengali atau pembagi saja. 
-                Sistem kami otomatis menghitung dari jumlah jawaban benar siswa.
-            </p>
-            <div class="mt-5 bg-white/60 p-5 rounded-3xl border-2 border-amber-300">
-                <p class="text-lg font-black text-amber-900 italic">
-                    CONTOH: Jika skor per soal PG adalah 2.5, cukup tulis <span class="text-3xl text-blue-700 font-extrabold">*2.5</span>
-                </p>
-            </div>
-        </div>
-    </div>
-</div>
 
-                    <button id="btnHitung" class="w-full bg-blue-600 text-white font-black py-8 rounded-[40px] text-2xl uppercase shadow-xl hover:bg-blue-700 transition">TERBITKAN NILAI</button>
+                    <div class="bg-amber-100 border-l-[15px] border-amber-500 p-10 rounded-[40px] mb-10 shadow-md animate-pulse">
+                        <div class="flex items-start gap-8">
+                            <span class="text-6xl">💡</span>
+                            <div>
+                                <p class="text-3xl font-black text-amber-900 uppercase tracking-tighter mb-4">PANDUAN PENTING:</p>
+                                <p class="text-2xl font-bold text-amber-800 leading-tight">
+                                    Bapak & Ibu Guru <span class="underline decoration-4">CUKUP MASUKKAN ANGKA</span> pengali atau pembagi saja. 
+                                </p>
+                                <div class="mt-6 bg-white/60 p-6 rounded-3xl border-2 border-amber-300 inline-block">
+                                    <p class="text-xl font-black text-amber-900">
+                                        CONTOH: Skor per soal 2.5, tulis <span class="text-4xl text-blue-700 font-extrabold">*2.5</span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button id="btnHitung" class="w-full bg-blue-600 text-white font-black py-10 rounded-[40px] text-3xl uppercase shadow-xl hover:bg-blue-700 transition">TERBITKAN NILAI</button>
                     
-                    <div id="exportMenu" class="hidden grid grid-cols-3 gap-4 mt-8">
-                        <button onclick="exportPDF()" class="bg-red-500 text-white py-6 rounded-3xl font-black uppercase">PDF</button>
-                        <button onclick="exportExcel()" class="bg-emerald-500 text-white py-6 rounded-3xl font-black uppercase">EXCEL</button>
-                        <button onclick="exportWord()" class="bg-blue-500 text-white py-6 rounded-3xl font-black uppercase">WORD</button>
+                    <div id="exportMenu" class="hidden grid grid-cols-3 gap-6 mt-8">
+                        <button onclick="exportPDF()" class="bg-red-500 text-white py-8 rounded-3xl font-black text-xl uppercase">PDF</button>
+                        <button onclick="exportExcel()" class="bg-emerald-500 text-white py-8 rounded-3xl font-black text-xl uppercase">EXCEL</button>
+                        <button onclick="exportWord()" class="bg-blue-500 text-white py-8 rounded-3xl font-black text-xl uppercase">WORD</button>
                     </div>
                 </div>
-                <div id="laporanFinal" class="pb-20 space-y-4"></div>
+                <div id="laporanFinal" class="pb-20 space-y-6"></div>
             </div>
         </div>
     </div>
