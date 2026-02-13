@@ -261,6 +261,11 @@
             formData.append('kunci_pg', JSON.stringify(k_pg));
             formData.append('kunci_essay', JSON.stringify(k_es));
             formData.append('mapel', document.getElementById('mapel').value || "Ujian");
+            
+            // --- BARIS TAMBAHAN DI SINI ---
+            formData.append('r_pg', document.getElementById('r_pg').value || "*2.5");
+            formData.append('r_essay', document.getElementById('r_essay').value || "*5");
+            // ------------------------------
 
             try {
                 const res = await fetch('/ai/proses-koreksi', { method: 'POST', body: formData });
