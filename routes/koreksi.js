@@ -1,7 +1,7 @@
 /**
  * FILE: koreksi.js 
  * MODEL: Gemini 2.5 Flash (RE-FIXED)
- * UPDATE: Sinkronisasi Keterangan Jendela Koreksi Siswa
+ * UPDATE: Sinkronisasi History tanpa mengubah Logika Deteksi & Prompt
  */
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const dotenv = require('dotenv');
@@ -23,12 +23,14 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
         } catch (e) { return 0; }
     };
 
+    // TETAP menggunakan model pilihan Anda
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     for (const [index, file] of files.entries()) {
         try {
             const base64Data = file.buffer.toString("base64");
             
+            // PROMPT TETAP SAMA (TIDAK DIUBAH SESUAI PERMINTAAN)
             const prompt = `TUGAS: Analisis LJK secara presisi.
             
             1.INSTRUKSI DETEKSI PG (SANGAT KETAT):
@@ -79,7 +81,7 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
             let rincian = [];
             let listNoBetul = [];
 
-            // Hitung PG
+            // Hitung PG (Logika Tetap Sama)
             Object.keys(kunciPG).forEach(no => {
                 if (kunciPG[no] && kunciPG[no] !== "") {
                     totalKunci++;
@@ -96,12 +98,13 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
                 }
             });
 
-            // Hitung Essay: Mencari kata "BENAR" dari hasil analisis teks AI
+            // Hitung Essay (Logika Tetap Sama)
             const esMatches = text.match(/BENAR/g);
             esBetul = esMatches ? esMatches.length : 0;
 
-            // TAHAP 4: KIRIM KE FRONTEND (SINKRON DENGAN JENDELA KOREKSI)
+            // OUTPUT RESULTS (Data ini yang akan dibaca server.js untuk history)
             results.push({
+                // Jika AI mendeteksi nama asli, gunakan itu, jika tidak gunakan fallback
                 nama: (aiData.nama_siswa && aiData.nama_siswa !== "NAMA") ? aiData.nama_siswa : `Siswa ${index + 1}`,
                 pg_betul: pgBetul,
                 essay_betul: esBetul, 
