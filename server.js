@@ -259,6 +259,7 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
         return res.json({ success: false, limitReached: true, message: "Token Habis" });
     }
 
+    // PENYESUAIAN PENGAMBILAN KUNCI DAN RUMUS
     let settings = {};
     try { 
         settings = {
@@ -267,8 +268,11 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
         };
     } catch (e) { settings = { kunci_pg: {}, kunci_essay: {} }; }
 
-    // PERBAIKAN DI SINI: Menggunakan req.body.r_pg dan req.body.r_essay sesuai Dashboard
-    const results = await prosesKoreksiLengkap(req.files, settings, req.body.r_pg, req.body.r_essay);
+    // Mengambil rumus dari body request yang dikirim dashboard
+    const rumusPG = req.body.r_pg || "*2.5";
+    const rumusES = req.body.r_essay || "*5";
+
+    const results = await prosesKoreksiLengkap(req.files, settings, rumusPG, rumusES);
 
     // HANYA POTONG KUOTA
     if (results.length > 0) {
