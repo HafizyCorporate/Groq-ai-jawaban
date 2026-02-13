@@ -117,7 +117,7 @@
     </div>
 
     <div id="topupModalOverlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[220] hidden flex items-center justify-center p-6">
-        <div class="bg-white w-full max-w-md rounded-[40px] p-8 shadow-2xl text-center">
+        <div class="bg-white w-full max-md rounded-[40px] p-8 shadow-2xl text-center">
             <h3 class="text-xl font-black uppercase mb-6 italic">ISI TOKEN</h3>
             <div class="space-y-2">
                 <button onclick="bayar(5000)" class="w-full flex justify-between p-4 bg-slate-50 rounded-2xl border font-black"><span>10 TOKEN</span> <span class="text-blue-600">Rp 5rb</span></button>
@@ -227,7 +227,7 @@
         function removeFile(i) { selectedFiles.splice(i, 1); renderDashboardFiles(); }
         function clearFiles() { selectedFiles = []; renderDashboardFiles(); }
 
-        // ALUR KOREKSI JS (FIXED DENGAN PENANGKAPAN DATA koreksi.js)
+        // ALUR KOREKSI JS (SINRON DENGAN koreksi.js ANDA)
         document.getElementById('btnAI').onclick = async () => {
             if(selectedFiles.length === 0) return Swal.fire('Dashboard Kosong', 'Silakan pilih foto dulu.', 'info');
             
@@ -252,35 +252,35 @@
             dbData = [];
 
             try {
-                for (let i = 0; i < selectedFiles.length; i++) {
-                    const formData = new FormData();
-                    formData.append('foto', selectedFiles[i]);
-                    formData.append('kunci_pg', JSON.stringify(kunci_pg));
-                    formData.append('kunci_essay', JSON.stringify(kunci_essay));
-                    // Mengirim rumus agar diproses di koreksi.js
-                    formData.append('rumus_pg', document.getElementById('r_pg').value);
-                    formData.append('rumus_es', document.getElementById('r_essay').value);
+                // Sesuai koreksi.js: prosesKoreksiLengkap menerima array file
+                const formData = new FormData();
+                selectedFiles.forEach(file => formData.append('foto', file));
+                formData.append('kunci_pg', JSON.stringify(kunci_pg));
+                formData.append('kunci_essay', JSON.stringify(kunci_essay));
+                formData.append('rumus_pg', document.getElementById('r_pg').value);
+                formData.append('rumus_es', document.getElementById('r_essay').value);
 
-                    const response = await fetch('/ai/proses-koreksi', { method: 'POST', body: formData });
-                    const resJson = await response.json();
-                    
-                    if(resJson.success) {
-                        // Jika koreksi.js mengirim array di 'data', ambil item pertama
-                        const dataHasil = Array.isArray(resJson.data) ? resJson.data[0] : resJson.data;
-                        dbData.push(dataHasil);
-                    }
+                const response = await fetch('/ai/proses-koreksi', { method: 'POST', body: formData });
+                const resJson = await response.json();
+                
+                if(resJson.success) {
+                    // koreksi.js mengembalikan array 'results' di dalam properti 'data'
+                    dbData = Array.isArray(resJson.data) ? resJson.data : [resJson.data];
+                    tampilkanHasil();
+                    Swal.fire({ icon: 'success', title: 'Berhasil!', text: 'Koreksi selesai.', timer: 2000 });
+                    refreshUserStatus();
+                } else {
+                    throw new Error(resJson.error || "Gagal memproses");
                 }
-                tampilkanHasil();
-                Swal.fire({ icon: 'success', title: 'Berhasil!', text: 'Koreksi selesai.', timer: 2000 });
-                refreshUserStatus();
             } catch (error) {
                 console.error("Error Core:", error);
-                Swal.fire('Gagal', 'Koneksi ke koreksi.js bermasalah.', 'error');
+                Swal.fire('Gagal', 'Koneksi ke sistem bermasalah: ' + error.message, 'error');
             }
         };
 
         function tampilkanHasil() {
             document.getElementById('resWrap').classList.remove('hidden');
+            // Menyesuaikan dengan properti dari koreksi.js: 'nama', 'pg_betul', 'essay_betul'
             document.getElementById('scanAwal').innerHTML = dbData.map(s => `
                 <div class="bg-white p-6 rounded-[30px] border border-slate-200 flex justify-between items-center shadow-sm mb-2">
                     <div>
@@ -288,8 +288,8 @@
                         <p class="font-black uppercase text-slate-800">${s.nama || "Siswa"}</p>
                     </div>
                     <div class="flex gap-2 font-black text-[10px]">
-                        <span class="bg-blue-100 text-blue-600 px-3 py-1 rounded-lg">Betul PG: ${s.pg_betul || 0}</span>
-                        <span class="bg-emerald-100 text-emerald-600 px-3 py-1 rounded-lg">Betul ES: ${s.essay_betul || 0}</span>
+                        <span class="bg-blue-100 text-blue-600 px-3 py-1 rounded-lg">Betul PG: ${s.pg_betul ?? 0}</span>
+                        <span class="bg-emerald-100 text-emerald-600 px-3 py-1 rounded-lg">Betul ES: ${s.essay_betul ?? 0}</span>
                     </div>
                 </div>
             `).join('');
@@ -304,7 +304,8 @@
                 let html = `<p class="text-center font-black text-blue-600 text-[10px] mt-10 mb-4 uppercase italic">Nilai Akhir</p>`;
                 exportData = [];
                 dbData.forEach((s, idx) => {
-                    // Kalkulasi berdasarkan data riil dari koreksi.js
+                    // Kalkulasi berdasarkan data rill dari koreksi.js
+                    // Menggunakan properti pg_betul dan essay_betul
                     let nPG = eval((s.pg_betul || 0) + r_pg.replace(/x/g, '*'));
                     let nES = eval((s.essay_betul || 0) + r_essay.replace(/x/g, '*'));
                     let nFinal = Math.round(nPG + nES);
