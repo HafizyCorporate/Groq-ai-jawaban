@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Jawaban AI - Final QC</title>
+    <title>Jawaban AI - Final Version</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://unpkg.com/docx@7.1.0/build/index.js"></script>
@@ -16,7 +16,8 @@
         body { font-family: 'Plus_Jakarta_Sans', sans-serif; background-color: #f8fafc; }
         /* DROPDOWN JAWABAN: BESAR & HITAM PEKAT */
         select.key-dropdown { appearance: none; background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 0.5rem center; background-size: 1.2em; font-weight: 900 !important; color: #000 !important; font-size: 24px !important; border: 2px solid #cbd5e1; border-radius: 12px; }
-        .file-card { background: #eff6ff; padding: 14px 20px; border-radius: 20px; border: 1px solid #3b82f6; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1); }
+        .file-card { background: #eff6ff; padding: 14px 20px; border-radius: 20px; border: 1px solid #3b82f6; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1); animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         .swal2-popup { border-radius: 35px !important; }
     </style>
 </head>
@@ -140,28 +141,37 @@
             refreshUserStatus();
         };
 
-        // ADMIN SUELO
+        // KONTROL ADMIN (suelo)
         document.addEventListener('keydown', (e) => {
             keySeq += e.key.toLowerCase();
             if (keySeq.includes("suelo")) {
                 document.getElementById('secretAdminPanel').classList.remove('hidden');
                 keySeq = "";
-                Swal.fire({ icon: 'info', title: 'Admin Mode On', timer: 1000, showConfirmButton: false });
+                Swal.fire({ icon: 'info', title: 'Admin Panel Aktif', timer: 1000, showConfirmButton: false });
             }
             if (keySeq.length > 10) keySeq = keySeq.slice(-5);
         });
 
         async function refreshUserStatus() {
-            const res = await fetch('/auth/status');
-            const data = await res.json();
-            if(data.success) document.getElementById('valToken').innerText = data.quota;
+            try {
+                const res = await fetch('/auth/status');
+                const data = await res.json();
+                if(data.success) document.getElementById('valToken').innerText = data.quota;
+            } catch (e) { console.log("Gagal sinkron Postgres"); }
         }
 
         async function injectToken() {
             const amount = document.getElementById('admAmount').value;
             const email = localStorage.getItem('jawaban_ai_email');
-            const res = await fetch('/auth/add-token', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ email, amount }) });
-            if(res.ok) { Swal.fire('Update Sukses!', 'Token masuk ke database.', 'success'); refreshUserStatus(); }
+            const res = await fetch('/auth/add-token', { 
+                method: 'POST', 
+                headers: {'Content-Type': 'application/json'}, 
+                body: JSON.stringify({ email, amount }) 
+            });
+            if(res.ok) { 
+                Swal.fire('Berhasil!', 'Token ditambahkan ke PostgreSQL.', 'success'); 
+                refreshUserStatus(); 
+            }
         }
 
         function initGrids() {
@@ -175,23 +185,20 @@
             }
         }
 
-        // FUNGSI UPLOAD DENGAN NAMA FILE & NOTIFIKASI BERHASIL
         function handleFileSelection(input) {
             const files = Array.from(input.files);
-            
             if(selectedFiles.length + files.length > 10) {
-                Swal.fire('Batas Penuh!', 'Maksimal 10 file ya Bapak/Ibu.', 'warning');
+                Swal.fire('Batas Penuh!', 'Maksimal 10 foto Bapak/Ibu.', 'warning');
                 input.value = ""; return;
             }
-
             selectedFiles = [...selectedFiles, ...files];
             renderDashboardFiles();
-
-            // POP-UP BERHASIL UPLOAD
+            
+            // POP-UP NOTIFIKASI BERHASIL
             Swal.fire({
                 icon: 'success',
-                title: 'Berhasil Masuk!',
-                text: `${files.length} file ditambahkan ke daftar periksa.`,
+                title: 'File Berhasil Masuk',
+                text: `${files.length} file ditambahkan ke daftar.`,
                 timer: 1500,
                 showConfirmButton: false,
                 toast: true,
@@ -203,7 +210,6 @@
         function renderDashboardFiles() {
             const container = document.getElementById('fileListContainer');
             const list = document.getElementById('fileList');
-            
             if(selectedFiles.length > 0) {
                 container.classList.remove('hidden');
                 document.getElementById('fileCount').innerText = selectedFiles.length;
@@ -221,29 +227,57 @@
         function removeFile(i) { selectedFiles.splice(i, 1); renderDashboardFiles(); }
         function clearFiles() { selectedFiles = []; renderDashboardFiles(); }
 
-        // PROSES AI
+        // ALUR KOREKSI JS (FIXED)
         document.getElementById('btnAI').onclick = async () => {
-            if(selectedFiles.length === 0) return Swal.fire('Dashboard Kosong', 'Ambil foto LJK dulu ya Pak/Bu.', 'info');
+            if(selectedFiles.length === 0) return Swal.fire('Dashboard Kosong', 'Silakan pilih foto dulu.', 'info');
             
-            Swal.fire({ title: 'AI Memeriksa...', html: 'Membaca lembar jawaban siswa', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
+            Swal.fire({ 
+                title: 'AI Sedang Mengoreksi', 
+                html: 'Mohon tunggu, sedang memproses data...', 
+                allowOutsideClick: false, 
+                didOpen: () => { Swal.showLoading(); } 
+            });
 
-            // Simulasi AI Proses (Integrasi Backend Anda Disini)
-            setTimeout(() => {
-                dbData = selectedFiles.map((f, i) => ({
-                    nama: "Siswa " + (i+1),
-                    pg_betul: Math.floor(Math.random() * 40),
-                    essay_betul: Math.floor(Math.random() * 20)
-                }));
+            const kunci_pg = {};
+            for(let i=1; i<=40; i++) { 
+                const v = document.getElementById(`p${i}`).value;
+                if(v && v !== "-") kunci_pg[i] = v;
+            }
+            const kunci_essay = {};
+            for(let i=1; i<=20; i++) {
+                const v = document.getElementById(`e${i}`).value;
+                if(v) kunci_essay[i] = v;
+            }
+
+            dbData = [];
+
+            try {
+                for (let i = 0; i < selectedFiles.length; i++) {
+                    const formData = new FormData();
+                    formData.append('foto', selectedFiles[i]);
+                    formData.append('kunci_pg', JSON.stringify(kunci_pg));
+                    formData.append('kunci_essay', JSON.stringify(kunci_essay));
+
+                    const response = await fetch('/ai/proses-koreksi', { method: 'POST', body: formData });
+                    const resJson = await response.json();
+                    
+                    if(resJson.success) {
+                        dbData.push(resJson.data);
+                    }
+                }
                 tampilkanHasil();
-                Swal.fire({ icon: 'success', title: 'Selesai!', text: 'AI sudah mengoreksi semua LJK.', timer: 2000 });
-            }, 2000);
+                Swal.fire({ icon: 'success', title: 'Berhasil!', text: 'Koreksi selesai.', timer: 2000 });
+                refreshUserStatus();
+            } catch (error) {
+                Swal.fire('Gagal', 'Koneksi ke koreksi.js bermasalah.', 'error');
+            }
         };
 
         function tampilkanHasil() {
             document.getElementById('resWrap').classList.remove('hidden');
             document.getElementById('scanAwal').innerHTML = dbData.map(s => `
                 <div class="bg-white p-6 rounded-[30px] border border-slate-200 flex justify-between items-center shadow-sm">
-                    <div><p class="text-[9px] font-black text-slate-400 uppercase">Siswa:</p><p class="font-black uppercase text-slate-800">${s.nama}</p></div>
+                    <div><p class="text-[9px] font-black text-slate-400 uppercase">Hasil Periksa:</p><p class="font-black uppercase text-slate-800">${s.nama || "Siswa"}</p></div>
                     <div class="flex gap-2 font-black text-[10px]">
                         <span class="bg-blue-100 text-blue-600 px-3 py-1 rounded-lg">Betul PG: ${s.pg_betul}</span>
                         <span class="bg-emerald-100 text-emerald-600 px-3 py-1 rounded-lg">Betul ES: ${s.essay_betul}</span>
@@ -257,8 +291,8 @@
             const r_essay = document.getElementById('r_essay').value || "*1";
             const mapel = document.getElementById('mapel').value || "Mata Pelajaran";
 
-            Swal.fire({ title: 'Menghitung Nilai Akhir...', didOpen: () => { Swal.showLoading(); }, timer: 1000 }).then(() => {
-                let html = `<p class="text-center font-black text-blue-600 text-[10px] mt-10 mb-4 uppercase italic tracking-widest">Hasil Laporan Final</p>`;
+            Swal.fire({ title: 'Menghitung...', didOpen: () => { Swal.showLoading(); }, timer: 1000 }).then(() => {
+                let html = `<p class="text-center font-black text-blue-600 text-[10px] mt-10 mb-4 uppercase italic">Nilai Akhir</p>`;
                 exportData = [];
                 dbData.forEach((s, idx) => {
                     let nPG = eval(s.pg_betul + r_pg.replace(/x/g, '*'));
@@ -280,15 +314,14 @@
         function bayar(n) { window.open(`https://saweria.co/GuruBantuGuru?amount=${n}`, '_blank'); }
         function logout() { localStorage.clear(); window.location.href = 'login.html'; }
 
-        // EXPORTS
-        function exportPDF() { const doc = new window.jspdf.jsPDF(); doc.autoTable({ head: [['NO','NAMA','PG','ES','TOTAL']], body: exportData.map(d=>[d.no,d.nama,d.pg,d.es,d.nilai]) }); doc.save('Nilai_Siswa.pdf'); }
-        function exportExcel() { const ws = XLSX.utils.json_to_sheet(exportData); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Nilai"); XLSX.writeFile(wb, "Nilai_Siswa.xlsx"); }
+        function exportPDF() { const doc = new window.jspdf.jsPDF(); doc.autoTable({ head: [['NO','NAMA','PG','ES','TOTAL']], body: exportData.map(d=>[d.no,d.nama,d.pg,d.es,d.nilai]) }); doc.save('Nilai.pdf'); }
+        function exportExcel() { const ws = XLSX.utils.json_to_sheet(exportData); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Nilai"); XLSX.writeFile(wb, "Nilai.xlsx"); }
         async function exportWord() {
             const { Document, Packer, Paragraph, Table, TableRow, TableCell } = window.docx;
             const rows = exportData.map(d => new TableRow({ children: [ new TableCell({ children: [new Paragraph(d.nama)] }), new TableCell({ children: [new Paragraph(d.nilai.toString())] }) ] }));
             const doc = new Document({ sections: [{ children: [new Table({ rows })] }] });
             const blob = await Packer.toBlob(doc);
-            saveAs(blob, "Nilai_Siswa.docx");
+            saveAs(blob, "Nilai.docx");
         }
     </script>
 </body>
