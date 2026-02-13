@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Jawaban AI - Desktop & Mobile Edition</title>
+    <title>Jawaban AI - Professional Teacher Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://unpkg.com/docx@7.1.0/build/index.js"></script>
@@ -14,39 +14,19 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus_Jakarta_Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Plus_Jakarta_Sans', sans-serif; background-color: #f1f5f9; }
-        
-        /* Dropdown Super Bold Hitam */
         select.key-dropdown { 
-            appearance: none; 
-            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e"); 
-            background-repeat: no-repeat; 
-            background-position: right 0.5rem center; 
-            background-size: 1.2em; 
-            font-weight: 900 !important; 
-            color: #000 !important; 
-            font-size: 24px !important; 
-            border: 3px solid #000; 
-            border-radius: 12px; 
-            background-color: white;
+            appearance: none; background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e"); 
+            background-repeat: no-repeat; background-position: right 0.5rem center; background-size: 1.2em; 
+            font-weight: 900 !important; color: #000 !important; font-size: 24px !important; 
+            border: 3px solid #000; border-radius: 12px; background-color: white;
         }
-
         .custom-scroll::-webkit-scrollbar { width: 6px; }
         .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-
-        .result-card { 
-            background: white; 
-            border-radius: 40px; 
-            padding: 35px; 
-            border: 2px solid #e2e8f0; 
-            box-shadow: 0 10px 20px rgba(0,0,0,0.05); 
-        }
-
-        /* Desktop vs Mobile Layout */
+        .result-card { background: white; border-radius: 40px; padding: 35px; border: 2px solid #e2e8f0; box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
         @media (min-width: 1024px) {
             .desktop-layout { display: grid; grid-template-columns: 480px 1fr; gap: 40px; align-items: start; max-width: 1400px; margin: 0 auto; }
             .sticky-panel { position: sticky; top: 20px; max-height: 95vh; overflow-y: auto; padding-right: 15px; }
         }
-        @media (max-width: 1023px) { .desktop-layout { display: flex; flex-direction: column; } }
     </style>
 </head>
 <body class="p-4 md:p-10">
@@ -60,13 +40,15 @@
     </div>
 
     <div class="max-w-7xl mx-auto">
-        <div class="flex justify-between items-center mb-8 px-2">
-            <h1 class="text-3xl font-extrabold italic uppercase tracking-tighter">JAWABAN <span class="text-blue-600">AI</span></h1>
-            <button onclick="logout()" class="text-red-500 text-xs font-black uppercase underline">Keluar Sistem</button>
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 px-2 gap-4">
+            <div class="flex items-center gap-4">
+                <h1 class="text-3xl font-extrabold italic uppercase tracking-tighter">JAWABAN <span class="text-blue-600">AI</span></h1>
+                <button onclick="openHistoryModal()" class="bg-blue-600 text-white px-5 py-2 rounded-full text-[10px] font-black uppercase hover:bg-blue-700 transition shadow-lg shadow-blue-200">📂 Riwayat Koreksi</button>
+            </div>
+            <button onclick="logout()" class="text-red-500 text-[10px] font-black uppercase underline">Keluar Sistem</button>
         </div>
 
         <div class="desktop-layout">
-            
             <div class="sticky-panel space-y-6">
                 
                 <div id="adminPanel" class="hidden p-6 bg-slate-900 rounded-[35px] border-4 border-orange-500 shadow-2xl text-white">
@@ -88,11 +70,11 @@
                     <p class="text-sm font-bold text-slate-500 mb-8 leading-relaxed">Silakan unggah maksimal 10 foto lembar jawaban. Jika tanpa nama, AI akan menamai otomatis.</p>
                     
                     <div class="grid grid-cols-2 gap-4">
-                        <button onclick="document.getElementById('camFile').click()" class="bg-slate-50 p-8 rounded-[35px] border-2 border-dashed border-slate-200 flex flex-col items-center hover:border-blue-500">
+                        <button onclick="document.getElementById('camFile').click()" class="bg-slate-50 p-8 rounded-[35px] border-2 border-dashed border-slate-200 flex flex-col items-center hover:border-blue-500 transition">
                             <span class="text-5xl mb-2">📸</span>
                             <span class="text-xs font-black uppercase text-slate-600">Kamera</span>
                         </button>
-                        <button onclick="document.getElementById('galFile').click()" class="bg-slate-50 p-8 rounded-[35px] border-2 border-dashed border-slate-200 flex flex-col items-center hover:border-blue-500">
+                        <button onclick="document.getElementById('galFile').click()" class="bg-slate-50 p-8 rounded-[35px] border-2 border-dashed border-slate-200 flex flex-col items-center hover:border-blue-500 transition">
                             <span class="text-5xl mb-2">🖼️</span>
                             <span class="text-xs font-black uppercase text-slate-600">Galeri</span>
                         </button>
@@ -103,21 +85,6 @@
                     <div id="fileListContainer" class="mt-6 hidden">
                         <p class="text-[10px] font-black text-blue-600 uppercase mb-3">File di Dashboard (<span id="fileCount">0</span>/10)</p>
                         <div id="fileList" class="space-y-2 max-h-48 overflow-y-auto custom-scroll pr-2"></div>
-                    </div>
-                </div>
-
-                <div class="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100 overflow-hidden">
-                    <div class="flex justify-between items-center mb-6">
-                        <p class="text-[11px] font-black text-blue-600 uppercase italic tracking-widest">RIWAYAT TERAKHIR</p>
-                        <button onclick="loadHistory()" class="text-slate-400 hover:text-blue-600">🔄</button>
-                    </div>
-                    <div class="space-y-3 max-h-60 overflow-y-auto custom-scroll pr-2" id="historyList">
-                        <p class="text-[10px] text-center font-bold text-slate-400 py-4">Belum ada riwayat...</p>
-                    </div>
-                    <div id="historyExportBtns" class="hidden grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-slate-100">
-                        <button onclick="exportHistoryExcel()" class="bg-emerald-100 text-emerald-700 text-[10px] font-black py-2 rounded-xl hover:bg-emerald-200">EXCEL</button>
-                        <button onclick="exportHistoryPDF()" class="bg-red-100 text-red-700 text-[10px] font-black py-2 rounded-xl hover:bg-red-200">PDF</button>
-                        <button onclick="exportHistoryWord()" class="bg-blue-100 text-blue-700 text-[10px] font-black py-2 rounded-xl hover:bg-blue-200">WORD</button>
                     </div>
                 </div>
 
@@ -133,7 +100,6 @@
                     </div>
                 </div>
 
-                <button onclick="loadHistory()" class="w-full bg-blue-50 text-blue-600 font-black py-4 rounded-[30px] text-sm uppercase shadow-sm border-2 border-blue-100 hover:bg-blue-100 transition mb-2">🔄 Segarkan Riwayat</button>
                 <button id="btnAI" class="w-full bg-slate-900 text-white font-black py-8 rounded-[45px] text-xl uppercase shadow-2xl hover:bg-blue-700 active:scale-95 transition-all">MULAI KOREKSI AI</button>
             </div>
 
@@ -146,7 +112,7 @@
                         <p class="text-xs font-black text-slate-400 uppercase mb-2 ml-2">Mata Pelajaran</p>
                         <input type="text" id="mapel" placeholder="Contoh: Matematika" class="w-full p-6 bg-slate-50 rounded-[30px] font-black text-2xl outline-none border-2 border-transparent focus:border-blue-500">
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
                         <div>
                             <p class="text-xs font-black text-blue-600 uppercase mb-2 ml-2">Rumus PG (cth: *2.5)</p>
                             <input type="text" id="r_pg" class="w-full p-6 bg-blue-50 rounded-[30px] font-black outline-none text-2xl" value="*2.5">
@@ -156,6 +122,15 @@
                             <input type="text" id="r_essay" class="w-full p-6 bg-emerald-50 rounded-[30px] font-black outline-none text-2xl" value="*5">
                         </div>
                     </div>
+
+                    <div class="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-2xl mb-8">
+                        <p class="text-[11px] font-bold text-amber-800 leading-relaxed">
+                            💡 <strong>INFO PENTING:</strong> Bapak & Ibu Guru cukup memasukkan angka pengali/pembagi saja. 
+                            Sistem otomatis mengambil jumlah jawaban siswa yang benar. 
+                            <br><em>Contoh: Andi betul 5 PG, maka cukup tulis <strong>*2.5</strong> untuk hasil 12.5</em>
+                        </p>
+                    </div>
+
                     <button id="btnHitung" class="w-full bg-blue-600 text-white font-black py-8 rounded-[40px] text-2xl uppercase shadow-xl hover:bg-blue-700 transition">TERBITKAN NILAI</button>
                     
                     <div id="exportMenu" class="hidden grid grid-cols-3 gap-4 mt-8">
@@ -175,7 +150,7 @@
         let exportData = [];
         let rawHistoryData = []; 
 
-        window.onload = function() { initGrids(); refreshUserStatus(); loadHistory(); };
+        window.onload = function() { initGrids(); refreshUserStatus(); };
 
         async function refreshUserStatus() {
             try {
@@ -184,215 +159,99 @@
                 if(data.success) {
                     document.getElementById('valToken').innerText = data.is_premium ? '∞' : data.token;
                     localStorage.setItem('jawaban_ai_email', data.email);
-                    
-                    const adminEmails = ['admin@jawabanai.com', 'Versacy'];
-                    if(adminEmails.includes(data.email)) {
+                    if(['admin@jawabanai.com', 'Versacy'].includes(data.email)) {
                         document.getElementById('adminPanel').classList.remove('hidden');
                     }
                 }
-            } catch (e) { console.log("Postgres Offline"); }
+            } catch (e) { console.log("Offline mode/Auth error"); }
         }
 
-        async function loadHistory() {
+        async function openHistoryModal() {
+            Swal.fire({
+                title: '📂 RIWAYAT KOREKSI',
+                html: `<div class="text-left"><div id="hContent" class="max-h-[60vh] overflow-y-auto custom-scroll pr-2">Memuat...</div>
+                       <div id="hBtns" class="hidden grid grid-cols-3 gap-2 mt-6 pt-4 border-t border-slate-100">
+                       <button onclick="exportHistoryExcel()" class="bg-emerald-100 text-emerald-700 text-[10px] font-black py-3 rounded-xl uppercase">Excel</button>
+                       <button onclick="exportHistoryPDF()" class="bg-red-100 text-red-700 text-[10px] font-black py-3 rounded-xl uppercase">PDF</button>
+                       <button onclick="exportHistoryWord()" class="bg-blue-100 text-blue-700 text-[10px] font-black py-3 rounded-xl uppercase">Word</button></div></div>`,
+                width: '600px', showConfirmButton: false, showCloseButton: true, didOpen: loadHistoryData
+            });
+        }
+
+        async function loadHistoryData() {
             try {
                 const res = await fetch('/ai/history');
                 const json = await res.json();
-                const container = document.getElementById('historyList');
+                const container = document.getElementById('hContent');
                 if(json.success && json.history.length > 0) {
                     rawHistoryData = json.history;
-                    document.getElementById('historyExportBtns').classList.remove('hidden');
-                    
-                    // Grouping berdasarkan Mapel
+                    document.getElementById('hBtns').classList.remove('hidden');
                     const grouped = json.history.reduce((acc, item) => {
                         const m = item.mapel || "Lainnya";
                         if (!acc[m]) acc[m] = [];
                         acc[m].push(item);
                         return acc;
                     }, {});
-
-                    let htmlOutput = "";
+                    let html = "";
                     for (const mapel in grouped) {
-                        htmlOutput += `
-                            <div class="mt-4 mb-2 flex justify-between items-center border-b border-slate-100 pb-1">
-                                <span class="text-[10px] font-black text-blue-600 uppercase tracking-widest">📂 ${mapel}</span>
-                                <button onclick="deleteHistoryByMapel('${mapel}')" class="text-[8px] text-red-400 font-bold hover:underline uppercase">Hapus</button>
-                            </div>
-                        `;
-
+                        html += `<div class="mt-6 mb-2 flex justify-between border-b-2 pb-2"><span class="text-xs font-black text-blue-600 uppercase">📂 ${mapel}</span></div>`;
                         grouped[mapel].forEach(h => {
-                            const tgl = new Date(h.waktu).toLocaleDateString('id-ID', { day:'2-digit', month:'short' });
-                            htmlOutput += `
-                                <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100 mb-2 flex justify-between items-center transition hover:bg-white">
-                                    <div class="overflow-hidden">
-                                        <p class="text-[10px] font-black text-slate-800 uppercase truncate">${h.nama_siswa}</p>
-                                        <p class="text-[8px] font-bold text-slate-400">${tgl}</p>
-                                    </div>
-                                    <div class="bg-blue-600 px-2 py-1 rounded-lg">
-                                        <span class="text-[10px] font-black text-white">${h.nilai_akhir || 0}</span>
-                                    </div>
-                                </div>
-                            `;
+                            html += `<div class="bg-slate-50 p-4 rounded-2xl mb-2 flex justify-between items-center">
+                                    <div class="truncate mr-2"><p class="text-xs font-black text-slate-800 uppercase">${h.nama_siswa}</p></div>
+                                    <div class="bg-blue-600 px-3 py-1 rounded-lg text-white font-black text-xs">${h.nilai_akhir || 0}</div>
+                                    </div>`;
                         });
                     }
-                    
-                    htmlOutput += `
-                        <button onclick="deleteAllHistory()" class="w-full mt-4 py-2 text-[9px] font-black text-slate-400 uppercase border-2 border-dashed border-slate-100 rounded-xl hover:text-red-500 transition">
-                            🗑️ Bersihkan Semua
-                        </button>
-                    `;
-                    container.innerHTML = htmlOutput;
-                } else {
-                    container.innerHTML = `<p class="text-[10px] text-center font-bold text-slate-400 py-4">Belum ada riwayat...</p>`;
-                    document.getElementById('historyExportBtns').classList.add('hidden');
-                }
-            } catch (e) { console.log("Gagal muat riwayat"); }
-        }
-
-        async function deleteHistoryByMapel(mapel) {
-            const confirm = await Swal.fire({ title: 'Hapus Mapel?', text: `Hapus semua data riwayat ${mapel}?`, icon: 'warning', showCancelButton: true });
-            if (confirm.isConfirmed) {
-                await fetch(`/ai/delete-history?mapel=${encodeURIComponent(mapel)}`, { method: 'DELETE' });
-                loadHistory();
-            }
-        }
-
-        async function deleteAllHistory() {
-            const confirm = await Swal.fire({ title: 'Kosongkan?', text: 'Semua riwayat akan dihapus permanen!', icon: 'error', showCancelButton: true });
-            if (confirm.isConfirmed) {
-                await fetch('/ai/delete-all-history', { method: 'DELETE' });
-                loadHistory();
-            }
-        }
-
-        function exportHistoryExcel() {
-            if(rawHistoryData.length === 0) return;
-            const ws = XLSX.utils.json_to_sheet(rawHistoryData);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Riwayat");
-            XLSX.writeFile(wb, "Riwayat_Koreksi.xlsx");
-        }
-
-        function exportHistoryPDF() {
-            if(rawHistoryData.length === 0) return;
-            const doc = new window.jspdf.jsPDF();
-            doc.setFontSize(16); doc.text("RIWAYAT KOREKSI JAWABAN AI", 14, 15);
-            doc.autoTable({
-                startY: 20,
-                head: [['NAMA SISWA', 'MATA PELAJARAN', 'NILAI', 'WAKTU']],
-                body: rawHistoryData.map(h => [h.nama_siswa, h.mapel, h.nilai_akhir, new Date(h.waktu).toLocaleString()])
-            });
-            doc.save("Riwayat_Koreksi.pdf");
-        }
-
-        async function exportHistoryWord() {
-            if(rawHistoryData.length === 0) return;
-            const { Document, Packer, Paragraph, Table, TableRow, TableCell, TextRun } = window.docx;
-            const rows = [new TableRow({ children: [
-                new TableCell({ children: [new Paragraph("NAMA SISWA")] }),
-                new TableCell({ children: [new Paragraph("MAPEL")] }),
-                new TableCell({ children: [new Paragraph("NILAI")] }),
-                new TableCell({ children: [new Paragraph("WAKTU")] })
-            ]})];
-            rawHistoryData.forEach(h => rows.push(new TableRow({ children: [
-                new TableCell({ children: [new Paragraph(h.nama_siswa)] }),
-                new TableCell({ children: [new Paragraph(h.mapel)] }),
-                new TableCell({ children: [new Paragraph(h.nilai_akhir?.toString() || "0")] }),
-                new TableCell({ children: [new Paragraph(new Date(h.waktu).toLocaleString())] })
-            ]})));
-            const doc = new Document({ sections: [{ children: [
-                new Paragraph({ children: [new TextRun({ text: "LAPORAN RIWAYAT KOREKSI", bold: true, size: 24 })] }),
-                new Table({ rows })
-            ]}]});
-            const blob = await Packer.toBlob(doc);
-            saveAs(blob, "Riwayat_Koreksi.docx");
-        }
-
-        async function injectToken() {
-            const target = document.getElementById('admTargetEmail').value;
-            const amount = document.getElementById('admAmount').value;
-            if(!target || !amount) return Swal.fire('Error', 'Lengkapi email & jumlah!', 'error');
-            
-            const res = await fetch('/admin/add-token', {
-                method: 'POST', 
-                headers: {'Content-Type': 'application/json'}, 
-                body: JSON.stringify({ adminEmail: 'Versacy', targetEmail: target, amount: amount }) 
-            });
-            if(res.ok) { 
-                Swal.fire('Berhasil!', `Token terkirim ke ${target}`, 'success');
-                refreshUserStatus(); 
-            }
+                    container.innerHTML = html;
+                } else { container.innerHTML = "<p class='text-center py-10 font-bold text-slate-400'>Belum ada data.</p>"; }
+            } catch (e) { container.innerHTML = "Gagal mengambil data."; }
         }
 
         function openSaweria() {
-            const userEmail = localStorage.getItem('jawaban_ai_email');
+            const email = localStorage.getItem('jawaban_ai_email');
             Swal.fire({
                 title: 'Isi Token Otomatis',
-                html: `
-                    <div class="text-left mb-4">
-                        <label class="text-[10px] font-black text-slate-400 uppercase italic">Email Akun Anda:</label>
-                        <input id="swEmail" type="email" value="${userEmail}" class="w-full p-3 mt-1 bg-slate-100 rounded-xl font-bold border-2 border-blue-500" readonly>
-                        <p class="text-[10px] text-red-500 mt-2 font-bold italic">*PENTING: Masukkan email di atas pada kolom "PESAN" atau "EMAIL" di halaman Saweria agar token masuk otomatis!</p>
-                    </div>
-                    <div class="flex flex-col gap-2">
-                        <button onclick="window.open('https://saweria.co/GuruBantuGuru', '_blank')" class="bg-slate-800 text-white p-4 rounded-2xl font-black uppercase text-left flex justify-between items-center transition hover:bg-blue-600">
-                            <span>📦 Paket Hemat (10 Token)</span><span class="bg-blue-500 px-3 py-1 rounded-lg text-xs font-black">Rp 5rb</span>
-                        </button>
-                        <button onclick="window.open('https://saweria.co/GuruBantuGuru', '_blank')" class="bg-slate-800 text-white p-4 rounded-2xl font-black uppercase text-left flex justify-between items-center transition hover:bg-blue-600">
-                            <span>🚀 Paket Kilat (22 Token)</span><span class="bg-blue-500 px-3 py-1 rounded-lg text-xs font-black">Rp 10rb</span>
-                        </button>
-                        <button onclick="window.open('https://saweria.co/GuruBantuGuru', '_blank')" class="bg-slate-800 text-white p-4 rounded-2xl font-black uppercase text-left flex justify-between items-center transition hover:bg-blue-600">
-                            <span>🔥 Paket Super (50 Token)</span><span class="bg-blue-500 px-3 py-1 rounded-lg text-xs font-black">Rp 20rb</span>
-                        </button>
-                        <button onclick="window.open('https://saweria.co/GuruBantuGuru', '_blank')" class="bg-slate-800 text-white p-4 rounded-2xl font-black uppercase text-left flex justify-between items-center transition hover:bg-blue-600">
-                            <span>🎓 Paket Guru (125 Token)</span><span class="bg-blue-500 px-3 py-1 rounded-lg text-xs font-black">Rp 50rb</span>
-                        </button>
-                        <button onclick="window.open('https://saweria.co/GuruBantuGuru', '_blank')" class="bg-slate-800 text-white p-4 rounded-2xl font-black uppercase text-left flex justify-between items-center transition hover:bg-blue-600">
-                            <span>👑 Paket Sultan (300 Token)</span><span class="bg-blue-500 px-3 py-1 rounded-lg text-xs font-black">Rp 100rb</span>
-                        </button>
-                    </div>
-                `,
-                showConfirmButton: false, 
-                showCloseButton: true
+                html: `<div class="text-left mb-4"><label class="text-[10px] font-black uppercase">Email Anda:</label>
+                       <input id="swEmail" value="${email}" class="w-full p-3 mt-1 bg-slate-100 rounded-xl font-bold border-2 border-blue-500" readonly></div>
+                       <div class="flex flex-col gap-2">
+                       <button onclick="window.open('https://saweria.co/GuruBantuGuru')" class="bg-slate-800 text-white p-4 rounded-2xl font-black flex justify-between"><span>📦 10 Token</span><span>Rp 5rb</span></button>
+                       <button onclick="window.open('https://saweria.co/GuruBantuGuru')" class="bg-slate-800 text-white p-4 rounded-2xl font-black flex justify-between"><span>🚀 22 Token</span><span>Rp 10rb</span></button>
+                       <button onclick="window.open('https://saweria.co/GuruBantuGuru')" class="bg-slate-800 text-white p-4 rounded-2xl font-black flex justify-between"><span>💎 60 Token</span><span>Rp 25rb</span></button>
+                       <button onclick="window.open('https://saweria.co/GuruBantuGuru')" class="bg-slate-800 text-white p-4 rounded-2xl font-black flex justify-between"><span>🎓 125 Token</span><span>Rp 50rb</span></button>
+                       <button onclick="window.open('https://saweria.co/GuruBantuGuru')" class="bg-slate-800 text-white p-4 rounded-2xl font-black flex justify-between"><span>👑 260 Token</span><span>Rp 100rb</span></button></div>`,
+                showConfirmButton: false, showCloseButton: true
             });
         }
 
         function initGrids() {
             const pg = document.getElementById('gridPG');
-            pg.innerHTML = '';
-            for(let i=1; i<=40; i++) {
-                pg.innerHTML += `<div class="flex flex-col text-center"><span class="text-[10px] font-black text-slate-400 mb-1">${i}</span><select id="p${i}" class="key-dropdown p-2 text-center"><option value="">-</option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option></select></div>`;
-            }
+            for(let i=1; i<=40; i++) pg.innerHTML += `<div class="flex flex-col text-center"><span class="text-[10px] font-black text-slate-400">${i}</span><select id="p${i}" class="key-dropdown p-2 text-center"><option value="">-</option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option></select></div>`;
             const es = document.getElementById('gridES');
-            es.innerHTML = '';
-            for(let i=1; i<=20; i++) {
-                es.innerHTML += `<div class="flex items-center gap-3"><span class="text-xs font-black w-6">${i}</span><input id="e${i}" placeholder="Kata Kunci No ${i}" class="flex-1 p-4 bg-slate-50 rounded-2xl font-bold border-2 border-transparent focus:border-emerald-300 outline-none"></div>`;
-            }
+            for(let i=1; i<=20; i++) es.innerHTML += `<div class="flex items-center gap-3"><span class="text-xs font-black w-6">${i}</span><input id="e${i}" placeholder="Kata Kunci No ${i}" class="flex-1 p-4 bg-slate-50 rounded-2xl font-bold border-2 border-transparent focus:border-emerald-300 outline-none"></div>`;
         }
 
         function handleFileSelection(input) {
             const files = Array.from(input.files);
-            if(selectedFiles.length + files.length > 10) return Swal.fire('Limit!', 'Maksimal 10 file saja.', 'warning');
+            if(selectedFiles.length + files.length > 10) return Swal.fire('Limit!', 'Maksimal 10 file.', 'warning');
             selectedFiles = [...selectedFiles, ...files];
             renderFileList();
-            input.value = "";
-            Swal.fire({ title: 'Berhasil!', text: `${files.length} file ditambahkan ke antrean.`, icon: 'success', toast: true, position: 'top-end', showConfirmButton: false, timer: 3000 });
+            Swal.fire({ title: 'Berhasil!', text: `${files.length} file diupload.`, icon: 'success', toast: true, position: 'top-end', showConfirmButton: false, timer: 3000 });
         }
 
         function renderFileList() {
             const container = document.getElementById('fileListContainer');
-            const list = document.getElementById('fileList');
             if(selectedFiles.length > 0) {
                 container.classList.remove('hidden');
                 document.getElementById('fileCount').innerText = selectedFiles.length;
-                list.innerHTML = selectedFiles.map((f, i) => `<div class="bg-blue-50 p-4 rounded-2xl flex justify-between items-center font-black text-xs text-blue-800 uppercase italic"><span>📄 ${f.name}</span><button onclick="removeFile(${i})" class="text-red-500">HAPUS</button></div>`).join('');
-            } else { container.classList.add('hidden'); }
+                document.getElementById('fileList').innerHTML = selectedFiles.map((f, i) => `<div class="bg-blue-50 p-4 rounded-2xl flex justify-between items-center font-black text-xs text-blue-800"><span>📄 ${f.name}</span><button onclick="removeFile(${i})" class="text-red-500">HAPUS</button></div>`).join('');
+            } else container.classList.add('hidden');
         }
 
         function removeFile(i) { selectedFiles.splice(i, 1); renderFileList(); }
 
         document.getElementById('btnAI').onclick = async () => {
-            if(selectedFiles.length === 0) return Swal.fire('Info', 'Unggah lembar jawaban dulu.', 'info');
-            Swal.fire({ title: 'AI Sedang Mengoreksi...', text: 'Memindai lembar jawaban Anda...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            if(selectedFiles.length === 0) return Swal.fire('Info', 'Pilih file dulu.', 'info');
+            Swal.fire({ title: 'AI Memproses...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
             const formData = new FormData();
             selectedFiles.forEach(f => formData.append('foto', f));
@@ -401,8 +260,6 @@
             
             formData.append('kunci_pg', JSON.stringify(k_pg));
             formData.append('kunci_essay', JSON.stringify(k_es));
-            formData.append('rumus_pg', document.getElementById('r_pg').value);
-            formData.append('rumus_es', document.getElementById('r_essay').value);
             formData.append('mapel', document.getElementById('mapel').value || "Ujian");
 
             try {
@@ -412,9 +269,8 @@
                     dbData = json.data;
                     renderHasilKoreksi();
                     if(json.current_token) document.getElementById('valToken').innerText = json.current_token;
-                    loadHistory();
-                    Swal.fire('Selesai!', 'AI telah menyelesaikan koreksi.', 'success');
-                }
+                    Swal.fire('Selesai!', 'Cek hasil di sebelah kanan.', 'success');
+                } else Swal.fire('Gagal', json.message, 'error');
             } catch (e) { Swal.fire('Error', 'Gagal menyambung ke koreksi.js', 'error'); }
         };
 
@@ -422,79 +278,106 @@
             document.getElementById('resWrap').classList.remove('hidden');
             document.getElementById('scanAwal').innerHTML = dbData.map(s => `
                 <div class="result-card">
-                    <p class="text-[10px] font-black text-slate-400 uppercase italic mb-1">Nama Siswa:</p>
-                    <h2 class="text-4xl font-black text-slate-800 uppercase mb-8">${s.nama || 'Siswa Tanpa Nama'}</h2>
-                    <div class="grid grid-cols-2 gap-4 mb-8">
-                        <div class="bg-blue-600 text-white p-6 rounded-[35px] text-center shadow-lg">
-                            <p class="text-[10px] font-bold uppercase opacity-80 mb-1">PG Betul</p><p class="text-5xl font-black">${s.pg_betul}</p>
-                        </div>
-                        <div class="bg-emerald-600 text-white p-6 rounded-[35px] text-center shadow-lg">
-                            <p class="text-[10px] font-bold uppercase opacity-80 mb-1">Essay Betul</p><p class="text-5xl font-black">${s.essay_betul}</p>
-                        </div>
-                    </div>
-                    <div class="bg-slate-50 p-8 rounded-[40px] border border-slate-200">
-                        <p class="text-xs font-black text-slate-500 uppercase mb-6 italic underline text-center">Rincian Koreksi</p>
-                        <div class="grid grid-cols-1 gap-2 max-h-72 overflow-y-auto pr-4 custom-scroll">
-                            ${s.log_detail ? s.log_detail.map(l => `<div class="text-lg font-black border-b border-slate-200 pb-2">${l}</div>`).join('') : ''}
-                        </div>
+                    <p class="text-[10px] font-black text-slate-400 italic">Nama Siswa:</p>
+                    <h2 class="text-3xl font-black text-slate-800 uppercase mb-6">${s.nama || 'Siswa Tanpa Nama'}</h2>
+                    <div class="grid grid-cols-2 gap-4 mb-6">
+                        <div class="bg-blue-600 text-white p-4 rounded-3xl text-center"><p class="text-[10px] opacity-80">PG</p><p class="text-3xl font-black">${s.pg_betul}</p></div>
+                        <div class="bg-emerald-600 text-white p-4 rounded-3xl text-center"><p class="text-[10px] opacity-80">Essay</p><p class="text-3xl font-black">${s.essay_betul}</p></div>
                     </div>
                 </div>
             `).join('');
         }
 
         document.getElementById('btnHitung').onclick = async () => {
-            const mapel = document.getElementById('mapel').value || "Mata Pelajaran";
-            const r_pg = document.getElementById('r_pg').value;
-            const r_es = document.getElementById('r_essay').value;
-            let html = `<p class="text-center font-black text-blue-600 text-sm mb-6 uppercase italic tracking-[0.3em]">LAPORAN AKHIR: ${mapel}</p>`;
-            exportData = [];
-            
-            dbData.forEach((s, i) => {
-                let nPG = eval(s.pg_betul + r_pg.replace(/x/g, '*'));
-                let nES = eval(s.essay_betul + r_es.replace(/x/g, '*'));
-                let nFinal = Math.round(nPG + nES);
-                exportData.push({no: i+1, nama: s.nama, mapel: mapel, pg: s.pg_betul, es: s.essay_betul, total: nFinal});
-                html += `
-                <div class="bg-white p-10 rounded-[45px] shadow-2xl border-l-[20px] border-blue-600 mb-6 flex justify-between items-center transition hover:scale-[1.02]">
-                    <div><p class="text-[10px] font-black text-slate-400 uppercase mb-1">${mapel}</p><h3 class="text-3xl font-black text-slate-800 uppercase">${s.nama}</h3></div>
-                    <div class="text-8xl font-black text-slate-900">${nFinal}</div>
-                </div>`;
-            });
-            document.getElementById('laporanFinal').innerHTML = html;
-            document.getElementById('exportMenu').classList.remove('hidden');
+            const mapel = document.getElementById('mapel').value || "Mapel";
+            let r_pg = document.getElementById('r_pg').value.replace(/x/g, '*');
+            let r_es = document.getElementById('r_essay').value.replace(/x/g, '*');
+            if (!['*','/','+','-'].includes(r_pg.trim().charAt(0))) r_pg = '*' + r_pg;
+            if (!['*','/','+','-'].includes(r_es.trim().charAt(0))) r_es = '*' + r_es;
 
-            if (exportData.length > 0) {
-                const payload = exportData.map(d => ({
-                    nama_siswa: d.nama,
-                    mapel: d.mapel,
-                    nilai_akhir: d.total
-                }));
-                try {
-                    await fetch('/ai/save-history', {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({ data: payload })
-                    });
-                    loadHistory(); 
-                } catch (e) { console.log("Gagal simpan riwayat"); }
-            }
+            let html = `<p class="text-center font-black text-blue-600 text-sm mb-4 uppercase">LAPORAN AKHIR: ${mapel}</p>`;
+            exportData = [];
+            try {
+                dbData.forEach((s, i) => {
+                    let nFinal = Math.round(eval(`${s.pg_betul}${r_pg}`) + eval(`${s.essay_betul}${r_es}`));
+                    exportData.push({no: i+1, nama: s.nama, mapel: mapel, pg: s.pg_betul, es: s.essay_betul, total: nFinal});
+                    html += `<div class="bg-white p-6 rounded-[30px] shadow-lg border-l-8 border-blue-600 mb-3 flex justify-between items-center transition hover:scale-[1.01]">
+                             <div><h3 class="text-xl font-black text-slate-800 uppercase">${s.nama}</h3></div>
+                             <div class="text-5xl font-black text-slate-900">${nFinal}</div></div>`;
+                });
+                document.getElementById('laporanFinal').innerHTML = html;
+                document.getElementById('exportMenu').classList.remove('hidden');
+                
+                await fetch('/ai/save-history', {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ data: exportData.map(d => ({ nama_siswa: d.nama, mapel: d.mapel, nilai_akhir: d.total })) })
+                });
+                Swal.fire('Berhasil!', 'Nilai diterbitkan & disimpan.', 'success');
+            } catch (err) { Swal.fire('Rumus Salah', 'Cek penulisan rumus.', 'error'); }
         };
 
         function exportPDF() { 
             const doc = new window.jspdf.jsPDF(); 
-            doc.setFontSize(20); doc.text(`LAPORAN NILAI: ${document.getElementById('mapel').value}`, 14, 20);
-            doc.autoTable({ startY: 25, head: [['NO','NAMA','MAPEL','PG','ES','TOTAL']], body: exportData.map(d=>[d.no, d.nama, d.mapel, d.pg, d.es, d.total]) }); 
-            doc.save(`Nilai_${document.getElementById('mapel').value}.pdf`); 
+            doc.text(`NILAI ${document.getElementById('mapel').value.toUpperCase()}`, 14, 15);
+            doc.autoTable({ startY: 20, head: [['NO','NAMA','PG','ES','TOTAL']], body: exportData.map(d=>[d.no, d.nama, d.pg, d.es, d.total]) }); 
+            doc.save('Hasil_Koreksi.pdf'); 
         }
-        function exportExcel() { const ws = XLSX.utils.json_to_sheet(exportData); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Hasil"); XLSX.writeFile(wb, `Nilai_${document.getElementById('mapel').value}.xlsx`); }
+
+        function exportExcel() { 
+            const ws = XLSX.utils.json_to_sheet(exportData); 
+            const wb = XLSX.utils.book_new(); 
+            XLSX.utils.book_append_sheet(wb, ws, "Nilai"); 
+            XLSX.writeFile(wb, "Hasil_Koreksi.xlsx"); 
+        }
+
         async function exportWord() {
-            const { Document, Packer, Paragraph, Table, TableRow, TableCell, TextRun } = window.docx;
-            const rows = [new TableRow({ children: [new TableCell({ children: [new Paragraph("NAMA SISWA")] }), new TableCell({ children: [new Paragraph("NILAI TOTAL")] })] })];
-            exportData.forEach(d => rows.push(new TableRow({ children: [new TableCell({ children: [new Paragraph(d.nama)] }), new TableCell({ children: [new Paragraph(d.total.toString())] })] })));
-            const doc = new Document({ sections: [{ children: [new Paragraph({ children: [new TextRun({ text: `LAPORAN: ${document.getElementById('mapel').value}`, bold: true, size: 28 })] }), new Table({ rows })] }] });
-            const blob = await Packer.toBlob(doc); saveAs(blob, `Nilai_${document.getElementById('mapel').value}.docx`);
+            if (exportData.length === 0) return Swal.fire('Info', 'Terbitkan nilai dulu!', 'info');
+            const { Document, Packer, Paragraph, Table, TableRow, TableCell, WidthType, TextRun, AlignmentType } = docx;
+            const mapel = document.getElementById('mapel').value || "Ujian";
+
+            const rows = [
+                new TableRow({
+                    children: ["NO", "NAMA SISWA", "PG", "ESSAY", "TOTAL"].map(h => 
+                        new TableCell({
+                            children: [new Paragraph({ children: [new TextRun({ text: h, bold: true })], alignment: AlignmentType.CENTER })],
+                            shading: { fill: "f1f5f9" }
+                        })
+                    )
+                }),
+                ...exportData.map(d => new TableRow({
+                    children: [
+                        new TableCell({ children: [new Paragraph({ text: d.no.toString(), alignment: AlignmentType.CENTER })] }),
+                        new TableCell({ children: [new Paragraph(d.nama)] }),
+                        new TableCell({ children: [new Paragraph({ text: d.pg.toString(), alignment: AlignmentType.CENTER })] }),
+                        new TableCell({ children: [new Paragraph({ text: d.es.toString(), alignment: AlignmentType.CENTER })] }),
+                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: d.total.toString(), bold: true })], alignment: AlignmentType.CENTER })] }),
+                    ]
+                }))
+            ];
+
+            const doc = new Document({
+                sections: [{
+                    children: [
+                        new Paragraph({ children: [new TextRun({ text: `DAFTAR NILAI: ${mapel.toUpperCase()}`, bold: true, size: 28 })], alignment: AlignmentType.CENTER }),
+                        new Paragraph({ text: "" }),
+                        new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: rows }),
+                        new Paragraph({ text: "" }),
+                        new Paragraph({ text: "" }),
+                        new Paragraph({
+                            children: [new TextRun({ text: `Dicetak pada: ${new Date().toLocaleDateString('id-ID')}`, italic: true, size: 18 })],
+                            alignment: AlignmentType.RIGHT
+                        })
+                    ]
+                }]
+            });
+
+            Packer.toBlob(doc).then(blob => {
+                saveAs(blob, `Nilai_${mapel}.docx`);
+            });
         }
+
         function logout() { localStorage.clear(); window.location.href = '/auth/logout'; }
+        async function injectToken() { /* Logic for admin inject */ }
     </script>
 </body>
 </html>
