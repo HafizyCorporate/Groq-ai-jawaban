@@ -1,7 +1,7 @@
 /**
  * FILE: koreksi.js 
  * MODEL: Gemini 2.5 Flash (RE-FIXED)
- * UPDATE: Sinkronisasi History tanpa mengubah Logika Deteksi & Prompt
+ * UPDATE: Sinkronisasi Output tanpa mengubah Logika Deteksi & Prompt
  */
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const dotenv = require('dotenv');
@@ -30,7 +30,7 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
         try {
             const base64Data = file.buffer.toString("base64");
             
-            // PROMPT TETAP SAMA (TIDAK DIUBAH SESUAI PERMINTAAN)
+            // --- PROMPT TETAP SAMA (TIDAK DIRUBAH SEDIKITPUN) ---
             const prompt = `TUGAS: Analisis LJK secara presisi.
             
             1.INSTRUKSI DETEKSI PG (SANGAT KETAT):
@@ -102,12 +102,11 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
             const esMatches = text.match(/BENAR/g);
             esBetul = esMatches ? esMatches.length : 0;
 
-            // OUTPUT RESULTS (Data ini yang akan dibaca server.js untuk history)
+            // OUTPUT RESULTS (Sinkronisasi dengan Dashboard & History SQL)
             results.push({
-                // Jika AI mendeteksi nama asli, gunakan itu, jika tidak gunakan fallback
                 nama: (aiData.nama_siswa && aiData.nama_siswa !== "NAMA") ? aiData.nama_siswa : `Siswa ${index + 1}`,
-                pg_betul: pgBetul,
-                essay_betul: esBetul, 
+                pg_betul: pgBetul,      // Variabel wajib agar muncul di dashboard
+                essay_betul: esBetul,   // Variabel wajib agar muncul di dashboard
                 list_detail_pg: listNoBetul.join(', ') || "TIDAK ADA",
                 list_detail_es: esBetul > 0 ? `${esBetul} Jawaban Terdeteksi Benar` : "TIDAK ADA",
                 log_detail: rincian,
