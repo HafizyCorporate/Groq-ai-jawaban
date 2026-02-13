@@ -193,35 +193,37 @@
         }
 
         function openSaweria() {
-            const userEmail = localStorage.getItem('jawaban_ai_email');
-            Swal.fire({
-                title: 'Isi Token Otomatis',
-                html: `
-                    <div class="text-left mb-4">
-                        <label class="text-[10px] font-black text-slate-400 uppercase italic">Email Akun Penerima:</label>
-                        <input id="swEmail" type="email" value="${userEmail}" class="w-full p-3 mt-1 bg-slate-100 rounded-xl font-bold border-2 border-blue-500">
-                    </div>
-                    <div class="flex flex-col gap-2">
-                        <button onclick="window.open('https://saweria.co/versacy', '_blank')" class="bg-slate-800 text-white p-4 rounded-2xl font-black uppercase text-left flex justify-between items-center transition hover:bg-blue-600">
-                            <span>📦 Paket Hemat (10 Token)</span><span class="bg-blue-500 px-3 py-1 rounded-lg text-xs font-black">Rp 5rb</span>
-                        </button>
-                        <button onclick="window.open('https://saweria.co/versacy', '_blank')" class="bg-slate-800 text-white p-4 rounded-2xl font-black uppercase text-left flex justify-between items-center transition hover:bg-blue-600">
-                            <span>🚀 Paket Kilat (22 Token)</span><span class="bg-blue-500 px-3 py-1 rounded-lg text-xs font-black">Rp 10rb</span>
-                        </button>
-                        <button onclick="window.open('https://saweria.co/versacy', '_blank')" class="bg-slate-800 text-white p-4 rounded-2xl font-black uppercase text-left flex justify-between items-center transition hover:bg-blue-600">
-                            <span>🔥 Paket Super (50 Token)</span><span class="bg-blue-500 px-3 py-1 rounded-lg text-xs font-black">Rp 20rb</span>
-                        </button>
-                        <button onclick="window.open('https://saweria.co/versacy', '_blank')" class="bg-slate-800 text-white p-4 rounded-2xl font-black uppercase text-left flex justify-between items-center transition hover:bg-blue-600">
-                            <span>🎓 Paket Guru (125 Token)</span><span class="bg-blue-500 px-3 py-1 rounded-lg text-xs font-black">Rp 50rb</span>
-                        </button>
-                        <button onclick="window.open('https://saweria.co/versacy', '_blank')" class="bg-slate-800 text-white p-4 rounded-2xl font-black uppercase text-left flex justify-between items-center transition hover:bg-blue-600">
-                            <span>👑 Paket Sultan (300 Token)</span><span class="bg-blue-500 px-3 py-1 rounded-lg text-xs font-black">Rp 100rb</span>
-                        </button>
-                    </div>
-                `,
-                showConfirmButton: false, showCloseButton: true
-            });
-        }
+    const userEmail = localStorage.getItem('jawaban_ai_email');
+    Swal.fire({
+        title: 'Isi Token Otomatis',
+        html: `
+            <div class="text-left mb-4">
+                <label class="text-[10px] font-black text-slate-400 uppercase italic">Email Akun Anda:</label>
+                <input id="swEmail" type="email" value="${userEmail}" class="w-full p-3 mt-1 bg-slate-100 rounded-xl font-bold border-2 border-blue-500" readonly>
+                <p class="text-[10px] text-red-500 mt-2 font-bold italic">*PENTING: Masukkan email di atas pada kolom "PESAN" atau "EMAIL" di halaman Saweria agar token masuk otomatis!</p>
+            </div>
+            <div class="flex flex-col gap-2">
+                <button onclick="window.open('https://saweria.co/GuruBantuGuru', '_blank')" class="bg-slate-800 text-white p-4 rounded-2xl font-black uppercase text-left flex justify-between items-center transition hover:bg-blue-600">
+                    <span>📦 Paket Hemat (10 Token)</span><span class="bg-blue-500 px-3 py-1 rounded-lg text-xs font-black">Rp 5rb</span>
+                </button>
+                <button onclick="window.open('https://saweria.co/GuruBantuGuru', '_blank')" class="bg-slate-800 text-white p-4 rounded-2xl font-black uppercase text-left flex justify-between items-center transition hover:bg-blue-600">
+                    <span>🚀 Paket Kilat (22 Token)</span><span class="bg-blue-500 px-3 py-1 rounded-lg text-xs font-black">Rp 10rb</span>
+                </button>
+                <button onclick="window.open('https://saweria.co/GuruBantuGuru', '_blank')" class="bg-slate-800 text-white p-4 rounded-2xl font-black uppercase text-left flex justify-between items-center transition hover:bg-blue-600">
+                    <span>🔥 Paket Super (50 Token)</span><span class="bg-blue-500 px-3 py-1 rounded-lg text-xs font-black">Rp 20rb</span>
+                </button>
+                <button onclick="window.open('https://saweria.co/GuruBantuGuru', '_blank')" class="bg-slate-800 text-white p-4 rounded-2xl font-black uppercase text-left flex justify-between items-center transition hover:bg-blue-600">
+                    <span>🎓 Paket Guru (125 Token)</span><span class="bg-blue-500 px-3 py-1 rounded-lg text-xs font-black">Rp 50rb</span>
+                </button>
+                <button onclick="window.open('https://saweria.co/GuruBantuGuru', '_blank')" class="bg-slate-800 text-white p-4 rounded-2xl font-black uppercase text-left flex justify-between items-center transition hover:bg-blue-600">
+                    <span>👑 Paket Sultan (300 Token)</span><span class="bg-blue-500 px-3 py-1 rounded-lg text-xs font-black">Rp 100rb</span>
+                </button>
+            </div>
+        `,
+        showConfirmButton: false, 
+        showCloseButton: true
+    });
+}
 
         function initGrids() {
             const pg = document.getElementById('gridPG');
