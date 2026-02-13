@@ -33,6 +33,18 @@ async function migrasiData() {
                 role TEXT DEFAULT 'user'
             )
         `);
+
+        // TAMBAHAN: Tabel History
+        await query(`
+            CREATE TABLE IF NOT EXISTS history (
+                id SERIAL PRIMARY KEY,
+                email TEXT,
+                nama_siswa TEXT,
+                mapel TEXT,
+                waktu TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
         if (fs.existsSync('db.json')) {
             const adapter = new FileSync('db.json');
             const dbLow = low(adapter);
@@ -55,14 +67,10 @@ async function migrasiData() {
 }
 migrasiData();
 
-// --- 2. MIDDLEWARE (DIUBAH SEDIKIT AGAR BISA BACA FOLDER VIEWS) ---
+// --- 2. MIDDLEWARE ---
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-// PENTING: Folder 'public' hanya untuk file statis (CSS/JS/Gambar)
 app.use(express.static(path.join(__dirname, 'public'))); 
-
-// Tambahkan ini agar Express tahu folder views berisi file template/html
 app.set('views', path.join(__dirname, 'views'));
 
 app.use(session({
@@ -72,22 +80,19 @@ app.use(session({
     cookie: { maxAge: 24 * 60 * 60 * 1000 } 
 }));
 
-// --- 3. ROUTING VIEWS (PERBAIKAN PATH) ---
+// --- 3. ROUTING VIEWS ---
 app.get('/', (req, res) => {
     if (req.session.userId) return res.redirect('/dashboard');
     res.sendFile(path.join(__dirname, 'views', 'login.html'));
 });
 
 app.get('/dashboard', (req, res) => {
-    // Jika tidak ada session, tendang ke login
     if (!req.session.userId) return res.redirect('/');
-    // Mengambil file dashboard.html dari dalam folder views
     res.sendFile(path.join(__dirname, 'views', 'dashboard.html'));
 });
 
 
 // --- 4. API AUTHENTICATION ---
-
 app.get('/auth/user-session', async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ success: false });
     try {
@@ -169,11 +174,8 @@ app.post('/admin/add-token', async (req, res) => {
     } catch (e) { res.status(500).json({ success: false }); }
 });
 
-// --- FITUR WEBHOOK SAWERIA OTOMATIS ---
 app.post('/webhook/saweria', async (req, res) => {
     const { amount_raw, customer_email, msg } = req.body;
-
-    // Logika Paket Token (Sesuai Dashboard)
     let tokenBonus = 0;
     if (amount_raw >= 100000) tokenBonus = 300;
     else if (amount_raw >= 50000) tokenBonus = 125;
@@ -183,28 +185,31 @@ app.post('/webhook/saweria', async (req, res) => {
 
     if (tokenBonus > 0) {
         try {
-            // Ambil email dari data saweria (customer_email atau isi pesan/msg)
             const emailTarget = (customer_email || msg || "").trim();
-            
             if (emailTarget) {
-                const result = await query(
-                    'UPDATE users SET quota = quota + $1 WHERE email = $2 RETURNING email', 
-                    [tokenBonus, emailTarget]
-                );
-                
+                const result = await query('UPDATE users SET quota = quota + $1 WHERE email = $2 RETURNING email', [tokenBonus, emailTarget]);
                 if (result.rows.length > 0) {
-                    console.log(`[Saweria] Berhasil tambah ${tokenBonus} token ke ${emailTarget}`);
                     return res.status(200).send('Success');
                 }
             }
-        } catch (e) {
-            console.error("[Saweria Error]", e);
-        }
+        } catch (e) { console.error("[Saweria Error]", e); }
     }
     res.status(200).send('Processed');
 });
 
-// --- 6. PROSES KOREKSI AI (BAGIAN YANG DIPERBAIKI) ---
+// --- 6. API HISTORY ---
+app.get('/ai/history', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ success: false });
+    try {
+        const result = await query(
+            'SELECT nama_siswa, mapel, waktu FROM history WHERE email = $1 ORDER BY waktu DESC LIMIT 10', 
+            [req.session.userId]
+        );
+        res.json({ success: true, history: result.rows });
+    } catch (e) { res.status(500).json({ success: false }); }
+});
+
+// --- 7. PROSES KOREKSI AI ---
 const upload = multer({ storage: multer.memoryStorage() });
 const { prosesKoreksiLengkap } = require('./routes/koreksi');
 
@@ -218,27 +223,31 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
         return res.json({ success: false, limitReached: true, message: "Token Habis" });
     }
 
-    // Perbaikan pengambilan data kunci agar sinkron dengan dashboard
     let settings = {};
     try { 
         settings = {
             kunci_pg: req.body.kunci_pg ? JSON.parse(req.body.kunci_pg) : {},
             kunci_essay: req.body.kunci_essay ? JSON.parse(req.body.kunci_essay) : {}
         };
-    } catch (e) { 
-        settings = { kunci_pg: {}, kunci_essay: {} }; 
-    }
+    } catch (e) { settings = { kunci_pg: {}, kunci_essay: {} }; }
 
-    // Menjalankan fungsi koreksi
     const results = await prosesKoreksiLengkap(req.files, settings, req.body.rumus_pg, req.body.rumus_es);
 
-    // Potong kuota user PostgreSQL
-    if (!user.is_premium && results.length > 0) {
-        await query('UPDATE users SET quota = GREATEST(0, quota - $1) WHERE email = $2', [req.files.length, req.session.userId]);
+    // SIMPAN KE HISTORY & POTONG KUOTA
+    if (results.length > 0) {
+        for (let r of results) {
+            await query(
+                'INSERT INTO history (email, nama_siswa, mapel) VALUES ($1, $2, $3)',
+                [req.session.userId, r.nama || 'Tanpa Nama', req.body.mapel || 'Ujian']
+            );
+        }
+
+        if (!user.is_premium) {
+            await query('UPDATE users SET quota = GREATEST(0, quota - $1) WHERE email = $2', [req.files.length, req.session.userId]);
+        }
     }
     
     const finalUser = await query('SELECT quota, is_premium FROM users WHERE email = $1', [req.session.userId]);
-    
     res.json({ 
         success: true, 
         data: results, 
