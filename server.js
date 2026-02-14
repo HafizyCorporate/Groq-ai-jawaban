@@ -168,6 +168,20 @@ app.get('/ai/get-history', async (req, res) => {
         );
         res.json({ success: true, data: result.rows });
     } catch (e) { res.status(500).json({ success: false }); }
+    // API UNTUK MENGHAPUS RIWAYAT PER SISWA
+app.delete('/ai/delete-history-siswa', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ success: false });
+    const { id } = req.body; // Menggunakan ID unik dari database
+    try {
+        await query('DELETE FROM history WHERE email = $1 AND id = $2', [req.session.userId, id]);
+        res.json({ success: true });
+    } catch (e) { 
+        console.error("Gagal hapus siswa:", e);
+        res.status(500).json({ success: false }); 
+    }
+});
+
+    
 });
 
 // --- 7. PROSES KOREKSI AI (FIXED SYNC) ---
