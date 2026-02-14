@@ -337,17 +337,24 @@ async function startKoreksi() {
 }
 
             function renderKoreksiView() {
+                    function renderKoreksiView() {
             const container = document.getElementById('scanAwal');
+            // Bersihkan container sebelum render ulang
+            container.innerHTML = ''; 
+
+            if (!koreksiResult || koreksiResult.length === 0) return;
+
             container.innerHTML = koreksiResult.map((res, idx) => {
-                
                 let htmlNomor = '';
-                if (res.list_hasil_pg && Array.isArray(res.list_hasil_pg) && res.list_hasil_pg.length > 0) {
+                
+                // Cek apakah data list_hasil_pg ada
+                if (res.list_hasil_pg && Array.isArray(res.list_hasil_pg)) {
                     res.list_hasil_pg.forEach((isCorrect, n) => {
                         const warna = isCorrect ? 'bg-emerald-500' : 'bg-red-500';
                         htmlNomor += `<div class="w-5 h-5 ${warna} text-white flex items-center justify-center rounded-md text-[8px] font-black">${n + 1}</div>`;
                     });
                 } else {
-                    htmlNomor = `<p class="text-[9px] font-bold text-slate-400 italic text-center w-full">Data nomor belum tersedia</p>`;
+                    htmlNomor = `<p class="text-[9px] font-bold text-slate-400 italic text-center w-full">Detail nomor tidak tersedia</p>`;
                 }
 
                 return `
@@ -371,7 +378,9 @@ async function startKoreksi() {
                     </div>
 
                     <div class="bg-slate-50 p-4 rounded-[25px] border border-slate-100">
-                        <p class="text-[9px] font-black text-slate-500 uppercase italic mb-3">📊 Peta Jawaban PG</p>
+                        <div class="flex justify-between items-center mb-3">
+                            <p class="text-[9px] font-black text-slate-500 uppercase italic">📊 Peta Jawaban PG</p>
+                        </div>
                         <div class="flex flex-wrap gap-1.5 justify-center">
                             ${htmlNomor}
                         </div>
