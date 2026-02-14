@@ -336,21 +336,18 @@ async function startKoreksi() {
     }
 }
 
-
-                function renderKoreksiView() {
+            function renderKoreksiView() {
             const container = document.getElementById('scanAwal');
             container.innerHTML = koreksiResult.map((res, idx) => {
                 
-                // Membuat kotak-kotak nomor PG
                 let htmlNomor = '';
-                if (res.list_hasil_pg && Array.isArray(res.list_hasil_pg)) {
-                    // res.list_hasil_pg harus berisi data seperti: [true, false, true, ...]
+                if (res.list_hasil_pg && Array.isArray(res.list_hasil_pg) && res.list_hasil_pg.length > 0) {
                     res.list_hasil_pg.forEach((isCorrect, n) => {
                         const warna = isCorrect ? 'bg-emerald-500' : 'bg-red-500';
                         htmlNomor += `<div class="w-5 h-5 ${warna} text-white flex items-center justify-center rounded-md text-[8px] font-black">${n + 1}</div>`;
                     });
                 } else {
-                    htmlNomor = `<p class="text-[9px] font-bold text-slate-400 italic text-center w-full">Detail nomor tidak tersedia</p>`;
+                    htmlNomor = `<p class="text-[9px] font-bold text-slate-400 italic text-center w-full">Data nomor belum tersedia</p>`;
                 }
 
                 return `
@@ -374,20 +371,15 @@ async function startKoreksi() {
                     </div>
 
                     <div class="bg-slate-50 p-4 rounded-[25px] border border-slate-100">
-                        <div class="flex justify-between items-center mb-3">
-                            <p class="text-[9px] font-black text-slate-500 uppercase italic">📊 Peta Jawaban PG</p>
-                            <div class="flex gap-2">
-                                <span class="flex items-center gap-1 text-[7px] font-bold text-slate-400"><div class="w-2 h-2 bg-emerald-500 rounded-sm"></div> BENAR</span>
-                                <span class="flex items-center gap-1 text-[7px] font-bold text-slate-400"><div class="w-2 h-2 bg-red-500 rounded-sm"></div> SALAH</span>
-                            </div>
-                        </div>
+                        <p class="text-[9px] font-black text-slate-500 uppercase italic mb-3">📊 Peta Jawaban PG</p>
                         <div class="flex flex-wrap gap-1.5 justify-center">
                             ${htmlNomor}
                         </div>
                     </div>
-                </div>
-            `}).join('');
+                </div>`;
+            }).join('');
         }
+
 
                async function terbitkanNilai() {
             let rumusPG = document.getElementById('r_pg').value;
