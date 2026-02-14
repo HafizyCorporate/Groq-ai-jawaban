@@ -18,7 +18,7 @@ const apiKey = defaultClient.authentications['api-key'];
 apiKey.apiKey = process.env.BREVO_API_KEY; 
 const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
 
-// --- 1. PROSES MIGRASI DATA (TETAP) ---
+// --- 1. PROSES MIGRASI DATA (DIPERBARUI UNTUK OTP) ---
 async function migrasiData() {
     try {
         await query(`
@@ -28,6 +28,7 @@ async function migrasiData() {
                 quota INTEGER DEFAULT 10,
                 is_premium BOOLEAN DEFAULT FALSE,
                 otp TEXT,
+                otp_expiry TIMESTAMP,
                 role TEXT DEFAULT 'user'
             )
         `);
@@ -87,13 +88,99 @@ app.get('/auth/user-session', async (req, res) => {
     } catch (e) { res.status(500).json({ success: false }); }
 });
 
-app.post('/auth/register', async (req, res) => {
-    const { email, password } = req.body;
+// --- FITUR BARU: OTP REGISTER ---
+app.post('/auth/send-otp-register', async (req, res) => {
+    const { email } = req.body;
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiry = new Date(Date.now() + 5 * 60000); // 5 menit
+
     try {
-        const hashedPassword = await bcrypt.hash(password, 10);
-        await query('INSERT INTO users (email, password, quota) VALUES ($1, $2, 10)', [email.trim(), hashedPassword]);
+        const check = await query('SELECT * FROM users WHERE email = $1', [email]);
+        if (check.rows.length > 0 && check.rows[0].password !== 'PENDING') {
+            return res.status(400).json({ success: false, error: "Email sudah terdaftar!" });
+        }
+
+        // Simpan OTP (Upsert: Insert jika baru, Update jika ada tapi status PENDING)
+        await query(`
+            INSERT INTO users (email, password, otp, otp_expiry, quota) 
+            VALUES ($1, 'PENDING', $2, $3, 10)
+            ON CONFLICT (email) DO UPDATE SET otp = $2, otp_expiry = $3`, 
+            [email.trim(), otp, expiry]
+        );
+
+        const sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
+        sendSmtpEmail.subject = "Kode OTP Pendaftaran Jawaban AI";
+        sendSmtpEmail.htmlContent = `<html><body><h2>Kode OTP Anda: ${otp}</h2><p>Berlaku 5 menit. Jangan berikan kode ini kepada siapapun.</p></body></html>`;
+        sendSmtpEmail.sender = { "name": "Jawaban AI", "email": "admin@jawabanai.com" };
+        sendSmtpEmail.to = [{ "email": email }];
+
+        await apiInstance.sendTransacEmail(sendSmtpEmail);
         res.json({ success: true });
-    } catch (e) { res.status(400).json({ success: false, message: "Email sudah ada!" }); }
+    } catch (e) {
+        console.error("OTP Error:", e);
+        res.status(500).json({ success: false, error: "Gagal mengirim email OTP" });
+    }
+});
+
+// --- MODIFIKASI REGISTER: VERIFIKASI OTP ---
+app.post('/auth/register', async (req, res) => {
+    const { email, password, otp } = req.body;
+    try {
+        const result = await query('SELECT otp, otp_expiry FROM users WHERE email = $1', [email.trim()]);
+        const user = result.rows[0];
+
+        if (!user || user.otp !== otp || new Date() > new Date(user.otp_expiry)) {
+            return res.status(400).json({ success: false, error: "OTP Salah atau Kadaluarsa!" });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+        await query('UPDATE users SET password = $1, otp = NULL, otp_expiry = NULL WHERE email = $2', [hashedPassword, email.trim()]);
+        
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ success: false, message: "Gagal mendaftar" }); }
+});
+
+// --- FITUR BARU: LUPA PASSWORD ---
+app.post('/auth/forgot-password', async (req, res) => {
+    const { email } = req.body;
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiry = new Date(Date.now() + 5 * 60000);
+
+    try {
+        const result = await query('SELECT * FROM users WHERE email = $1', [email.trim()]);
+        if (result.rows.length === 0) return res.json({ success: false, message: "Email tidak ditemukan!" });
+
+        await query('UPDATE users SET otp = $1, otp_expiry = $2 WHERE email = $3', [otp, expiry, email.trim()]);
+
+        const sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
+        sendSmtpEmail.subject = "Kode Reset Password Jawaban AI";
+        sendSmtpEmail.htmlContent = `<html><body><h2>Kode Reset: ${otp}</h2><p>Gunakan kode ini untuk mereset password Anda.</p></body></html>`;
+        sendSmtpEmail.sender = { "name": "Jawaban AI", "email": "admin@jawabanai.com" };
+        sendSmtpEmail.to = [{ "email": email }];
+
+        await apiInstance.sendTransacEmail(sendSmtpEmail);
+        res.json({ success: true });
+    } catch(e) {
+        res.status(500).json({ success: false, message: "Gagal kirim email" });
+    }
+});
+
+app.post('/auth/reset-password', async (req, res) => {
+    const { email, otp, newPassword } = req.body;
+    try {
+        const result = await query('SELECT otp, otp_expiry FROM users WHERE email = $1', [email.trim()]);
+        const user = result.rows[0];
+
+        if (!user || user.otp !== otp || new Date() > new Date(user.otp_expiry)) {
+            return res.json({ success: false, message: "OTP Salah/Expired" });
+        }
+
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        await query('UPDATE users SET password = $1, otp = NULL, otp_expiry = NULL WHERE email = $2', [hashedPassword, email.trim()]);
+        res.json({ success: true });
+    } catch(e) {
+        res.status(500).json({ success: false });
+    }
 });
 
 app.post('/auth/login', async (req, res) => {
@@ -101,6 +188,9 @@ app.post('/auth/login', async (req, res) => {
     const result = await query('SELECT * FROM users WHERE email = $1', [email.trim()]);
     if (result.rows.length > 0) {
         const user = result.rows[0];
+        // Pastikan akun sudah aktif (password bukan PENDING)
+        if (user.password === 'PENDING') return res.status(401).json({ success: false, message: "Akun belum diverifikasi OTP!" });
+        
         if (await bcrypt.compare(password, user.password)) {
             req.session.userId = user.email;
             return res.json({ success: true, token: user.quota, is_premium: user.is_premium });
@@ -170,10 +260,10 @@ app.get('/ai/get-history', async (req, res) => {
     } catch (e) { res.status(500).json({ success: false }); }
 });
 
-    // API UNTUK MENGHAPUS RIWAYAT PER SISWA
+// API UNTUK MENGHAPUS RIWAYAT PER SISWA
 app.delete('/ai/delete-history-siswa', async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ success: false });
-    const { id } = req.body; // Menggunakan ID unik dari database
+    const { id } = req.body;
     try {
         await query('DELETE FROM history WHERE email = $1 AND id = $2', [req.session.userId, id]);
         res.json({ success: true });
@@ -183,7 +273,7 @@ app.delete('/ai/delete-history-siswa', async (req, res) => {
     }
 });
 
-// --- 7. PROSES KOREKSI AI (FIXED SYNC) ---
+// --- 7. PROSES KOREKSI AI (UPDATED: PENGGABUNGAN MULTI-PAGE & PARSING) ---
 const upload = multer({ storage: multer.memoryStorage() });
 const { prosesKoreksiLengkap } = require('./routes/koreksi');
 
@@ -194,16 +284,15 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
         const userRes = await query('SELECT quota, is_premium FROM users WHERE email = $1', [req.session.userId]);
         const user = userRes.rows[0];
         
-        if (!user.is_premium && user.quota < req.files.length) {
-            return res.json({ success: false, limitReached: true, message: "Token Tidak Mencukupi" });
+        // Cek Kuota di awal (opsional, tapi lebih baik biar gak buang resource AI kalau kuota habis)
+        if (!user.is_premium && user.quota <= 0) {
+            return res.json({ success: false, limitReached: true, message: "Token Habis!" });
         }
 
-        // --- TAMBAHAN: PARSING JSON AGAR MENJADI OBJECT ---
+        // --- PARSING JSON KUNCI JAWABAN ---
         let kunciPG = {};
         let kunciEssay = {};
-        
         try {
-            // Mengubah string JSON dari frontend menjadi Object Javascript
             kunciPG = req.body.kunci_pg ? JSON.parse(req.body.kunci_pg) : {};
             kunciEssay = req.body.kunci_essay ? JSON.parse(req.body.kunci_essay) : {};
         } catch (parseError) {
@@ -218,22 +307,72 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
         const r_pg = req.body.r_pg;
         const r_essay = req.body.r_essay;
 
-        // Panggil fungsi koreksi dengan data yang sudah di-parse
-        const results = await prosesKoreksiLengkap(req.files, settings, r_pg, r_essay);
+        // 1. Panggil fungsi koreksi AI untuk SEMUA file yang diupload
+        const rawResults = await prosesKoreksiLengkap(req.files, settings, r_pg, r_essay);
 
-        const totalBerhasil = results.filter(r => r.nama !== "ERROR SCAN" && r.nama !== "GAGAL SCAN").length;
+        // 2. LOGIKA PENGGABUNGAN (MULTI-PAGE)
+        // Jika ada hasil scan berturut-turut tanpa nama yang valid, gabungkan ke siswa sebelumnya.
+        let mergedResults = [];
+        let currentStudent = null;
 
-        if (totalBerhasil > 0 && !user.is_premium) {
+        rawResults.forEach((item) => {
+            // Deteksi apakah nama valid (bukan null, bukan "Tanpa Nama", bukan Error)
+            const hasValidName = item.nama && 
+                                 item.nama !== "Tanpa Nama" && 
+                                 item.nama !== "GAGAL SCAN" && 
+                                 item.nama !== "ERROR SCAN";
+
+            if (!hasValidName && currentStudent) {
+                // KASUS: Lembar Lanjutan (Tidak ada nama, gabung ke siswa sebelumnya)
+                
+                // Gabungkan Skor
+                currentStudent.pg_betul += (item.pg_betul || 0);
+                currentStudent.essay_betul += (item.essay_betul || 0);
+                
+                // Gabungkan List Jawaban PG (untuk visualisasi peta jawaban)
+                if (item.list_hasil_pg && Array.isArray(item.list_hasil_pg)) {
+                    // Gabungkan array, atau biarkan array yang lama jika yang baru kosong
+                     if (!currentStudent.list_hasil_pg) currentStudent.list_hasil_pg = [];
+                     currentStudent.list_hasil_pg = [...currentStudent.list_hasil_pg, ...item.list_hasil_pg];
+                }
+
+                // Tandai bahwa ini hasil gabungan
+                currentStudent.is_merged = true; 
+            } else {
+                // KASUS: Siswa Baru (Ada nama, atau siswa pertama tanpa nama)
+                
+                // Simpan siswa sebelumnya ke array hasil
+                if (currentStudent) mergedResults.push(currentStudent);
+                
+                // Set item ini sebagai siswa aktif baru
+                item.is_merged = false;
+                if (!item.nama) item.nama = "Tanpa Nama"; // Default name jika benar-benar kosong di awal
+                currentStudent = item;
+            }
+        });
+
+        // Jangan lupa masukkan siswa terakhir yang sedang diproses
+        if (currentStudent) mergedResults.push(currentStudent);
+
+        // 3. Hitung Token Berdasarkan Jumlah SISWA (mergedResults), BUKAN jumlah file
+        const totalSiswa = mergedResults.filter(r => r.nama !== "ERROR SCAN" && r.nama !== "GAGAL SCAN").length;
+
+        if (totalSiswa > 0 && !user.is_premium) {
+            // Cek lagi apakah kuota cukup untuk jumlah siswa yang terdeteksi
+            if (user.quota < totalSiswa) {
+                 return res.json({ success: false, limitReached: true, message: `Token kurang. Butuh ${totalSiswa}, sisa ${user.quota}.` });
+            }
+
             await query(
                 'UPDATE users SET quota = GREATEST(0, quota - $1) WHERE email = $2', 
-                [totalBerhasil, req.session.userId]
+                [totalSiswa, req.session.userId]
             );
         }
         
         const finalUser = await query('SELECT quota, is_premium FROM users WHERE email = $1', [req.session.userId]);
         res.json({ 
             success: true, 
-            data: results, 
+            data: mergedResults, 
             current_token: finalUser.rows[0].is_premium ? '∞' : finalUser.rows[0].quota 
         });
 
