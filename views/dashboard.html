@@ -23,6 +23,15 @@
             border: 3px solid #000; border-radius: 12px; background-color: white; padding: 10px 5px;
         }
 
+        #laporanFinal > div {
+    animation: fadeIn 0.5s ease-out forwards;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
         @media (min-width: 1024px) {
             select.key-dropdown { font-size: 28px !important; padding: 15px; } 
             .desktop-layout { display: grid; grid-template-columns: 550px 1fr; gap: 50px; max-width: 1650px; margin: 0 auto; }
