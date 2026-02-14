@@ -12,13 +12,13 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 8080; 
 
-// --- 0. KONFIGURASI API BREVO ---
+// --- 0. KONFIGURASI API BREVO (TETAP) ---
 const defaultClient = SibApiV3Sdk.ApiClient.instance;
 const apiKey = defaultClient.authentications['api-key'];
 apiKey.apiKey = process.env.BREVO_API_KEY; 
 const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
 
-// --- 1. PROSES MIGRASI DATA ---
+// --- 1. PROSES MIGRASI DATA (TETAP) ---
 async function migrasiData() {
     try {
         await query(`
@@ -114,7 +114,7 @@ app.get('/auth/logout', (req, res) => {
     res.redirect('/');
 });
 
-// --- 5. ADMIN & SAWERIA WEBHOOK (FIXED LOGIC) ---
+// --- 5. ADMIN & SAWERIA WEBHOOK (TETAP SESUAI ASLI) ---
 app.post('/admin/inject-token', async (req, res) => {
     const isAdmin = ['Versacy', 'admin@jawabanai.com'].includes(req.session.userId);
     if (!isAdmin) return res.status(403).json({ success: false, message: "Unauthorized" });
@@ -136,7 +136,6 @@ app.post('/webhook/saweria', async (req, res) => {
 
     if (tokenBonus > 0 && msg) {
         try {
-            // Memisahkan pesan jika formatnya "NOMINAL|EMAIL" (Contoh: 5000|guru@gmail.com)
             const emailTarget = msg.includes('|') ? msg.split('|')[1].trim() : msg.trim();
             await query('UPDATE users SET quota = quota + $1 WHERE email = $2', [tokenBonus, emailTarget]);
             console.log(`✅ Token berhasil ditambah ke ${emailTarget} via Saweria`);
@@ -186,20 +185,20 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
             return res.json({ success: false, limitReached: true, message: "Token Tidak Mencukupi" });
         }
 
-        // Parsing Kunci Jawaban
+        // Ambil kunci jawaban
         let settings = {
-            kunci_pg: typeof req.body.kunci_pg === 'string' ? JSON.parse(req.body.kunci_pg) : (req.body.kunci_pg || {}),
-            kunci_essay: typeof req.body.kunci_essay === 'string' ? JSON.parse(req.body.kunci_essay) : (req.body.kunci_essay || {})
+            kunci_pg: req.body.kunci_pg,
+            kunci_essay: req.body.kunci_essay
         };
 
-        // Ambil rumus dari dashboard (Frontend)
-        const rumusPG = req.body.r_pg || "betul x 2.5";
-        const rumusES = req.body.r_essay || "betul x 5";
+        // Ambil rumus dari body
+        const r_pg = req.body.r_pg;
+        const r_essay = req.body.r_essay;
 
-        // Eksekusi Koreksi dengan parameter lengkap
-        const results = await prosesKoreksiLengkap(req.files, settings, rumusPG, rumusES);
+        // Panggil fungsi koreksi dengan parameter lengkap
+        const results = await prosesKoreksiLengkap(req.files, settings, r_pg, r_essay);
 
-        // Hitung file yang berhasil (Bukan GAGAL SCAN)
+        // Hitung total file yang berhasil diproses
         const totalBerhasil = results.filter(r => r.nama !== "ERROR SCAN" && r.nama !== "GAGAL SCAN").length;
 
         if (totalBerhasil > 0 && !user.is_premium) {
@@ -218,7 +217,7 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
 
     } catch (error) {
         console.error("❌ Koreksi Error:", error);
-        res.status(500).json({ success: false, message: "Terjadi kesalahan internal pada AI." });
+        res.status(500).json({ success: false, message: "Terjadi kesalahan internal pada AI: " + error.message });
     }
 });
 
