@@ -6,8 +6,6 @@ const bcrypt = require('bcrypt');
 const session = require('express-session'); 
 const SibApiV3Sdk = require('sib-api-v3-sdk');
 const { query, sqliteDb } = require('./db');
-const low = require('lowdb');
-const FileSync = require('lowdb/adapters/FileSync');
 const fs = require('fs');
 
 dotenv.config();
@@ -34,7 +32,6 @@ async function migrasiData() {
             )
         `);
 
-        // TAMBAHAN: Tabel History (Nilai Akhir ditambahkan)
         await query(`
             CREATE TABLE IF NOT EXISTS history (
                 id SERIAL PRIMARY KEY,
@@ -45,26 +42,8 @@ async function migrasiData() {
                 waktu TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         `);
-
-        if (fs.existsSync('db.json')) {
-            const adapter = new FileSync('db.json');
-            const dbLow = low(adapter);
-            const usersLama = dbLow.get('users').value() || [];
-            for (let u of usersLama) {
-                const pass = u.password || await bcrypt.hash('123456', 10);
-                await query('INSERT INTO users (email, password, quota) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING', [u.email, pass, u.quota || 10]);
-            }
-        }
-        if (sqliteDb) {
-            sqliteDb.all("SELECT * FROM users", [], async (err, rows) => {
-                if (!err && rows) {
-                    for (let r of rows) {
-                        await query('INSERT INTO users (email, password, quota) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING', [r.email, r.password, r.quota]);
-                    }
-                }
-            });
-        }
-    } catch(e) { console.log("Migrasi Selesai/Skip."); }
+        console.log("Database Ready.");
+    } catch(e) { console.log("Migrasi Error/Skip:", e.message); }
 }
 migrasiData();
 
@@ -92,7 +71,6 @@ app.get('/dashboard', (req, res) => {
     res.sendFile(path.join(__dirname, 'views', 'dashboard.html'));
 });
 
-
 // --- 4. API AUTHENTICATION ---
 app.get('/auth/user-session', async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ success: false });
@@ -105,9 +83,7 @@ app.get('/auth/user-session', async (req, res) => {
                 token: result.rows[0].quota, 
                 is_premium: result.rows[0].is_premium 
             });
-        } else {
-            res.status(404).json({ success: false });
-        }
+        } else res.status(404).json({ success: false });
     } catch (e) { res.status(500).json({ success: false }); }
 });
 
@@ -142,8 +118,7 @@ app.post('/auth/forgot-password', async (req, res) => {
     const { email } = req.body;
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     try {
-        const result = await query('UPDATE users SET otp = $1 WHERE email = $2 RETURNING *', [otp, email.trim()]);
-        if (result.rows.length === 0) return res.status(404).json({ success: false, message: "Email tidak ditemukan" });
+        await query('UPDATE users SET otp = $1 WHERE email = $2', [otp, email.trim()]);
         await apiInstance.sendTransacEmail({
             sender: { email: "admin@jawabanai.com", name: "Jawaban AI" },
             to: [{ email: email.trim() }],
@@ -154,25 +129,11 @@ app.post('/auth/forgot-password', async (req, res) => {
     } catch (e) { res.status(500).json({ success: false }); }
 });
 
-app.post('/auth/reset-password', async (req, res) => {
-    const { email, otp, newPassword } = req.body;
-    const result = await query('SELECT * FROM users WHERE email = $1 AND otp = $2', [email.trim(), otp.trim()]);
-    if (result.rows.length > 0) {
-        const hashed = await bcrypt.hash(newPassword, 10);
-        await query('UPDATE users SET password = $1, otp = NULL WHERE email = $2', [hashed, email.trim()]);
-        return res.json({ success: true });
-    }
-    res.status(400).json({ success: false, message: "Kode OTP Salah" });
-});
-
-// --- 5. FITUR ADMIN & SAWERIA (UPDATED) ---
+// --- 5. ADMIN & SAWERIA WEBHOOK (DIPERTAHANKAN) ---
 app.post('/admin/inject-token', async (req, res) => {
-    const { email, amount } = req.body;
-    // Pengecekan admin berdasarkan session email
     const isAdmin = ['Versacy', 'admin@jawabanai.com'].includes(req.session.userId);
-    
     if (!isAdmin) return res.status(403).json({ success: false, message: "Unauthorized" });
-    
+    const { email, amount } = req.body;
     try {
         await query('UPDATE users SET quota = quota + $1 WHERE email = $2', [parseInt(amount), email.trim()]);
         res.json({ success: true });
@@ -182,43 +143,25 @@ app.post('/admin/inject-token', async (req, res) => {
 app.post('/webhook/saweria', async (req, res) => {
     const { amount_raw, customer_email, msg } = req.body;
     let tokenBonus = 0;
-    if (amount_raw >= 100000) tokenBonus = 300;
-    else if (amount_raw >= 50000) tokenBonus = 125;
-    else if (amount_raw >= 20000) tokenBonus = 50;
+    if (amount_raw >= 100000) tokenBonus = 350;
+    else if (amount_raw >= 50000) tokenBonus = 150;
+    else if (amount_raw >= 25000) tokenBonus = 60;
     else if (amount_raw >= 10000) tokenBonus = 22;
     else if (amount_raw >= 5000) tokenBonus = 10;
 
     if (tokenBonus > 0) {
         try {
             const emailTarget = (customer_email || msg || "").trim();
-            if (emailTarget) {
-                const result = await query('UPDATE users SET quota = quota + $1 WHERE email = $2 RETURNING email', [tokenBonus, emailTarget]);
-                if (result.rows.length > 0) {
-                    return res.status(200).send('Success');
-                }
-            }
-        } catch (e) { console.error("[Saweria Error]", e); }
+            await query('UPDATE users SET quota = quota + $1 WHERE email = $2', [tokenBonus, emailTarget]);
+        } catch (e) { console.error("Saweria Webhook Error:", e); }
     }
-    res.status(200).send('Processed');
+    res.status(200).send('OK');
 });
 
-// --- 6. API HISTORY (UPDATED) ---
-app.get('/ai/history', async (req, res) => {
-    if (!req.session.userId) return res.status(401).json({ success: false });
-    try {
-        // Diurutkan berdasarkan mapel agar mudah di grouping di frontend
-        const result = await query(
-            'SELECT id, nama_siswa, mapel, nilai_akhir, waktu FROM history WHERE email = $1 ORDER BY mapel ASC, waktu DESC', 
-            [req.session.userId]
-        );
-        res.json({ success: true, history: result.rows });
-    } catch (e) { res.status(500).json({ success: false }); }
-});
-
-// Endpoint baru: Simpan riwayat setelah klik "Terbitkan Nilai"
+// --- 6. HISTORY API ---
 app.post('/ai/save-history', async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ success: false });
-    const { data } = req.body; // Array berisi {nama_siswa, mapel, nilai_akhir}
+    const { data } = req.body;
     try {
         for (let item of data) {
             await query(
@@ -230,67 +173,54 @@ app.post('/ai/save-history', async (req, res) => {
     } catch (e) { res.status(500).json({ success: false }); }
 });
 
-// Endpoint baru: Hapus per Mapel
-app.delete('/ai/delete-history', async (req, res) => {
-    if (!req.session.userId) return res.status(401).json({ success: false });
-    const { mapel } = req.query;
-    try {
-        await query('DELETE FROM history WHERE email = $1 AND mapel = $2', [req.session.userId, mapel]);
-        res.json({ success: true });
-    } catch (e) { res.status(500).json({ success: false }); }
-});
-
-// Endpoint baru: Hapus Semua
-app.delete('/ai/delete-all-history', async (req, res) => {
-    if (!req.session.userId) return res.status(401).json({ success: false });
-    try {
-        await query('DELETE FROM history WHERE email = $1', [req.session.userId]);
-        res.json({ success: true });
-    } catch (e) { res.status(500).json({ success: false }); }
-});
-
-// --- 7. PROSES KOREKSI AI ---
+// --- 7. PROSES KOREKSI AI (LOGIKA KUOTA DIPERBAIKI) ---
 const upload = multer({ storage: multer.memoryStorage() });
 const { prosesKoreksiLengkap } = require('./routes/koreksi');
 
 app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
-    if (!req.session.userId) return res.status(401).json({ success: false, message: "Sesi Habis" });
-    
-    const userRes = await query('SELECT * FROM users WHERE email = $1', [req.session.userId]);
-    const user = userRes.rows[0];
-    
-    if (!user.is_premium && user.quota < req.files.length) {
-        return res.json({ success: false, limitReached: true, message: "Token Habis" });
-    }
-
-    // PENYESUAIAN PENGAMBILAN KUNCI DAN RUMUS
-    let settings = {};
-    try { 
-        settings = {
-            kunci_pg: req.body.kunci_pg ? JSON.parse(req.body.kunci_pg) : {},
-            kunci_essay: req.body.kunci_essay ? JSON.parse(req.body.kunci_essay) : {}
-        };
-    } catch (e) { settings = { kunci_pg: {}, kunci_essay: {} }; }
-
-    // Mengambil rumus dari body request yang dikirim dashboard
-    const rumusPG = req.body.r_pg || "*2.5";
-    const rumusES = req.body.r_essay || "*5";
-
-    const results = await prosesKoreksiLengkap(req.files, settings, rumusPG, rumusES);
-
-    // HANYA POTONG KUOTA
-    if (results.length > 0) {
-        if (!user.is_premium) {
-            await query('UPDATE users SET quota = GREATEST(0, quota - $1) WHERE email = $2', [req.files.length, req.session.userId]);
+    try {
+        if (!req.session.userId) return res.status(401).json({ success: false, message: "Sesi Habis" });
+        
+        const userRes = await query('SELECT quota, is_premium FROM users WHERE email = $1', [req.session.userId]);
+        const user = userRes.rows[0];
+        
+        // Validasi awal kuota
+        if (!user.is_premium && user.quota < req.files.length) {
+            return res.json({ success: false, limitReached: true, message: "Token Tidak Mencukupi" });
         }
+
+        let settings = {
+            kunci_pg: typeof req.body.kunci_pg === 'string' ? JSON.parse(req.body.kunci_pg) : (req.body.kunci_pg || {}),
+            kunci_essay: typeof req.body.kunci_essay === 'string' ? JSON.parse(req.body.kunci_essay) : (req.body.kunci_essay || {})
+        };
+
+        const rumusPG = String(req.body.r_pg || "2.5");
+        const rumusES = String(req.body.r_essay || "5");
+
+        const results = await prosesKoreksiLengkap(req.files, settings, rumusPG, rumusES);
+
+        // --- LOGIKA KUOTA ADIL ---
+        // Menghitung berapa banyak file yang BERHASIL di-scan (bukan sekadar diupload)
+        const totalBerhasil = results.filter(r => r.nama !== "ERROR SCAN").length;
+
+        if (totalBerhasil > 0 && !user.is_premium) {
+            await query(
+                'UPDATE users SET quota = GREATEST(0, quota - $1) WHERE email = $2', 
+                [totalBerhasil, req.session.userId]
+            );
+        }
+        
+        const finalUser = await query('SELECT quota, is_premium FROM users WHERE email = $1', [req.session.userId]);
+        res.json({ 
+            success: true, 
+            data: results, 
+            current_token: finalUser.rows[0].is_premium ? '∞' : finalUser.rows[0].quota 
+        });
+
+    } catch (error) {
+        console.error("Koreksi Error:", error);
+        res.status(500).json({ success: false, message: "Gagal memproses AI." });
     }
-    
-    const finalUser = await query('SELECT quota, is_premium FROM users WHERE email = $1', [req.session.userId]);
-    res.json({ 
-        success: true, 
-        data: results, 
-        current_token: finalUser.rows[0].is_premium ? 'UNLIMITED' : finalUser.rows[0].quota 
-    });
 });
 
-app.listen(port, () => console.log(`Server running on port ${port}`));
+app.listen(port, () => console.log(`Server aktif di port ${port}`));
