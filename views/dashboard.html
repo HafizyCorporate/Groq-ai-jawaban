@@ -269,6 +269,10 @@
             selectedFiles.forEach(f => formData.append('foto', f));
             formData.append('kunci_pg', JSON.stringify(kunci_pg));
             formData.append('kunci_essay', JSON.stringify(kunci_essay));
+            
+            // POINT 2: Tambahkan pengiriman bobot rumus ke backend
+            formData.append('r_pg', document.getElementById('r_pg').value);
+            formData.append('r_essay', document.getElementById('r_essay').value);
 
             try {
                 const res = await fetch('/ai/proses-koreksi', { method: 'POST', body: formData });
@@ -312,10 +316,13 @@
             `).join('');
         }
 
-        function terbitkanNilai() {
+        async function terbitkanNilai() {
             const rPG = parseFloat(document.getElementById('r_pg').value) || 0;
             const rES = parseFloat(document.getElementById('r_essay').value) || 0;
             const mapel = document.getElementById('mapel').value || 'Tanpa Mapel';
+            
+            // POINT 1: Wadah data untuk disimpan ke Riwayat (Database)
+            let dataSimpan = [];
 
             const container = document.getElementById('laporanFinal');
             container.innerHTML = `<h3 class="text-center font-black text-3xl uppercase text-slate-800 mb-8 underline decoration-blue-500 underline-offset-8">DAFTAR NILAI: ${mapel}</h3>`;
@@ -323,6 +330,13 @@
             koreksiResult.forEach(res => {
                 let hitung = (res.pg_betul * rPG) + (res.essay_betul * rES);
                 let final = Math.round(hitung); 
+                
+                // Siapkan data objek untuk database
+                dataSimpan.push({
+                    nama_siswa: res.nama || 'Siswa Tanpa Nama',
+                    mapel: mapel,
+                    nilai_akhir: final
+                });
 
                 container.innerHTML += `
                     <div class="bg-white p-10 rounded-[50px] border-8 border-blue-50 shadow-xl flex justify-between items-center transition hover:scale-[1.02]">
@@ -336,6 +350,19 @@
                     </div>
                 `;
             });
+
+            // POINT 1: Proses simpan ke database SQL via fetch
+            try {
+                await fetch('/ai/save-history', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ data: dataSimpan })
+                });
+                Swal.fire({ title: 'Berhasil!', text: 'Daftar nilai diterbitkan dan disimpan ke riwayat.', icon: 'success', timer: 2000, showConfirmButton: false });
+            } catch (e) {
+                console.error("Gagal menyimpan ke riwayat database.");
+            }
+
             document.getElementById('exportMenu').classList.remove('hidden');
         }
 
