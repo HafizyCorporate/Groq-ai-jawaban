@@ -14,6 +14,7 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
     const kunciES = settings.kunci_essay || {};
     const results = [];
 
+    // --- RUMUS TETAP (TIDAK DIRUBAH) ---
     const hitungNilai = (rumus, betul, total) => {
         if (!rumus || total === 0) return 0;
         try {
@@ -23,7 +24,7 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
         } catch (e) { return 0; }
     };
 
-    // TETAP menggunakan model pilihan Anda
+    // --- MODEL TETAP 2.5 FLASH ---
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     for (const [index, file] of files.entries()) {
@@ -81,7 +82,7 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
             let rincian = [];
             let listNoBetul = [];
 
-            // Hitung PG (Logika Tetap Sama)
+            // --- HITUNG PG (LOGIKA TETAP) ---
             Object.keys(kunciPG).forEach(no => {
                 if (kunciPG[no] && kunciPG[no] !== "") {
                     totalKunci++;
@@ -98,15 +99,15 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
                 }
             });
 
-            // Hitung Essay (Logika Tetap Sama)
+            // --- HITUNG ESSAY (LOGIKA TETAP) ---
             const esMatches = text.match(/BENAR/g);
             esBetul = esMatches ? esMatches.length : 0;
 
-            // OUTPUT RESULTS (Sinkronisasi dengan Dashboard & History SQL)
+            // --- OUTPUT HASIL ---
             results.push({
                 nama: (aiData.nama_siswa && aiData.nama_siswa !== "NAMA") ? aiData.nama_siswa : `Siswa ${index + 1}`,
-                pg_betul: pgBetul,      // Variabel wajib agar muncul di dashboard
-                essay_betul: esBetul,   // Variabel wajib agar muncul di dashboard
+                pg_betul: pgBetul,      
+                essay_betul: esBetul,   
                 list_detail_pg: listNoBetul.join(', ') || "TIDAK ADA",
                 list_detail_es: esBetul > 0 ? `${esBetul} Jawaban Terdeteksi Benar` : "TIDAK ADA",
                 log_detail: rincian,
