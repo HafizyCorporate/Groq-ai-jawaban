@@ -485,7 +485,7 @@ async function startKoreksi() {
             });
         }
 
-        async function openHistoryModal() {
+            async function openHistoryModal() {
             Swal.fire({ title: 'Membuka Riwayat...', didOpen: () => Swal.showLoading() });
             try {
                 const res = await fetch('/ai/get-history');
@@ -503,21 +503,50 @@ async function startKoreksi() {
                 for (let mapel in grouped) {
                     historyHtml += `
                         <div class="mb-4 bg-slate-50 p-4 rounded-2xl border-2 border-slate-200">
-                            <h4 class="font-black text-blue-600 uppercase text-xs mb-2 italic">📚 ${mapel}</h4>
-                            <table class="w-full text-[10px] border-collapse">
+                            <h4 class="font-black text-blue-600 uppercase text-[10px] mb-3 italic">📚 ${mapel}</h4>
+                            <div class="space-y-2">
                                 ${grouped[mapel].map(h => `
-                                    <tr class="border-b border-slate-200">
-                                        <td class="py-2 font-bold">${h.nama_siswa}</td>
-                                        <td class="py-2 text-right font-black text-blue-900">${h.nilai_akhir}</td>
-                                    </tr>
+                                    <div class="flex justify-between items-center bg-white p-2 rounded-lg border border-slate-100">
+                                        <div>
+                                            <p class="font-bold text-[11px] uppercase">${h.nama_siswa}</p>
+                                            <p class="text-[9px] font-black text-blue-600">Nilai: ${h.nilai_akhir}</p>
+                                        </div>
+                                        <button onclick="hapusSiswa(${h.id}, '${h.nama_siswa}')" class="text-red-500 p-2 hover:bg-red-50 rounded-full transition">
+                                            🗑️
+                                        </button>
+                                    </div>
                                 `).join('')}
-                            </table>
+                            </div>
                         </div>`;
                 }
                 historyHtml += `</div>`;
-                Swal.fire({ title: 'RIWAYAT KOREKSI SAYA', html: historyHtml, width: '90%', confirmButtonText: 'TUTUP' });
+                Swal.fire({ title: 'RIWAYAT KOREKSI', html: historyHtml, width: '90%', confirmButtonText: 'TUTUP' });
             } catch (e) { Swal.fire('Error', 'Gagal memuat riwayat.', 'error'); }
         }
+
+        async function hapusSiswa(id, nama) {
+            const confirm = await Swal.fire({
+                title: 'Hapus Nilai?',
+                text: `Nilai milik ${nama} akan dihapus permanen.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                confirmButtonText: 'YA, HAPUS'
+            });
+
+            if (confirm.isConfirmed) {
+                const res = await fetch('/ai/delete-history-siswa', {
+                    method: 'DELETE',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ id: id })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    openHistoryModal(); // Refresh daftar otomatis
+                }
+            }
+        }
+
 
         function exportResult(type) {
             const mapel = document.getElementById('mapel').value || 'Laporan';
