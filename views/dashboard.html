@@ -366,11 +366,8 @@ async function startKoreksi() {
         Swal.fire('Error', 'Server sibuk, coba lagi.', 'error'); 
     }
 }
-
-
             function renderKoreksiView() {
             const container = document.getElementById('scanAwal');
-            // Bersihkan container sebelum render ulang
             container.innerHTML = ''; 
 
             if (!koreksiResult || koreksiResult.length === 0) return;
@@ -378,7 +375,10 @@ async function startKoreksi() {
             container.innerHTML = koreksiResult.map((res, idx) => {
                 let htmlNomor = '';
                 
-                // Cek apakah data list_hasil_pg ada
+                // Logika Indikator Penggabungan (Multi-Page)
+                const badgeMerged = res.is_merged ? 
+                    `<div class="absolute top-2 right-2 bg-orange-500 text-white text-[7px] font-black px-2 py-1 rounded-full shadow-sm animate-pulse">MULTI-PAGE (GABUNG)</div>` : '';
+
                 if (res.list_hasil_pg && Array.isArray(res.list_hasil_pg)) {
                     res.list_hasil_pg.forEach((isCorrect, n) => {
                         const warna = isCorrect ? 'bg-emerald-500' : 'bg-red-500';
@@ -392,6 +392,8 @@ async function startKoreksi() {
                 <div class="bg-white p-5 rounded-[35px] shadow-lg border-2 border-slate-50 relative overflow-hidden transition hover:shadow-2xl">
                     <div class="bg-blue-600 text-white text-[8px] font-black px-3 py-1 absolute top-0 left-0 uppercase tracking-tighter">${res.filename || 'File'}</div>
                     
+                    ${badgeMerged}
+
                     <div class="mt-4 text-center">
                          <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Siswa ${idx+1}</p>
                          <h3 class="text-xl font-black text-blue-900 truncate uppercase mb-4">${res.nama || 'Tanpa Nama'}</h3>
