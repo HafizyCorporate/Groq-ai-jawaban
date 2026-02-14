@@ -497,11 +497,56 @@ async function startKoreksi() {
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, "Daftar Nilai");
                 XLSX.writeFile(wb, `Nilai_${mapel}.xlsx`);
-            } else if (type === 'word') {
-                const { Document, Packer, Paragraph } = docx;
-                const doc = new Document({ sections: [{ children: [new Paragraph({ text: `DATA NILAI: ${mapel}` })] }] });
-                Packer.toBlob(doc).then(blob => saveAs(blob, `Nilai_${mapel}.docx`));
+                        } else if (type === 'word') {
+                const { Document, Packer, Paragraph, Table, TableRow, TableCell, WidthType, TextRun, AlignmentType } = docx;
+
+                // Membuat Header Tabel
+                const headerRow = new TableRow({
+                    children: [
+                        new TableCell({ children: [new Paragraph({ text: "No", alignment: AlignmentType.CENTER })], width: { size: 5, type: WidthType.PERCENTAGE } }),
+                        new TableCell({ children: [new Paragraph({ text: "Nama Siswa", alignment: AlignmentType.CENTER })], width: { size: 45, type: WidthType.PERCENTAGE } }),
+                        new TableCell({ children: [new Paragraph({ text: "B. PG", alignment: AlignmentType.CENTER })], width: { size: 15, type: WidthType.PERCENTAGE } }),
+                        new TableCell({ children: [new Paragraph({ text: "B. Essay", alignment: AlignmentType.CENTER })], width: { size: 15, type: WidthType.PERCENTAGE } }),
+                        new TableCell({ children: [new Paragraph({ text: "Total Nilai", alignment: AlignmentType.CENTER })], width: { size: 20, type: WidthType.PERCENTAGE } }),
+                    ],
+                });
+
+                // Mengisi Data Siswa ke Tabel
+                const dataRows = dataExport.map(item => new TableRow({
+                    children: [
+                        new TableCell({ children: [new Paragraph({ text: item.no.toString(), alignment: AlignmentType.CENTER })] }),
+                        new TableCell({ children: [new Paragraph({ text: item.nama.toUpperCase() })] }),
+                        new TableCell({ children: [new Paragraph({ text: item.pg.toString(), alignment: AlignmentType.CENTER })] }),
+                        new TableCell({ children: [new Paragraph({ text: item.essay.toString(), alignment: AlignmentType.CENTER })] }),
+                        new TableCell({ children: [new Paragraph({ text: item.total.toString(), alignment: AlignmentType.CENTER })] }),
+                    ],
+                }));
+
+                const table = new Table({
+                    rows: [headerRow, ...dataRows],
+                    width: { size: 100, type: WidthType.PERCENTAGE },
+                });
+
+                const doc = new Document({
+                    sections: [{
+                        children: [
+                            new Paragraph({
+                                children: [
+                                    new TextRun({ text: `LAPORAN HASIL KOREKSI: ${mapel.toUpperCase()}`, bold: true, size: 28 }),
+                                ],
+                                spacing: { after: 400 },
+                                alignment: AlignmentType.CENTER,
+                            }),
+                            table,
+                        ],
+                    }],
+                });
+
+                Packer.toBlob(doc).then(blob => {
+                    saveAs(blob, `Nilai_${mapel}.docx`);
+                });
             }
+
         }
 
         async function revisiMassal(type) {
