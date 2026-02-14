@@ -299,9 +299,15 @@ function kalkulasiNilai(skorAwal, inputRumus) {
 
         function removeFile(i) { selectedFiles.splice(i, 1); renderFileList(); }
         
-async function startKoreksi() {
+async function startKoreksi() { // "async" pakai huruf kecil ya
     if(selectedFiles.length === 0) return Swal.fire('Foto Kosong', 'Bapak/Ibu belum mengunggah foto lembar jawaban.', 'warning');
-    Swal.fire({ title: 'PROSES KOREKSI AI', text: 'Menganalisa jawaban siswa...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    
+    Swal.fire({ 
+        title: 'PROSES KOREKSI AI', 
+        text: 'Menganalisa jawaban siswa...', 
+        allowOutsideClick: false, 
+        didOpen: () => Swal.showLoading() 
+    });
 
     let kunci_pg = {};
     for(let i=1; i<=40; i++) {
@@ -327,15 +333,14 @@ async function startKoreksi() {
         const res = await fetch('/ai/proses-koreksi', { method: 'POST', body: formData });
         const data = await res.json();
         
-                if(data.success) {
+        // --- PERBAIKAN DI SINI ---
+        if(data.success) {
             koreksiResult = data.data; 
             renderKoreksiView();
             
-            // JANGAN DIHAPUS: Agar tombol PDF/Excel muncul
             document.getElementById('resWrap').classList.remove('hidden');
             document.getElementById('exportMenu').classList.remove('hidden'); 
 
-            // EFEK PERAYAAN
             confetti({
                 particleCount: 150,
                 spread: 70,
@@ -343,7 +348,6 @@ async function startKoreksi() {
                 colors: ['#2563eb', '#10b981', '#f59e0b']
             });
 
-            // NOTIFIKASI SUKSES
             Swal.fire({
                 title: 'KOREKSI SELESAI!',
                 text: `${koreksiResult.length} lembar siswa berhasil dianalisis.`,
@@ -352,19 +356,21 @@ async function startKoreksi() {
                 showConfirmButton: false,
                 backdrop: `rgba(0,0,123,0.4) url("https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJueGZ3bmZ3bmZ3bmZ3bmZ3bmZ3bmZ3bmZ3bmZ3bmZ3bmZ3JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/3o7abKhOpu0NwenH3O/giphy.gif") left top no-repeat`
             });
-
-            refreshUserStatus(); 
-        }
-
-            refreshUserStatus(); 
-            Swal.close();
+            // Hapus penutup } yang kepagian tadi
         } else { 
             Swal.fire('Gagal', data.message, 'error'); 
         }
+        
+        // Jalankan ini setelah sukses atau gagal agar loading berhenti
+        refreshUserStatus(); 
+        Swal.close();
+        
     } catch (e) { 
+        Swal.close(); // Pastikan loading tutup kalau error jaringan
         Swal.fire('Error', 'Server sibuk, coba lagi.', 'error'); 
     }
 }
+
 
             function renderKoreksiView() {
             const container = document.getElementById('scanAwal');
