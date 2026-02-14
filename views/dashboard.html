@@ -299,8 +299,8 @@ function kalkulasiNilai(skorAwal, inputRumus) {
 
         function removeFile(i) { selectedFiles.splice(i, 1); renderFileList(); }
         
-async function startKoreksi() { // "async" pakai huruf kecil ya
-    if(selectedFiles.length === 0) return Swal.fire('Foto Kosong', 'Bapak/Ibu belum mengunggah foto lembar jawaban.', 'warning');
+async function startKoreksi() {
+    if (selectedFiles.length === 0) return Swal.fire('Foto Kosong', 'Bapak/Ibu belum mengunggah foto lembar jawaban.', 'warning');
     
     Swal.fire({ 
         title: 'PROSES KOREKSI AI', 
@@ -310,15 +310,15 @@ async function startKoreksi() { // "async" pakai huruf kecil ya
     });
 
     let kunci_pg = {};
-    for(let i=1; i<=40; i++) {
+    for (let i = 1; i <= 40; i++) {
         const val = document.getElementById(`p${i}`).value;
-        if(val) kunci_pg[i] = val;
+        if (val) kunci_pg[i] = val;
     }
     
     let kunci_essay = {};
-    for(let i=1; i<=20; i++) {
+    for (let i = 1; i <= 20; i++) {
         const val = document.getElementById(`e${i}`).value;
-        if(val) kunci_essay[i] = val;
+        if (val) kunci_essay[i] = val;
     }
 
     let formData = new FormData();
@@ -333,14 +333,18 @@ async function startKoreksi() { // "async" pakai huruf kecil ya
         const res = await fetch('/ai/proses-koreksi', { method: 'POST', body: formData });
         const data = await res.json();
         
-        // --- PERBAIKAN DI SINI ---
-        if(data.success) {
+        // Tutup loading spinner segera setelah respon diterima
+        Swal.close();
+
+        if (data.success) {
             koreksiResult = data.data; 
             renderKoreksiView();
             
+            // Memunculkan area hasil dan menu ekspor
             document.getElementById('resWrap').classList.remove('hidden');
             document.getElementById('exportMenu').classList.remove('hidden'); 
 
+            // Efek Confetti
             confetti({
                 particleCount: 150,
                 spread: 70,
@@ -348,6 +352,7 @@ async function startKoreksi() { // "async" pakai huruf kecil ya
                 colors: ['#2563eb', '#10b981', '#f59e0b']
             });
 
+            // Notifikasi Berhasil
             Swal.fire({
                 title: 'KOREKSI SELESAI!',
                 text: `${koreksiResult.length} lembar siswa berhasil dianalisis.`,
@@ -356,17 +361,13 @@ async function startKoreksi() { // "async" pakai huruf kecil ya
                 showConfirmButton: false,
                 backdrop: `rgba(0,0,123,0.4) url("https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJueGZ3bmZ3bmZ3bmZ3bmZ3bmZ3bmZ3bmZ3bmZ3bmZ3bmZ3JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/3o7abKhOpu0NwenH3O/giphy.gif") left top no-repeat`
             });
-            // Hapus penutup } yang kepagian tadi
+
+            refreshUserStatus(); 
         } else { 
             Swal.fire('Gagal', data.message, 'error'); 
         }
-        
-        // Jalankan ini setelah sukses atau gagal agar loading berhenti
-        refreshUserStatus(); 
-        Swal.close();
-        
     } catch (e) { 
-        Swal.close(); // Pastikan loading tutup kalau error jaringan
+        Swal.close();
         Swal.fire('Error', 'Server sibuk, coba lagi.', 'error'); 
     }
 }
