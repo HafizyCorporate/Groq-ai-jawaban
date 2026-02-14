@@ -1,7 +1,7 @@
 /**
  * FILE: koreksi.js 
  * MODEL: Gemini 2.5 Flash (RE-FIXED)
- * UPDATE: Sinkronisasi Output tanpa mengubah Logika Deteksi & Prompt
+ * UPDATE: Sinkronisasi Output tanpa mengubah Logika Deteksi & Prompt Utama
  */
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const dotenv = require('dotenv');
@@ -31,7 +31,7 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
         try {
             const base64Data = file.buffer.toString("base64");
             
-            // --- PROMPT TETAP SAMA (TIDAK DIRUBAH SEDIKITPUN) ---
+            // --- PROMPT TETAP SAMA (Hanya tambah field di JSON agar presisi) ---
             const prompt = `TUGAS: Analisis LJK secara presisi.
             
             1.INSTRUKSI DETEKSI PG (SANGAT KETAT):
@@ -54,6 +54,7 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
             {
               "nama_siswa": "NAMA",
               "jawaban_pg": {"1": "A", "2": "B"},
+              "essay_betul_count": 0,
               "log_deteksi": "1:B, 2:A"
             }`;
 
@@ -99,9 +100,9 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
                 }
             });
 
-            // --- HITUNG ESSAY (LOGIKA TETAP) ---
-            const esMatches = text.match(/BENAR/g);
-            esBetul = esMatches ? esMatches.length : 0;
+            // --- HITUNG ESSAY (LOGIKA DIPERBAIKI) ---
+            // Mengambil angka langsung dari JSON AI agar tidak salah hitung kata "BENAR" di log
+            esBetul = parseInt(aiData.essay_betul_count) || 0;
 
             // --- OUTPUT HASIL ---
             results.push({
