@@ -337,27 +337,56 @@ async function startKoreksi() {
 }
 
 
-        function renderKoreksiView() {
+                function renderKoreksiView() {
             const container = document.getElementById('scanAwal');
-            container.innerHTML = koreksiResult.map((res, idx) => `
-                <div class="bg-white p-4 rounded-[25px] shadow-lg border-2 border-slate-50 relative overflow-hidden">
-                    <div class="bg-blue-600 text-white text-[8px] font-black px-2 py-1 absolute top-0 left-0 uppercase">${res.filename || 'File'}</div>
+            container.innerHTML = koreksiResult.map((res, idx) => {
+                
+                // Membuat kotak-kotak nomor PG
+                let htmlNomor = '';
+                if (res.list_hasil_pg && Array.isArray(res.list_hasil_pg)) {
+                    // res.list_hasil_pg harus berisi data seperti: [true, false, true, ...]
+                    res.list_hasil_pg.forEach((isCorrect, n) => {
+                        const warna = isCorrect ? 'bg-emerald-500' : 'bg-red-500';
+                        htmlNomor += `<div class="w-5 h-5 ${warna} text-white flex items-center justify-center rounded-md text-[8px] font-black">${n + 1}</div>`;
+                    });
+                } else {
+                    htmlNomor = `<p class="text-[9px] font-bold text-slate-400 italic text-center w-full">Detail nomor tidak tersedia</p>`;
+                }
+
+                return `
+                <div class="bg-white p-5 rounded-[35px] shadow-lg border-2 border-slate-50 relative overflow-hidden transition hover:shadow-2xl">
+                    <div class="bg-blue-600 text-white text-[8px] font-black px-3 py-1 absolute top-0 left-0 uppercase tracking-tighter">${res.filename || 'File'}</div>
+                    
                     <div class="mt-4 text-center">
-                         <p class="text-xs font-black text-slate-400 uppercase">Siswa ${idx+1}</p>
-                         <p class="text-lg font-extrabold text-blue-900 truncate uppercase mb-4">${res.nama || 'Tanpa Nama'}</p>
+                         <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Siswa ${idx+1}</p>
+                         <h3 class="text-xl font-black text-blue-900 truncate uppercase mb-4">${res.nama || 'Tanpa Nama'}</h3>
                     </div>
-                    <div class="grid grid-cols-2 gap-2">
-                        <div class="bg-blue-50 p-3 rounded-xl text-center">
-                            <p class="text-[8px] font-black text-blue-700">PG</p>
-                            <p class="text-2xl font-black text-blue-600">${res.pg_betul}</p>
+                    
+                    <div class="grid grid-cols-2 gap-3 mb-5">
+                        <div class="bg-blue-50 p-3 rounded-2xl text-center border border-blue-100">
+                            <p class="text-[9px] font-black text-blue-700 uppercase">PG Betul</p>
+                            <p class="text-3xl font-black text-blue-600">${res.pg_betul}</p>
                         </div>
-                        <div class="bg-emerald-50 p-3 rounded-xl text-center">
-                            <p class="text-[8px] font-black text-emerald-700">ESSAY</p>
-                            <p class="text-2xl font-black text-emerald-600">${res.essay_betul}</p>
+                        <div class="bg-emerald-50 p-3 rounded-2xl text-center border border-emerald-100">
+                            <p class="text-[9px] font-black text-emerald-700 uppercase">ES Betul</p>
+                            <p class="text-3xl font-black text-emerald-600">${res.essay_betul}</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-50 p-4 rounded-[25px] border border-slate-100">
+                        <div class="flex justify-between items-center mb-3">
+                            <p class="text-[9px] font-black text-slate-500 uppercase italic">📊 Peta Jawaban PG</p>
+                            <div class="flex gap-2">
+                                <span class="flex items-center gap-1 text-[7px] font-bold text-slate-400"><div class="w-2 h-2 bg-emerald-500 rounded-sm"></div> BENAR</span>
+                                <span class="flex items-center gap-1 text-[7px] font-bold text-slate-400"><div class="w-2 h-2 bg-red-500 rounded-sm"></div> SALAH</span>
+                            </div>
+                        </div>
+                        <div class="flex flex-wrap gap-1.5 justify-center">
+                            ${htmlNomor}
                         </div>
                     </div>
                 </div>
-            `).join('');
+            `}).join('');
         }
 
                async function terbitkanNilai() {
