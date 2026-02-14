@@ -304,44 +304,54 @@ function kalkulasiNilai(skorAwal, inputRumus) {
         }
 
         function removeFile(i) { selectedFiles.splice(i, 1); renderFileList(); }
+        
+async function startKoreksi() {
+    if(selectedFiles.length === 0) return Swal.fire('Foto Kosong', 'Bapak/Ibu belum mengunggah foto lembar jawaban.', 'warning');
+    Swal.fire({ title: 'PROSES KOREKSI AI', text: 'Menganalisa jawaban siswa...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
-        async function startKoreksi() {
-            if(selectedFiles.length === 0) return Swal.fire('Foto Kosong', 'Bapak/Ibu belum mengunggah foto lembar jawaban.', 'warning');
-            Swal.fire({ title: 'PROSES KOREKSI AI', text: 'Menganalisa jawaban siswa...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    let kunci_pg = {};
+    for(let i=1; i<=40; i++) {
+        const val = document.getElementById(`p${i}`).value;
+        if(val) kunci_pg[i] = val;
+    }
+    
+    let kunci_essay = {};
+    for(let i=1; i<=20; i++) {
+        const val = document.getElementById(`e${i}`).value;
+        if(val) kunci_essay[i] = val;
+    }
 
-            let kunci_pg = {};
-            for(let i=1; i<=40; i++) {
-                const val = document.getElementById(`p${i}`).value;
-                if(val) kunci_pg[i] = val;
-            }
+    let formData = new FormData();
+    selectedFiles.forEach(f => formData.append('foto', f));
+    
+    formData.append('r_pg', document.getElementById('r_pg').value);
+    formData.append('r_essay', document.getElementById('r_essay').value);
+    formData.append('kunci_pg', JSON.stringify(kunci_pg));
+    formData.append('kunci_essay', JSON.stringify(kunci_essay));
+
+    try {
+        const res = await fetch('/ai/proses-koreksi', { method: 'POST', body: formData });
+        const data = await res.json();
+        
+        if(data.success) {
+            koreksiResult = data.data; 
+            renderKoreksiView();
             
-            let kunci_essay = {};
-            for(let i=1; i<=20; i++) {
-                const val = document.getElementById(`e${i}`).value;
-                if(val) kunci_essay[i] = val;
-            }
+            // --- BAGIAN YANG DI-COPAS ---
+            document.getElementById('resWrap').classList.remove('hidden');
+            document.getElementById('exportMenu').classList.remove('hidden'); 
+            // ----------------------------
 
-            let formData = new FormData();
-            selectedFiles.forEach(f => formData.append('foto', f));
-            
-            // Mengirim bobot dan kunci ke backend
-            formData.append('r_pg', document.getElementById('r_pg').value);
-            formData.append('r_essay', document.getElementById('r_essay').value);
-            formData.append('kunci_pg', JSON.stringify(kunci_pg));
-            formData.append('kunci_essay', JSON.stringify(kunci_essay));
-
-            try {
-                const res = await fetch('/ai/proses-koreksi', { method: 'POST', body: formData });
-                const data = await res.json();
-                if(data.success) {
-                    koreksiResult = data.data; 
-                    renderKoreksiView();
-                    document.getElementById('resWrap').classList.remove('hidden');
-                    refreshUserStatus(); 
-                    Swal.close();
-                } else { Swal.fire('Gagal', data.message, 'error'); }
-            } catch (e) { Swal.fire('Error', 'Server sibuk, coba lagi.', 'error'); }
+            refreshUserStatus(); 
+            Swal.close();
+        } else { 
+            Swal.fire('Gagal', data.message, 'error'); 
         }
+    } catch (e) { 
+        Swal.fire('Error', 'Server sibuk, coba lagi.', 'error'); 
+    }
+}
+
 
         function renderKoreksiView() {
             const container = document.getElementById('scanAwal');
