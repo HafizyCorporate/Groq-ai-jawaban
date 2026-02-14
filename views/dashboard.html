@@ -174,13 +174,11 @@
         let koreksiResult = [];
         let userEmail = "";
 
-        // INIT LOAD
         window.onload = function() {
             initGrids();
             refreshUserStatus();
         };
 
-        // 1. PG & Essay Grid Otomatis
         function initGrids() {
             const pg = document.getElementById('gridPG');
             pg.innerHTML = '';
@@ -194,7 +192,6 @@
             }
         }
 
-        // 2. Token & User Session (PostgreSQL Sync)
         async function refreshUserStatus() {
             try {
                 const res = await fetch('/auth/user-session');
@@ -202,7 +199,6 @@
                 if(data.success) {
                     userEmail = data.email;
                     document.getElementById('valToken').innerText = data.is_premium ? '∞' : data.token;
-                    // Jendela admin hanya muncul untuk admin
                     if(['admin@jawabanai.com', 'Versacy'].includes(data.email)) {
                         document.getElementById('adminPanel').classList.remove('hidden');
                     }
@@ -210,7 +206,6 @@
             } catch (e) { console.log("Postgres connection error"); }
         }
 
-        // 3. Admin Inject Token
         async function injectToken() {
             const email = document.getElementById('admTargetEmail').value;
             const amount = document.getElementById('admAmount').value;
@@ -227,7 +222,6 @@
             }
         }
 
-        // 4. File Handling (Limit 10)
         function triggerUpload(type) {
             if(selectedFiles.length >= 10) return Swal.fire('Sudah Penuh!', 'Maksimal 10 foto saja.', 'warning');
             document.getElementById(type === 'cam' ? 'camFile' : 'galFile').click();
@@ -262,18 +256,28 @@
 
         function removeFile(i) { selectedFiles.splice(i, 1); renderFileList(); }
 
-        // 5. Koreksi AI & Token Update
         async function startKoreksi() {
             if(selectedFiles.length === 0) return Swal.fire('Foto Kosong', 'Bapak/Ibu belum mengunggah foto lembar jawaban.', 'warning');
             Swal.fire({ title: 'PROSES KOREKSI AI', text: 'Menganalisa jawaban siswa...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
             let kunci_pg = {};
-            for(let i=1; i<=40; i++) kunci_pg[i] = document.getElementById(`p${i}`).value;
+            for(let i=1; i<=40; i++) {
+                const val = document.getElementById(`p${i}`).value;
+                if(val) kunci_pg[i] = val;
+            }
+            
             let kunci_essay = {};
-            for(let i=1; i<=20; i++) kunci_essay[i] = document.getElementById(`e${i}`).value;
+            for(let i=1; i<=20; i++) {
+                const val = document.getElementById(`e${i}`).value;
+                if(val) kunci_essay[i] = val;
+            }
 
             let formData = new FormData();
             selectedFiles.forEach(f => formData.append('foto', f));
+            
+            // Mengirim bobot dan kunci ke backend
+            formData.append('r_pg', document.getElementById('r_pg').value);
+            formData.append('r_essay', document.getElementById('r_essay').value);
             formData.append('kunci_pg', JSON.stringify(kunci_pg));
             formData.append('kunci_essay', JSON.stringify(kunci_essay));
 
@@ -281,10 +285,10 @@
                 const res = await fetch('/ai/proses-koreksi', { method: 'POST', body: formData });
                 const data = await res.json();
                 if(data.success) {
-                    koreksiResult = data.data || data.results; 
+                    koreksiResult = data.data; 
                     renderKoreksiView();
                     document.getElementById('resWrap').classList.remove('hidden');
-                    refreshUserStatus(); // Token otomatis terupdate di UI
+                    refreshUserStatus(); 
                     Swal.close();
                 } else { Swal.fire('Gagal', data.message, 'error'); }
             } catch (e) { Swal.fire('Error', 'Server sibuk, coba lagi.', 'error'); }
@@ -313,7 +317,6 @@
             `).join('');
         }
 
-        // 6. Rumus & Terbitkan (Simpan Database SQL)
         async function terbitkanNilai() {
             const rPG = parseFloat(document.getElementById('r_pg').value) || 0;
             const rES = parseFloat(document.getElementById('r_essay').value) || 0;
@@ -327,12 +330,11 @@
 
             koreksiResult.forEach((res, idx) => {
                 let hitung = (res.pg_betul * rPG) + (res.essay_betul * rES);
-                let final = Math.round(hitung); // Pembulatan otomatis
+                let final = Math.round(hitung); 
                 dataSimpan.push({ 
                     nama_siswa: res.nama || 'Siswa '+(idx+1), 
                     mapel: mapel, 
-                    nilai_akhir: final,
-                    email_user: userEmail // Memastikan tersimpan atas nama user tersebut
+                    nilai_akhir: final
                 });
                 container.innerHTML += `
                     <div class="bg-white p-6 rounded-[35px] border-4 border-blue-50 shadow-lg flex justify-between items-center transition hover:scale-[1.01]">
@@ -345,7 +347,6 @@
                 `;
             });
 
-            // Kirim ke database SQL History
             try {
                 const resSave = await fetch('/ai/save-history', {
                     method: 'POST',
@@ -360,47 +361,38 @@
             } catch (e) { Swal.fire('Error', 'Gagal menyimpan ke database.', 'error'); }
         }
 
-        // Preview hitung otomatis saat ganti rumus
         function hitungOtomatisPreview() {
             if(document.getElementById('laporanFinal').innerHTML !== "") {
                 terbitkanNilai();
             }
         }
 
-        // 7. Saweria & Top Up
         function openSaweria() {
             const email = userEmail || 'Guru_Anonim';
             Swal.fire({
                 title: 'TOP UP TOKEN',
                 html: `
-                <div class="grid grid-cols-1 gap-3">
-                    <p class="text-[10px] font-black text-slate-400 uppercase italic">Email Terdaftar: ${email}</p>
-                    <button onclick="window.open('https://saweria.co/GuruBantuGuru?msg=5000|${email}')" class="p-4 bg-blue-50 border-2 border-blue-500 rounded-2xl font-black text-left text-xs text-blue-700 hover:bg-blue-100">📦 10 TOKEN - Rp 5.000</button>
-                    <button onclick="window.open('https://saweria.co/GuruBantuGuru?msg=10000|${email}')" class="p-4 bg-blue-50 border-2 border-blue-500 rounded-2xl font-black text-left text-xs text-blue-700 hover:bg-blue-100">📦 22 TOKEN - Rp 10.000</button>
-                    <button onclick="window.open('https://saweria.co/GuruBantuGuru?msg=25000|${email}')" class="p-4 bg-blue-50 border-2 border-blue-500 rounded-2xl font-black text-left text-xs text-blue-700 hover:bg-blue-100">📦 60 TOKEN - Rp 25.000</button>
-                    <button onclick="window.open('https://saweria.co/GuruBantuGuru?msg=50000|${email}')" class="p-4 bg-blue-50 border-2 border-blue-500 rounded-2xl font-black text-left text-xs text-blue-700 hover:bg-blue-100">📦 150 TOKEN - Rp 50.000</button>
-                    <button onclick="window.open('https://saweria.co/GuruBantuGuru?msg=100000|${email}')" class="p-4 bg-orange-100 border-2 border-orange-500 rounded-2xl font-black text-left text-xs text-orange-700 hover:bg-orange-200">📦 350 TOKEN - Rp 100.000</button>
-                    <p class="text-[8px] font-bold text-red-500 uppercase">Penting: Pastikan pesan saweria memuat email Anda agar token otomatis masuk!</p>
+                <div class="grid grid-cols-1 gap-3 text-left">
+                    <p class="text-[10px] font-black text-slate-400 uppercase italic">Email: ${email}</p>
+                    <button onclick="window.open('https://saweria.co/GuruBantuGuru?msg=5000|${email}')" class="p-4 bg-blue-50 border-2 border-blue-500 rounded-2xl font-black text-xs text-blue-700 hover:bg-blue-100">📦 10 TOKEN - Rp 5.000</button>
+                    <button onclick="window.open('https://saweria.co/GuruBantuGuru?msg=10000|${email}')" class="p-4 bg-blue-50 border-2 border-blue-500 rounded-2xl font-black text-xs text-blue-700 hover:bg-blue-100">📦 22 TOKEN - Rp 10.000</button>
+                    <button onclick="window.open('https://saweria.co/GuruBantuGuru?msg=25000|${email}')" class="p-4 bg-blue-50 border-2 border-blue-500 rounded-2xl font-black text-xs text-blue-700 hover:bg-blue-100">📦 60 TOKEN - Rp 25.000</button>
+                    <button onclick="window.open('https://saweria.co/GuruBantuGuru?msg=50000|${email}')" class="p-4 bg-blue-50 border-2 border-blue-500 rounded-2xl font-black text-xs text-blue-700 hover:bg-blue-100">📦 150 TOKEN - Rp 50.000</button>
+                    <button onclick="window.open('https://saweria.co/GuruBantuGuru?msg=100000|${email}')" class="p-4 bg-orange-100 border-2 border-orange-500 rounded-2xl font-black text-xs text-orange-700 hover:bg-orange-200">📦 350 TOKEN - Rp 100.000</button>
+                    <p class="text-[8px] font-bold text-red-500 uppercase mt-2">Pesan Saweria wajib memuat email Anda!</p>
                 </div>`,
                 showConfirmButton: false, showCloseButton: true
             });
         }
 
-        // 8. History (Grouped & Private by Email)
         async function openHistoryModal() {
             Swal.fire({ title: 'Membuka Riwayat...', didOpen: () => Swal.showLoading() });
             try {
-                // Endpoint ini harus difilter oleh backend berdasarkan email session
                 const res = await fetch('/ai/get-history');
                 const data = await res.json();
+                if (!data.success || data.data.length === 0) return Swal.fire('Kosong', 'Belum ada riwayat.', 'info');
                 
-                if (!data.success || data.data.length === 0) {
-                    return Swal.fire('Belum Ada Riwayat', 'Anda belum pernah menerbitkan nilai.', 'info');
-                }
-                
-                // Grouping by Mapel agar rapi
                 let historyHtml = `<div class="overflow-y-auto max-h-96 custom-scroll text-left">`;
-                
                 const grouped = data.data.reduce((acc, obj) => {
                     const key = obj.mapel;
                     if (!acc[key]) acc[key] = [];
@@ -423,12 +415,10 @@
                         </div>`;
                 }
                 historyHtml += `</div>`;
-                
                 Swal.fire({ title: 'RIWAYAT KOREKSI SAYA', html: historyHtml, width: '90%', confirmButtonText: 'TUTUP' });
             } catch (e) { Swal.fire('Error', 'Gagal memuat riwayat.', 'error'); }
         }
 
-        // 9. Export Logic
         function exportResult(type) {
             const mapel = document.getElementById('mapel').value || 'Laporan';
             const rPG = parseFloat(document.getElementById('r_pg').value) || 0;
@@ -453,13 +443,12 @@
                 XLSX.utils.book_append_sheet(wb, ws, "Daftar Nilai");
                 XLSX.writeFile(wb, `Nilai_${mapel}.xlsx`);
             } else if (type === 'word') {
-                const { Document, Packer, Paragraph, Table, TableRow, TableCell } = docx;
-                const doc = new Document({ sections: [{ children: [new Paragraph({ text: `DATA NILAI: ${mapel}`, heading: "Heading1" })] }] });
+                const { Document, Packer, Paragraph } = docx;
+                const doc = new Document({ sections: [{ children: [new Paragraph({ text: `DATA NILAI: ${mapel}` })] }] });
                 Packer.toBlob(doc).then(blob => saveAs(blob, `Nilai_${mapel}.docx`));
             }
         }
 
-        // 10. Revisi Alur
         async function revisiMassal(type) {
             if (koreksiResult.length === 0) return;
             const { value: formValues } = await Swal.fire({
@@ -471,7 +460,7 @@
             if (formValues) {
                 formValues.forEach((val, i) => { if (type === 'PG') koreksiResult[i].pg_betul = parseInt(val) || 0; else koreksiResult[i].essay_betul = parseInt(val) || 0; });
                 renderKoreksiView();
-                if(document.getElementById('laporanFinal').innerHTML !== "") terbitkanNilai(); // Hitung ulang otomatis
+                if(document.getElementById('laporanFinal').innerHTML !== "") terbitkanNilai(); 
             }
         }
 
