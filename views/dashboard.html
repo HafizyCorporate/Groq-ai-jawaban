@@ -318,8 +318,8 @@
         }
 
         async function terbitkanNilai() {
-            const rPG = parseFloat(document.getElementById('r_pg').value) || 0;
-            const rES = parseFloat(document.getElementById('r_essay').value) || 0;
+            let rumusPG = document.getElementById('r_pg').value.trim().replace(/x/g, '*');
+            let rumusES = document.getElementById('r_essay').value.trim().replace(/x/g, '*');
             const mapel = document.getElementById('mapel').value;
             
             if(!mapel) return Swal.fire('Mapel Kosong', 'Harap isi Nama Mata Pelajaran.', 'warning');
@@ -329,17 +329,28 @@
             container.innerHTML = `<h3 class="text-center font-black text-2xl uppercase text-slate-800 mb-6 underline decoration-blue-500 underline-offset-8">DAFTAR NILAI: ${mapel}</h3>`;
 
             koreksiResult.forEach((res, idx) => {
-                let hitung = (res.pg_betul * rPG) + (res.essay_betul * rES);
-                let final = Math.round(hitung); 
+                // Logika: Angka Benar Siswa ditempel di depan rumus
+                let hitungPG = 0;
+                let hitungES = 0;
+
+                try {
+                    hitungPG = eval(`${res.pg_betul} ${rumusPG}`) || 0;
+                    hitungES = eval(`${res.essay_betul} ${rumusES}`) || 0;
+                } catch(e) { console.error(e); }
+
+                let total = hitungPG + hitungES;
+                let final = Math.round(total); 
+
                 dataSimpan.push({ 
                     nama_siswa: res.nama || 'Siswa '+(idx+1), 
                     mapel: mapel, 
                     nilai_akhir: final
                 });
+
                 container.innerHTML += `
-                    <div class="bg-white p-6 rounded-[35px] border-4 border-blue-50 shadow-lg flex justify-between items-center transition hover:scale-[1.01]">
+                    <div class="bg-white p-6 rounded-[35px] border-4 border-blue-50 shadow-lg flex justify-between items-center transition hover:scale-[1.01] mb-4">
                         <div>
-                             <p class="text-[9px] font-black text-slate-400 uppercase">Siswa ${idx+1}</p>
+                             <p class="text-[9px] font-black text-slate-400 uppercase italic">Siswa ${idx+1} | Benar: PG ${res.pg_betul}, ES ${res.essay_betul}</p>
                              <h2 class="text-xl font-black text-blue-900 uppercase">${res.nama || 'Siswa '+(idx+1)}</h2>
                         </div>
                         <div class="bg-blue-600 w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl font-black shadow-xl">${final}</div>
@@ -421,15 +432,23 @@
 
         function exportResult(type) {
             const mapel = document.getElementById('mapel').value || 'Laporan';
-            const rPG = parseFloat(document.getElementById('r_pg').value) || 0;
-            const rES = parseFloat(document.getElementById('r_essay').value) || 0;
-            const dataExport = koreksiResult.map((res, i) => ({
-                no: i + 1,
-                nama: res.nama || 'Siswa '+(i+1),
-                pg: res.pg_betul,
-                essay: res.essay_betul,
-                total: Math.round((res.pg_betul * rPG) + (res.essay_betul * rES))
-            }));
+            let rumusPG = document.getElementById('r_pg').value.trim().replace(/x/g, '*');
+            let rumusES = document.getElementById('r_essay').value.trim().replace(/x/g, '*');
+
+            const dataExport = koreksiResult.map((res, i) => {
+                let hPG = 0; let hES = 0;
+                try { 
+                    hPG = eval(`${res.pg_betul} ${rumusPG}`) || 0;
+                    hES = eval(`${res.essay_betul} ${rumusES}`) || 0;
+                } catch(e){}
+                return {
+                    no: i + 1,
+                    nama: res.nama || 'Siswa '+(i+1),
+                    pg: res.pg_betul,
+                    essay: res.essay_betul,
+                    total: Math.round(hPG + hES)
+                };
+            });
 
             if (type === 'pdf') {
                 const { jsPDF } = window.jspdf;
