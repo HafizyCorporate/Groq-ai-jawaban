@@ -165,12 +165,16 @@ app.post('/auth/reset-password', async (req, res) => {
     res.status(400).json({ success: false, message: "Kode OTP Salah" });
 });
 
-// --- 5. FITUR ADMIN & SAWERIA ---
-app.post('/admin/add-token', async (req, res) => {
-    const { adminEmail, targetEmail, amount } = req.body;
-    if (adminEmail !== 'Versacy') return res.status(403).json({ success: false });
+// --- 5. FITUR ADMIN & SAWERIA (UPDATED) ---
+app.post('/admin/inject-token', async (req, res) => {
+    const { email, amount } = req.body;
+    // Pengecekan admin berdasarkan session email
+    const isAdmin = ['Versacy', 'admin@jawabanai.com'].includes(req.session.userId);
+    
+    if (!isAdmin) return res.status(403).json({ success: false, message: "Unauthorized" });
+    
     try {
-        await query('UPDATE users SET quota = quota + $1 WHERE email = $2', [parseInt(amount), targetEmail.trim()]);
+        await query('UPDATE users SET quota = quota + $1 WHERE email = $2', [parseInt(amount), email.trim()]);
         res.json({ success: true });
     } catch (e) { res.status(500).json({ success: false }); }
 });
