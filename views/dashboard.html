@@ -185,15 +185,27 @@
         let koreksiResult = [];
         let userEmail = "";
 
-        // --- FUNGSI LOGIKA MATEMATIKA SEDERHANA (PENGGANTI EVAL) ---
-        function kalkulasiNilai(skorAwal, inputRumus) {
-            let s = skorAwal;
-            let rumus = inputRumus.trim().toLowerCase().replace(/x/g, '*').replace(/:/g, '/');
-            
-            // Jika input hanya angka murni (misal: "2.5"), anggap sebagai pengali (*)
-            if (!isNaN(rumus) && rumus !== "") {
-                return s * parseFloat(rumus);
-            }
+        // --- FUNGSI LOGIKA MATEMATIKA TERBARU (MENDUKUNG RUMUS KOMPLEKS) ---
+function kalkulasiNilai(skorAwal, inputRumus) {
+    let s = skorAwal;
+    // Bersihkan input: ubah 'x' jadi '*', ubah ':' jadi '/' agar dipahami sistem
+    let rumus = inputRumus.trim().toLowerCase().replace(/x/g, '*').replace(/:/g, '/');
+
+    // Jika Bapak/Ibu hanya isi angka saja (misal: 2), otomatis dianggap perkalian
+    if (!isNaN(rumus) && rumus !== "") {
+        return s * parseFloat(rumus);
+    }
+
+    try {
+        // Menggabungkan angka benar siswa dengan seluruh rumus (misal: 5 + *10/13)
+        let ekspresi = s + rumus; 
+        return new Function(`return ${ekspresi}`)();
+    } catch (e) {
+        console.error("Format rumus salah:", e);
+        return s; 
+    }
+}
+
 
             // Parsing operator (+, -, *, /)
             let operator = rumus.charAt(0);
