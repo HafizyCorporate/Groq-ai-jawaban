@@ -12,7 +12,7 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 8080; 
 
-// --- 0. KONFIGURASI API BREVO ---
+// --- 0. KONFIGURASI API BREVO (TIDAK BERUBAH) ---
 const defaultClient = SibApiV3Sdk.ApiClient.instance;
 const apiKey = defaultClient.authentications['api-key'];
 apiKey.apiKey = process.env.BREVO_API_KEY; 
@@ -129,7 +129,7 @@ app.post('/auth/forgot-password', async (req, res) => {
     } catch (e) { res.status(500).json({ success: false }); }
 });
 
-// --- 5. ADMIN & SAWERIA WEBHOOK (DIPERTAHANKAN) ---
+// --- 5. ADMIN & SAWERIA WEBHOOK (TIDAK BERUBAH) ---
 app.post('/admin/inject-token', async (req, res) => {
     const isAdmin = ['Versacy', 'admin@jawabanai.com'].includes(req.session.userId);
     if (!isAdmin) return res.status(403).json({ success: false, message: "Unauthorized" });
@@ -158,7 +158,7 @@ app.post('/webhook/saweria', async (req, res) => {
     res.status(200).send('OK');
 });
 
-// --- 6. HISTORY API ---
+// --- 6. HISTORY API (DIPERBAIKI: TAMBAH GET HISTORY) ---
 app.post('/ai/save-history', async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ success: false });
     const { data } = req.body;
@@ -173,7 +173,21 @@ app.post('/ai/save-history', async (req, res) => {
     } catch (e) { res.status(500).json({ success: false }); }
 });
 
-// --- 7. PROSES KOREKSI AI (LOGIKA KUOTA DIPERBAIKI) ---
+// INI KUNCI AGAR RIWAYAT BISA DIBUKA
+app.get('/ai/get-history', async (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ success: false });
+    try {
+        const result = await query(
+            'SELECT nama_siswa, mapel, nilai_akhir, waktu FROM history WHERE email = $1 ORDER BY id DESC', 
+            [req.session.userId]
+        );
+        res.json({ success: true, data: result.rows });
+    } catch (e) { 
+        res.status(500).json({ success: false }); 
+    }
+});
+
+// --- 7. PROSES KOREKSI AI ---
 const upload = multer({ storage: multer.memoryStorage() });
 const { prosesKoreksiLengkap } = require('./routes/koreksi');
 
@@ -184,7 +198,6 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
         const userRes = await query('SELECT quota, is_premium FROM users WHERE email = $1', [req.session.userId]);
         const user = userRes.rows[0];
         
-        // Validasi awal kuota
         if (!user.is_premium && user.quota < req.files.length) {
             return res.json({ success: false, limitReached: true, message: "Token Tidak Mencukupi" });
         }
@@ -194,14 +207,10 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
             kunci_essay: typeof req.body.kunci_essay === 'string' ? JSON.parse(req.body.kunci_essay) : (req.body.kunci_essay || {})
         };
 
-        const rumusPG = String(req.body.r_pg || "2.5");
-        const rumusES = String(req.body.r_essay || "5");
+        // Rumus diabaikan di sini karena dihitung di frontend (dashboard)
+        const results = await prosesKoreksiLengkap(req.files, settings);
 
-        const results = await prosesKoreksiLengkap(req.files, settings, rumusPG, rumusES);
-
-        // --- LOGIKA KUOTA ADIL ---
-        // Menghitung berapa banyak file yang BERHASIL di-scan (bukan sekadar diupload)
-        const totalBerhasil = results.filter(r => r.nama !== "ERROR SCAN").length;
+        const totalBerhasil = results.filter(r => r.nama !== "GAGAL SCAN").length;
 
         if (totalBerhasil > 0 && !user.is_premium) {
             await query(
