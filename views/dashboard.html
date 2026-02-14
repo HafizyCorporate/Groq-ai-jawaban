@@ -300,26 +300,11 @@ function kalkulasiNilai(skorAwal, inputRumus) {
         function removeFile(i) { selectedFiles.splice(i, 1); renderFileList(); }
         
 async function startKoreksi() {
-    if (selectedFiles.length === 0) {
-        return Swal.fire('Foto Kosong', 'Bapak/Ibu belum mengunggah foto lembar jawaban.', 'warning');
-    }
+    if (selectedFiles.length === 0) return Swal.fire('Foto Kosong', 'Bapak/Ibu belum mengunggah foto lembar jawaban.', 'warning');
     
-    // Validasi Kunci Jawaban (Opsional tapi penting)
-    const cekPG = document.getElementById('p1').value;
-    if (!cekPG) {
-        const confirm = await Swal.fire({
-            title: 'Kunci Kosong?',
-            text: "Bapak/Ibu belum mengisi Kunci Jawaban No. 1. Tetap lanjut?",
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonText: 'Lanjut'
-        });
-        if (!confirm.isConfirmed) return;
-    }
-
     Swal.fire({ 
         title: 'PROSES KOREKSI AI', 
-        text: 'Menganalisa jawaban siswa... Mohon tunggu sebentar.', 
+        text: 'Menganalisa jawaban siswa...', 
         allowOutsideClick: false, 
         didOpen: () => Swal.showLoading() 
     });
@@ -348,42 +333,40 @@ async function startKoreksi() {
         const res = await fetch('/ai/proses-koreksi', { method: 'POST', body: formData });
         const data = await res.json();
         
-        Swal.close(); // Tutup loading tepat waktu
+        Swal.close();
 
         if (data.success) {
-            // Update variabel global
             koreksiResult = data.data; 
-            
-            // Jalankan fungsi visual
             renderKoreksiView();
             
-            // Munculkan panel hasil & navigasi
             document.getElementById('resWrap').classList.remove('hidden');
-            
-            // Efek Confetti biar meriah
+            document.getElementById('exportMenu').classList.remove('hidden'); 
+
             confetti({
                 particleCount: 150,
                 spread: 70,
-                origin: { y: 0.6 }
+                origin: { y: 0.6 },
+                colors: ['#2563eb', '#10b981', '#f59e0b']
             });
 
             Swal.fire({
-                title: 'BERHASIL!',
-                text: `${koreksiResult.length} siswa selesai dikoreksi.`,
+                title: 'KOREKSI SELESAI!',
+                text: `${koreksiResult.length} lembar siswa berhasil dianalisis.`,
                 icon: 'success',
-                timer: 2000,
+                timer: 3000,
                 showConfirmButton: false
             });
 
-            refreshUserStatus(); // Update token biar gak perlu refresh halaman
+            refreshUserStatus(); 
         } else { 
-            Swal.fire('Gagal', data.message || 'Terjadi kesalahan sistem', 'error'); 
+            Swal.fire('Gagal', data.message, 'error'); 
         }
     } catch (e) { 
         Swal.close();
-        Swal.fire('Koneksi Error', 'Server tidak merespon, coba cek internet Bapak/Ibu.', 'error'); 
+        Swal.fire('Error', 'Server sibuk, coba lagi.', 'error'); 
     }
 }
+
 
             function renderKoreksiView() {
             const container = document.getElementById('scanAwal');
