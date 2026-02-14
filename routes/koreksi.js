@@ -18,8 +18,8 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
     const hitungNilai = (rumus, betul, total) => {
         if (!rumus || total === 0) return 0;
         try {
-            // Jika input hanya angka murni (misal: "2.5"), langsung kalikan dengan jumlah betul
-            if (!isNaN(rumus)) return parseFloat(rumus) * betul;
+            // PERBAIKAN: Cek apakah rumus ada isinya DAN merupakan angka murni
+            if (rumus && !isNaN(rumus)) return parseFloat(rumus) * betul;
 
             let f = rumus.toLowerCase()
                 .replace(/:/g, '/')   // Mengubah ":" menjadi "/" (pembagian)
