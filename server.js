@@ -5,14 +5,14 @@ const dotenv = require('dotenv');
 const bcrypt = require('bcrypt'); 
 const session = require('express-session'); 
 const SibApiV3Sdk = require('sib-api-v3-sdk');
-const { query, sqliteDb } = require('./db');
+const { query } = require('./db'); // Pastikan koneksi DB sesuai
 const fs = require('fs');
 
 dotenv.config();
 const app = express();
 const port = process.env.PORT || 8080; 
 
-// --- 0. KONFIGURASI API BREVO (TIDAK BERUBAH) ---
+// --- 0. KONFIGURASI API BREVO ---
 const defaultClient = SibApiV3Sdk.ApiClient.instance;
 const apiKey = defaultClient.authentications['api-key'];
 apiKey.apiKey = process.env.BREVO_API_KEY; 
@@ -42,8 +42,8 @@ async function migrasiData() {
                 waktu TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         `);
-        console.log("Database Ready.");
-    } catch(e) { console.log("Migrasi Error/Skip:", e.message); }
+        console.log("✅ Database & Table Ready.");
+    } catch(e) { console.log("⚠️ Migrasi Error/Skip:", e.message); }
 }
 migrasiData();
 
@@ -114,22 +114,7 @@ app.get('/auth/logout', (req, res) => {
     res.redirect('/');
 });
 
-app.post('/auth/forgot-password', async (req, res) => {
-    const { email } = req.body;
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    try {
-        await query('UPDATE users SET otp = $1 WHERE email = $2', [otp, email.trim()]);
-        await apiInstance.sendTransacEmail({
-            sender: { email: "admin@jawabanai.com", name: "Jawaban AI" },
-            to: [{ email: email.trim() }],
-            subject: "Kode OTP Lupa Password",
-            textContent: `Kode OTP Anda adalah: ${otp}`
-        });
-        res.json({ success: true });
-    } catch (e) { res.status(500).json({ success: false }); }
-});
-
-// --- 5. ADMIN & SAWERIA WEBHOOK (TIDAK BERUBAH) ---
+// --- 5. ADMIN & SAWERIA WEBHOOK (FIXED LOGIC) ---
 app.post('/admin/inject-token', async (req, res) => {
     const isAdmin = ['Versacy', 'admin@jawabanai.com'].includes(req.session.userId);
     if (!isAdmin) return res.status(403).json({ success: false, message: "Unauthorized" });
@@ -141,7 +126,7 @@ app.post('/admin/inject-token', async (req, res) => {
 });
 
 app.post('/webhook/saweria', async (req, res) => {
-    const { amount_raw, customer_email, msg } = req.body;
+    const { amount_raw, msg } = req.body;
     let tokenBonus = 0;
     if (amount_raw >= 100000) tokenBonus = 350;
     else if (amount_raw >= 50000) tokenBonus = 150;
@@ -149,16 +134,18 @@ app.post('/webhook/saweria', async (req, res) => {
     else if (amount_raw >= 10000) tokenBonus = 22;
     else if (amount_raw >= 5000) tokenBonus = 10;
 
-    if (tokenBonus > 0) {
+    if (tokenBonus > 0 && msg) {
         try {
-            const emailTarget = (customer_email || msg || "").trim();
+            // Memisahkan pesan jika formatnya "NOMINAL|EMAIL" (Contoh: 5000|guru@gmail.com)
+            const emailTarget = msg.includes('|') ? msg.split('|')[1].trim() : msg.trim();
             await query('UPDATE users SET quota = quota + $1 WHERE email = $2', [tokenBonus, emailTarget]);
+            console.log(`✅ Token berhasil ditambah ke ${emailTarget} via Saweria`);
         } catch (e) { console.error("Saweria Webhook Error:", e); }
     }
     res.status(200).send('OK');
 });
 
-// --- 6. HISTORY API (DIPERBAIKI: TAMBAH GET HISTORY) ---
+// --- 6. HISTORY API ---
 app.post('/ai/save-history', async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ success: false });
     const { data } = req.body;
@@ -173,7 +160,6 @@ app.post('/ai/save-history', async (req, res) => {
     } catch (e) { res.status(500).json({ success: false }); }
 });
 
-// INI KUNCI AGAR RIWAYAT BISA DIBUKA
 app.get('/ai/get-history', async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ success: false });
     try {
@@ -182,12 +168,10 @@ app.get('/ai/get-history', async (req, res) => {
             [req.session.userId]
         );
         res.json({ success: true, data: result.rows });
-    } catch (e) { 
-        res.status(500).json({ success: false }); 
-    }
+    } catch (e) { res.status(500).json({ success: false }); }
 });
 
-// --- 7. PROSES KOREKSI AI ---
+// --- 7. PROSES KOREKSI AI (FIXED SYNC) ---
 const upload = multer({ storage: multer.memoryStorage() });
 const { prosesKoreksiLengkap } = require('./routes/koreksi');
 
@@ -202,15 +186,21 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
             return res.json({ success: false, limitReached: true, message: "Token Tidak Mencukupi" });
         }
 
+        // Parsing Kunci Jawaban
         let settings = {
             kunci_pg: typeof req.body.kunci_pg === 'string' ? JSON.parse(req.body.kunci_pg) : (req.body.kunci_pg || {}),
             kunci_essay: typeof req.body.kunci_essay === 'string' ? JSON.parse(req.body.kunci_essay) : (req.body.kunci_essay || {})
         };
 
-        // Rumus diabaikan di sini karena dihitung di frontend (dashboard)
-        const results = await prosesKoreksiLengkap(req.files, settings);
+        // Ambil rumus dari dashboard (Frontend)
+        const rumusPG = req.body.r_pg || "betul x 2.5";
+        const rumusES = req.body.r_essay || "betul x 5";
 
-        const totalBerhasil = results.filter(r => r.nama !== "GAGAL SCAN").length;
+        // Eksekusi Koreksi dengan parameter lengkap
+        const results = await prosesKoreksiLengkap(req.files, settings, rumusPG, rumusES);
+
+        // Hitung file yang berhasil (Bukan GAGAL SCAN)
+        const totalBerhasil = results.filter(r => r.nama !== "ERROR SCAN" && r.nama !== "GAGAL SCAN").length;
 
         if (totalBerhasil > 0 && !user.is_premium) {
             await query(
@@ -227,9 +217,9 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
         });
 
     } catch (error) {
-        console.error("Koreksi Error:", error);
-        res.status(500).json({ success: false, message: "Gagal memproses AI." });
+        console.error("❌ Koreksi Error:", error);
+        res.status(500).json({ success: false, message: "Terjadi kesalahan internal pada AI." });
     }
 });
 
-app.listen(port, () => console.log(`Server aktif di port ${port}`));
+app.listen(port, () => console.log(`🚀 Server Jawaban AI aktif di port ${port}`));
