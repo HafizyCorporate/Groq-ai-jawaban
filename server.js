@@ -185,20 +185,29 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
             return res.json({ success: false, limitReached: true, message: "Token Tidak Mencukupi" });
         }
 
-        // Ambil kunci jawaban
+        // --- TAMBAHAN: PARSING JSON AGAR MENJADI OBJECT ---
+        let kunciPG = {};
+        let kunciEssay = {};
+        
+        try {
+            // Mengubah string JSON dari frontend menjadi Object Javascript
+            kunciPG = req.body.kunci_pg ? JSON.parse(req.body.kunci_pg) : {};
+            kunciEssay = req.body.kunci_essay ? JSON.parse(req.body.kunci_essay) : {};
+        } catch (parseError) {
+            console.error("⚠️ Error Parsing Kunci Jawaban:", parseError);
+        }
+
         let settings = {
-            kunci_pg: req.body.kunci_pg,
-            kunci_essay: req.body.kunci_essay
+            kunci_pg: kunciPG,
+            kunci_essay: kunciEssay
         };
 
-        // Ambil rumus dari body
         const r_pg = req.body.r_pg;
         const r_essay = req.body.r_essay;
 
-        // Panggil fungsi koreksi dengan parameter lengkap
+        // Panggil fungsi koreksi dengan data yang sudah di-parse
         const results = await prosesKoreksiLengkap(req.files, settings, r_pg, r_essay);
 
-        // Hitung total file yang berhasil diproses
         const totalBerhasil = results.filter(r => r.nama !== "ERROR SCAN" && r.nama !== "GAGAL SCAN").length;
 
         if (totalBerhasil > 0 && !user.is_premium) {
