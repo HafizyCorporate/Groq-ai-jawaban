@@ -167,13 +167,11 @@
         let koreksiResult = [];
         let userEmail = "";
 
-        // Pemuatan Awal
         window.onload = function() {
             initGrids();
             refreshUserStatus();
         };
 
-        // 1. PG 40 & Essay 20 Otomatis
         function initGrids() {
             const pg = document.getElementById('gridPG');
             pg.innerHTML = '';
@@ -187,7 +185,6 @@
             }
         }
 
-        // 2. PostgreSQL & Token System
         async function refreshUserStatus() {
             try {
                 const res = await fetch('/auth/user-session');
@@ -195,7 +192,6 @@
                 if(data.success) {
                     userEmail = data.email;
                     document.getElementById('valToken').innerText = data.is_premium ? '∞' : data.token;
-                    // Jendela Admin Rahasia
                     if(['admin@jawabanai.com', 'Versacy'].includes(data.email)) {
                         document.getElementById('adminPanel').classList.remove('hidden');
                     }
@@ -203,7 +199,6 @@
             } catch (e) { console.log("Postgres connection error"); }
         }
 
-        // 3. Admin Inject Token
         async function injectToken() {
             const email = document.getElementById('admTargetEmail').value;
             const amount = document.getElementById('admAmount').value;
@@ -221,7 +216,6 @@
             }
         }
 
-        // 4. Multiple File & Kamera Terpisah
         function triggerUpload(type) {
             if(selectedFiles.length >= 10) return Swal.fire('Limit!', 'Maksimal 10 foto Bapak/Ibu.', 'warning');
             document.getElementById(type === 'cam' ? 'camFile' : 'galFile').click();
@@ -256,7 +250,6 @@
 
         function removeFile(i) { selectedFiles.splice(i, 1); renderFileList(); }
 
-        // 5. Koreksi AI (Connect to koreksi.js logic)
         async function startKoreksi() {
             if(selectedFiles.length === 0) return Swal.fire('Oops!', 'Bapak/Ibu belum pilih foto.', 'warning');
             
@@ -267,25 +260,25 @@
                 didOpen: () => Swal.showLoading() 
             });
 
-            // Simulasi integrasi koreksi.js dan pemotongan token
-            let keys = { pg: {}, essay: {} };
-            for(let i=1; i<=40; i++) keys.pg[i] = document.getElementById(`p${i}`).value;
-            for(let i=1; i<=20; i++) keys.essay[i] = document.getElementById(`e${i}`).value;
+            let kunci_pg = {};
+            for(let i=1; i<=40; i++) kunci_pg[i] = document.getElementById(`p${i}`).value;
+            let kunci_essay = {};
+            for(let i=1; i<=20; i++) kunci_essay[i] = document.getElementById(`e${i}`).value;
 
             let formData = new FormData();
             selectedFiles.forEach(f => formData.append('foto', f));
-            formData.append('keys', JSON.stringify(keys));
+            formData.append('kunci_pg', JSON.stringify(kunci_pg));
+            formData.append('kunci_essay', JSON.stringify(kunci_essay));
 
             try {
                 const res = await fetch('/ai/proses-koreksi', { method: 'POST', body: formData });
-
                 const data = await res.json();
                 
                 if(data.success) {
-                    koreksiResult = data.results;
+                    koreksiResult = data.data || data.results; 
                     renderKoreksiView();
                     document.getElementById('resWrap').classList.remove('hidden');
-                    refreshUserStatus(); // Update token otomatis
+                    refreshUserStatus(); 
                     Swal.close();
                 } else {
                     Swal.fire('Gagal', data.message, 'error');
@@ -293,34 +286,32 @@
             } catch (e) { Swal.fire('Error', 'Server sibuk, coba lagi.', 'error'); }
         }
 
-        // 6. Tampilan Hasil Koreksi & Keterangan Lengkap
         function renderKoreksiView() {
             const container = document.getElementById('scanAwal');
             container.innerHTML = koreksiResult.map((res, idx) => `
                 <div class="bg-white p-8 rounded-[40px] shadow-2xl border-4 border-slate-50">
                     <div class="flex justify-between items-center mb-6">
                         <h4 class="font-black text-2xl text-blue-600 italic">SISWA ${idx+1}</h4>
-                        <span class="text-[10px] font-bold text-slate-400">${res.filename}</span>
+                        <span class="text-[10px] font-bold text-slate-400">${res.filename || ''}</span>
                     </div>
                     <div class="space-y-4">
                         <div class="bg-blue-50 p-6 rounded-3xl flex justify-between items-center">
                             <span class="font-black text-blue-700">BENAR PG</span>
-                            <span class="text-5xl font-black text-blue-600">${res.scorePG}</span>
+                            <span class="text-5xl font-black text-blue-600">${res.pg_betul}</span>
                         </div>
                         <div class="bg-emerald-50 p-6 rounded-3xl flex justify-between items-center">
                             <span class="font-black text-emerald-700">BENAR ESSAY</span>
-                            <span class="text-5xl font-black text-emerald-600">${res.scoreEssay}</span>
+                            <span class="text-5xl font-black text-emerald-600">${res.essay_betul}</span>
                         </div>
                         <div class="p-4 border-t border-slate-100">
                              <p class="text-xs font-black text-slate-400 uppercase mb-1">Nama Terdeteksi:</p>
-                             <p class="text-xl font-black text-slate-900">${res.studentName || 'Tidak terbaca (1 Siswa/Lembar)'}</p>
+                             <p class="text-xl font-black text-slate-900">${res.nama || 'Tidak terbaca'}</p>
                         </div>
                     </div>
                 </div>
             `).join('');
         }
 
-        // 7. Terbitkan Nilai (Rumus & Pembulatan)
         function terbitkanNilai() {
             const rPG = parseFloat(document.getElementById('r_pg').value) || 0;
             const rES = parseFloat(document.getElementById('r_essay').value) || 0;
@@ -330,14 +321,14 @@
             container.innerHTML = `<h3 class="text-center font-black text-3xl uppercase text-slate-800 mb-8 underline decoration-blue-500 underline-offset-8">DAFTAR NILAI: ${mapel}</h3>`;
 
             koreksiResult.forEach(res => {
-                let hitung = (res.scorePG * rPG) + (res.scoreEssay * rES);
-                let final = Math.round(hitung); // Pembulatan Otomatis
+                let hitung = (res.pg_betul * rPG) + (res.essay_betul * rES);
+                let final = Math.round(hitung); 
 
                 container.innerHTML += `
                     <div class="bg-white p-10 rounded-[50px] border-8 border-blue-50 shadow-xl flex justify-between items-center transition hover:scale-[1.02]">
                         <div>
                             <p class="text-[10px] font-black text-slate-400 uppercase">Nama Siswa</p>
-                            <h2 class="text-3xl font-black text-blue-900 uppercase">${res.studentName || 'Siswa Tanpa Nama'}</h2>
+                            <h2 class="text-3xl font-black text-blue-900 uppercase">${res.nama || 'Siswa Tanpa Nama'}</h2>
                         </div>
                         <div class="bg-blue-600 w-24 h-24 rounded-full flex items-center justify-center text-white shadow-2xl">
                             <span class="text-4xl font-black">${final}</span>
@@ -348,7 +339,6 @@
             document.getElementById('exportMenu').classList.remove('hidden');
         }
 
-        // 8. Saweria (Otomatis & Paket Lengkap)
         function openSaweria() {
             const email = userEmail || 'User_Unknown';
             Swal.fire({
@@ -360,13 +350,13 @@
                     <button onclick="window.open('https://saweria.co/GuruBantuGuru?msg=10000|${email}')" class="p-5 bg-blue-50 border-2 border-blue-500 rounded-2xl font-black text-left text-xs text-blue-700">📦 22 TOKEN - Rp 10.000</button>
                     <button onclick="window.open('https://saweria.co/GuruBantuGuru?msg=25000|${email}')" class="p-5 bg-blue-50 border-2 border-blue-500 rounded-2xl font-black text-left text-xs text-blue-700">📦 60 TOKEN - Rp 25.000</button>
                     <button onclick="window.open('https://saweria.co/GuruBantuGuru?msg=50000|${email}')" class="p-5 bg-blue-50 border-2 border-blue-500 rounded-2xl font-black text-left text-xs text-blue-700">📦 150 TOKEN - Rp 50.000</button>
-                    <button onclick="window.open('https://saweria.co/GuruBantuGuru?msg=100000|${email}')" class="p-5 bg-orange-100 border-2 border-orange-500 rounded-2xl font-black text-left text-xs text-orange-700">📦 350 TOKEN - Rp 50.000</button>
+                    <button onclick="window.open('https://saweria.co/GuruBantuGuru?msg=100000|${email}')" class="p-5 bg-orange-100 border-2 border-orange-500 rounded-2xl font-black text-left text-xs text-orange-700">📦 350 TOKEN - Rp 100.000</button>
                 </div>`,
                 showConfirmButton: false, showCloseButton: true
             });
         }
 
-        function exportResult(type) { Swal.fire('Proses Export', `Dokument ${type.toUpperCase()} sedang dibuat secara rapi...`, 'info'); }
+        function exportResult(type) { Swal.fire('Proses Export', `Dokumen ${type.toUpperCase()} sedang dibuat secara rapi...`, 'info'); }
         function openHistoryModal() { Swal.fire('Riwayat Database', 'Menarik data riwayat dari PostgreSQL...', 'info'); }
         function logout() { window.location.href = '/auth/logout'; }
     </script>
