@@ -185,6 +185,31 @@
         let koreksiResult = [];
         let userEmail = "";
 
+        // --- FUNGSI LOGIKA MATEMATIKA SEDERHANA (PENGGANTI EVAL) ---
+        function kalkulasiNilai(skorAwal, inputRumus) {
+            let s = skorAwal;
+            let rumus = inputRumus.trim().toLowerCase().replace(/x/g, '*').replace(/:/g, '/');
+            
+            // Jika input hanya angka murni (misal: "2.5"), anggap sebagai pengali (*)
+            if (!isNaN(rumus) && rumus !== "") {
+                return s * parseFloat(rumus);
+            }
+
+            // Parsing operator (+, -, *, /)
+            let operator = rumus.charAt(0);
+            let angka = parseFloat(rumus.substring(1).trim());
+
+            if (isNaN(angka)) return s; // Jika tidak ada angka valid setelah operator
+
+            switch (operator) {
+                case '*': return s * angka;
+                case '/': return angka !== 0 ? s / angka : 0;
+                case '+': return s + angka;
+                case '-': return s - angka;
+                default: return s;
+            }
+        }
+
         window.onload = function() {
             initGrids();
             refreshUserStatus();
@@ -329,20 +354,8 @@
         }
 
         async function terbitkanNilai() {
-            // Pembersihan Rumus Frontend agar aman saat eval()
-            const bersihkanRumus = (input) => {
-                // HANYA IZINKAN ANGKA DAN OPERATOR MATH VALID UNTUK KEAMANAN EVAL
-                let r = input.trim().toLowerCase()
-                    .replace(/x/g, '*')
-                    .replace(/:/g, '/')
-                    .replace(/[^0-9.\+\-\*\/\(\)\s]/g, ''); 
-                
-                if (!isNaN(r) && r !== "") return `* ${r}`;
-                return r;
-            };
-
-            let rumusPG = bersihkanRumus(document.getElementById('r_pg').value);
-            let rumusES = bersihkanRumus(document.getElementById('r_essay').value);
+            let rumusPG = document.getElementById('r_pg').value;
+            let rumusES = document.getElementById('r_essay').value;
             const mapel = document.getElementById('mapel').value;
             
             if(!mapel) return Swal.fire('Mapel Kosong', 'Harap isi Nama Mata Pelajaran.', 'warning');
@@ -352,17 +365,9 @@
             container.innerHTML = `<h3 class="text-center font-black text-2xl uppercase text-slate-800 mb-6 underline decoration-blue-500 underline-offset-8">DAFTAR NILAI: ${mapel}</h3>`;
 
             koreksiResult.forEach((res, idx) => {
-                let hitungPG = 0;
-                let hitungES = 0;
-
-                try {
-                    // Eksekusi rumus: Angka Betul Siswa + Rumus (misal: 10 * 2.5)
-                    hitungPG = eval(`${res.pg_betul} ${rumusPG}`) || 0;
-                    hitungES = eval(`${res.essay_betul} ${rumusES}`) || 0;
-                } catch(e) { 
-                    console.error("Kesalahan Rumus Siswa " + (idx+1), e);
-                    hitungPG = 0; hitungES = 0;
-                }
+                // LOGIKA MATEMATIKA SEDERHANA
+                let hitungPG = kalkulasiNilai(res.pg_betul, rumusPG);
+                let hitungES = kalkulasiNilai(res.essay_betul, rumusES);
 
                 let total = hitungPG + hitungES;
                 let final = Math.round(total); 
@@ -458,26 +463,13 @@
 
         function exportResult(type) {
             const mapel = document.getElementById('mapel').value || 'Laporan';
-            const bersihkanRumus = (input) => {
-                // HANYA IZINKAN ANGKA DAN OPERATOR MATH VALID UNTUK KEAMANAN EVAL
-                let r = input.trim().toLowerCase()
-                    .replace(/x/g, '*')
-                    .replace(/:/g, '/')
-                    .replace(/[^0-9.\+\-\*\/\(\)\s]/g, '');
-                
-                if (!isNaN(r) && r !== "") return `* ${r}`;
-                return r;
-            };
-
-            let rumusPG = bersihkanRumus(document.getElementById('r_pg').value);
-            let rumusES = bersihkanRumus(document.getElementById('r_essay').value);
+            let rumusPG = document.getElementById('r_pg').value;
+            let rumusES = document.getElementById('r_essay').value;
 
             const dataExport = koreksiResult.map((res, i) => {
-                let hPG = 0; let hES = 0;
-                try { 
-                    hPG = eval(`${res.pg_betul} ${rumusPG}`) || 0;
-                    hES = eval(`${res.essay_betul} ${rumusES}`) || 0;
-                } catch(e){ hPG = 0; hES = 0; }
+                let hPG = kalkulasiNilai(res.pg_betul, rumusPG);
+                let hES = kalkulasiNilai(res.essay_betul, rumusES);
+                
                 return {
                     no: i + 1,
                     nama: res.nama || 'Siswa '+(i+1),
@@ -524,3 +516,4 @@
     </script>
 </body>
 </html>
+
