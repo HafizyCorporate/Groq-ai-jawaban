@@ -1,43 +1,24 @@
 const { Pool } = require('pg');
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
-const fs = require('fs');
+require('dotenv').config(); // Memastikan env terbaca
 
-// 1. KONEKSI POSTGRESQL (Utama) dengan Tambahan Pengamanan Koneksi
+// 1. KONEKSI POSTGRESQL (Utama)
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false },
-    // --- TAMBAHAN PENGAMANAN KONEKSI ---
-    max: 20,              // Maksimal koneksi simultan (mencegah overload DB)
-    idleTimeoutMillis: 30000, // Tutup koneksi otomatis jika tidak dipakai dalam 30 detik
-    connectionTimeoutMillis: 2000, // Batas waktu tunggu koneksi (mencegah server gantung)
+    ssl: { 
+        rejectUnauthorized: false // Wajib untuk hosting Cloud (Supabase/Neon/Render/Heroku)
+    },
+    // Pengamanan Koneksi (Penting agar server tidak hang)
+    max: 20,               // Maksimal user konek bersamaan
+    idleTimeoutMillis: 30000, // Putus koneksi jika nganggur 30 detik
+    connectionTimeoutMillis: 2000, // Batas waktu tunggu
 });
 
-// Log error pada pool untuk pengawasan hacker/error sistem
+// Log error jika database putus tiba-tiba
 pool.on('error', (err) => {
-    console.error('❌ Unexpected error on idle client', err);
+    console.error('❌ Database Error (Unexpected):', err);
 });
-
-// 2. SETUP SQLITE (Hanya untuk ambil data lama)
-const dbDir = path.join(__dirname, 'db');
-const dbPath = path.join(dbDir, 'database.sqlite');
-
-// Pastikan folder 'db' ada agar SQLite tidak error saat mencoba membuka file
-if (!fs.existsSync(dbDir)) {
-    fs.mkdirSync(dbDir, { recursive: true });
-}
-
-// Buka koneksi SQLite hanya jika filenya ada
-let sqliteDb = null;
-if (fs.existsSync(dbPath)) {
-    sqliteDb = new sqlite3.Database(dbPath, (err) => {
-        if (err) console.log("ℹ️ SQLite lama tidak ditemukan/tidak bisa dibuka, melewati...");
-        else console.log("📂 Terhubung ke SQLite lama untuk migrasi.");
-    });
-}
 
 module.exports = {
     query: (text, params) => pool.query(text, params),
-    pool,
-    sqliteDb // Jika null, berarti data lama sudah tidak ada/tidak perlu dimigrasi
-}
+    pool
+};
