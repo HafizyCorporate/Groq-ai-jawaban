@@ -327,10 +327,11 @@ async function startKoreksi() {
         const res = await fetch('/ai/proses-koreksi', { method: 'POST', body: formData });
         const data = await res.json();
         
-        if(data.success) {
+                if(data.success) {
             koreksiResult = data.data; 
             renderKoreksiView();
             
+            // JANGAN DIHAPUS: Agar tombol PDF/Excel muncul
             document.getElementById('resWrap').classList.remove('hidden');
             document.getElementById('exportMenu').classList.remove('hidden'); 
 
@@ -342,15 +343,18 @@ async function startKoreksi() {
                 colors: ['#2563eb', '#10b981', '#f59e0b']
             });
 
+            // NOTIFIKASI SUKSES
             Swal.fire({
                 title: 'KOREKSI SELESAI!',
                 text: `${koreksiResult.length} lembar siswa berhasil dianalisis.`,
                 icon: 'success',
                 timer: 3000,
                 showConfirmButton: false,
-                // Backdrop dengan GIF perayaan agar lebih estetik
                 backdrop: `rgba(0,0,123,0.4) url("https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJueGZ3bmZ3bmZ3bmZ3bmZ3bmZ3bmZ3bmZ3bmZ3bmZ3bmZ3JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/3o7abKhOpu0NwenH3O/giphy.gif") left top no-repeat`
             });
+
+            refreshUserStatus(); 
+        }
 
             refreshUserStatus(); 
             Swal.close();
