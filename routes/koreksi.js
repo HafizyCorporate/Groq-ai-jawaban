@@ -9,8 +9,18 @@ dotenv.config();
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 async function prosesKoreksiLengkap(files, settings) {
-    const kunciPG = typeof settings.kunci_pg === 'string' ? JSON.parse(settings.kunci_pg) : (settings.kunci_pg || {});
-    const kunciES = typeof settings.kunci_essay === 'string' ? JSON.parse(settings.kunci_essay) : (settings.kunci_essay || {});
+    // --- SINKRONISASI DATA JSON (AWAL) ---
+    let kunciPG = {};
+    let kunciES = {};
+
+    try {
+        // Memastikan data diparsing jika datang sebagai string JSON dari server.js
+        kunciPG = typeof settings.kunci_pg === 'string' ? JSON.parse(settings.kunci_pg) : (settings.kunci_pg || {});
+        kunciES = typeof settings.kunci_essay === 'string' ? JSON.parse(settings.kunci_essay) : (settings.kunci_essay || {});
+    } catch (e) {
+        console.error("⚠️ Sinkronisasi JSON Gagal:", e.message);
+    }
+    // --- AKHIR SINKRONISASI ---
     
     const results = [];
 
