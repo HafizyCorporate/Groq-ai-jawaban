@@ -207,22 +207,6 @@ function kalkulasiNilai(skorAwal, inputRumus) {
     }
 }
 
-
-            // Parsing operator (+, -, *, /)
-            let operator = rumus.charAt(0);
-            let angka = parseFloat(rumus.substring(1).trim());
-
-            if (isNaN(angka)) return s; // Jika tidak ada angka valid setelah operator
-
-            switch (operator) {
-                case '*': return s * angka;
-                case '/': return angka !== 0 ? s / angka : 0;
-                case '+': return s + angka;
-                case '-': return s - angka;
-                default: return s;
-            }
-        }
-
         window.onload = function() {
             initGrids();
             refreshUserStatus();
