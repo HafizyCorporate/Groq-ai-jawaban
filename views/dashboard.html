@@ -131,12 +131,23 @@
                     <p class="text-[10px] font-black text-blue-600 uppercase mb-8 text-center italic tracking-widest">KONFIGURASI NILAI AKHIR</p>
                     
                     <div class="mb-8 bg-blue-50 border-l-8 border-blue-500 p-6 rounded-r-[30px]">
-                        <h4 class="font-black text-blue-900 text-sm mb-2 uppercase italic">📢 PANDUAN PENGISIAN RUMUS:</h4>
-                        <ul class="text-[11px] font-bold text-blue-800 space-y-2 uppercase leading-tight">
-                            <li>1. Masukkan Nama Mata Pelajaran.</li>
-                            <li>2. Isi Bobot per soal (Hasil = Benar x Bobot).</li>
-                            <li>3. Tekan "Terbitkan" untuk simpan ke database riwayat Anda.</li>
-                        </ul>
+                        <h4 class="font-black text-blue-900 text-sm mb-2 uppercase italic text-center">📢 INFORMASI PENGISIAN RUMUS:</h4>
+                        <p class="text-[11px] font-bold text-blue-800 leading-relaxed uppercase mb-4">
+                            Untuk hitung rumus, **Jawaban AI** sudah mensave semua **Betul PG dan Essay** semua siswa yang sudah dikoreksi lembar soalnya. 
+                            Di perhitungan ini, Bapak/Ibu guru tinggal masukkan rumus yang biasa Bapak & Ibu gunakan.
+                        </p>
+                        <div class="bg-white/50 p-4 rounded-2xl border border-blue-200">
+                            <p class="text-[10px] font-black text-blue-900 mb-2 italic">CONTOH PENGGUNAAN:</p>
+                            <p class="text-[10px] font-bold text-blue-700 leading-tight">
+                                Misal Andi betul PG 5. Di kolom rumus bapak/ibu cukup isi rumusnya saja (contoh: <span class="bg-blue-200 px-1 font-black text-blue-900">* 2.5</span>) karena angka 5 sudah tersave otomatis di sistem AI.
+                            </p>
+                            <ul class="mt-3 space-y-1 text-[9px] font-black text-blue-600 uppercase">
+                                <li>• Jika rumus POIN: tulis langsung (misal: * 2.5)</li>
+                                <li>• Jika rumus PERSEN: tulis hitungannya (misal: / total soal * 100)</li>
+                                <li>• Atau tulis rumus lain yang biasa digunakan</li>
+                            </ul>
+                        </div>
+                        <p class="mt-4 text-[11px] font-black text-center text-blue-800 italic uppercase">Terimakasih 🙏🙏</p>
                     </div>
 
                     <div class="mb-8">
@@ -157,10 +168,10 @@
 
                     <button id="btnHitung" onclick="terbitkanNilai()" class="w-full bg-blue-600 text-white font-black py-10 rounded-[40px] text-3xl md:text-4xl uppercase shadow-2xl hover:bg-blue-700">TERBITKAN & SIMPAN NILAI</button>
                     
-                    <div id="exportMenu" class="hidden grid grid-cols-3 gap-2 mt-8">
-                        <button onclick="exportResult('pdf')" class="bg-red-500 text-white py-4 rounded-[20px] font-black text-[9px] uppercase shadow-lg">📄 DOWNLOAD PDF</button>
-                        <button onclick="exportResult('excel')" class="bg-emerald-500 text-white py-4 rounded-[20px] font-black text-[9px] uppercase shadow-lg">📊 DOWNLOAD EXCEL</button>
-                        <button onclick="exportResult('word')" class="bg-blue-500 text-white py-4 rounded-[20px] font-black text-[9px] uppercase shadow-lg">📝 DOWNLOAD WORD</button>
+                    <div id="exportMenu" class="hidden grid grid-cols-3 gap-3 mt-8">
+                        <button onclick="exportResult('pdf')" class="bg-red-500 text-white py-5 rounded-[25px] font-black text-[10px] uppercase shadow-lg hover:bg-red-600 transition">📄 PDF</button>
+                        <button onclick="exportResult('excel')" class="bg-emerald-600 text-white py-5 rounded-[25px] font-black text-[10px] uppercase shadow-lg hover:bg-emerald-700 transition">📊 EXCEL</button>
+                        <button onclick="exportResult('word')" class="bg-blue-500 text-white py-5 rounded-[25px] font-black text-[10px] uppercase shadow-lg hover:bg-blue-600 transition">📝 WORD</button>
                     </div>
                 </div>
                 
@@ -318,8 +329,20 @@
         }
 
         async function terbitkanNilai() {
-            let rumusPG = document.getElementById('r_pg').value.trim().replace(/x/g, '*');
-            let rumusES = document.getElementById('r_essay').value.trim().replace(/x/g, '*');
+            // Pembersihan Rumus Frontend agar aman saat eval()
+            const bersihkanRumus = (input) => {
+                // HANYA IZINKAN ANGKA DAN OPERATOR MATH VALID UNTUK KEAMANAN EVAL
+                let r = input.trim().toLowerCase()
+                    .replace(/x/g, '*')
+                    .replace(/:/g, '/')
+                    .replace(/[^0-9.\+\-\*\/\(\)\s]/g, ''); 
+                
+                if (!isNaN(r) && r !== "") return `* ${r}`;
+                return r;
+            };
+
+            let rumusPG = bersihkanRumus(document.getElementById('r_pg').value);
+            let rumusES = bersihkanRumus(document.getElementById('r_essay').value);
             const mapel = document.getElementById('mapel').value;
             
             if(!mapel) return Swal.fire('Mapel Kosong', 'Harap isi Nama Mata Pelajaran.', 'warning');
@@ -329,14 +352,17 @@
             container.innerHTML = `<h3 class="text-center font-black text-2xl uppercase text-slate-800 mb-6 underline decoration-blue-500 underline-offset-8">DAFTAR NILAI: ${mapel}</h3>`;
 
             koreksiResult.forEach((res, idx) => {
-                // Logika: Angka Benar Siswa ditempel di depan rumus
                 let hitungPG = 0;
                 let hitungES = 0;
 
                 try {
+                    // Eksekusi rumus: Angka Betul Siswa + Rumus (misal: 10 * 2.5)
                     hitungPG = eval(`${res.pg_betul} ${rumusPG}`) || 0;
                     hitungES = eval(`${res.essay_betul} ${rumusES}`) || 0;
-                } catch(e) { console.error(e); }
+                } catch(e) { 
+                    console.error("Kesalahan Rumus Siswa " + (idx+1), e);
+                    hitungPG = 0; hitungES = 0;
+                }
 
                 let total = hitungPG + hitungES;
                 let final = Math.round(total); 
@@ -432,15 +458,26 @@
 
         function exportResult(type) {
             const mapel = document.getElementById('mapel').value || 'Laporan';
-            let rumusPG = document.getElementById('r_pg').value.trim().replace(/x/g, '*');
-            let rumusES = document.getElementById('r_essay').value.trim().replace(/x/g, '*');
+            const bersihkanRumus = (input) => {
+                // HANYA IZINKAN ANGKA DAN OPERATOR MATH VALID UNTUK KEAMANAN EVAL
+                let r = input.trim().toLowerCase()
+                    .replace(/x/g, '*')
+                    .replace(/:/g, '/')
+                    .replace(/[^0-9.\+\-\*\/\(\)\s]/g, '');
+                
+                if (!isNaN(r) && r !== "") return `* ${r}`;
+                return r;
+            };
+
+            let rumusPG = bersihkanRumus(document.getElementById('r_pg').value);
+            let rumusES = bersihkanRumus(document.getElementById('r_essay').value);
 
             const dataExport = koreksiResult.map((res, i) => {
                 let hPG = 0; let hES = 0;
                 try { 
                     hPG = eval(`${res.pg_betul} ${rumusPG}`) || 0;
                     hES = eval(`${res.essay_betul} ${rumusES}`) || 0;
-                } catch(e){}
+                } catch(e){ hPG = 0; hES = 0; }
                 return {
                     no: i + 1,
                     nama: res.nama || 'Siswa '+(i+1),
