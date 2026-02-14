@@ -360,7 +360,7 @@ async function startKoreksi() {
             `).join('');
         }
 
-        async function terbitkanNilai() {
+               async function terbitkanNilai() {
             let rumusPG = document.getElementById('r_pg').value;
             let rumusES = document.getElementById('r_essay').value;
             const mapel = document.getElementById('mapel').value;
@@ -371,12 +371,10 @@ async function startKoreksi() {
             const container = document.getElementById('laporanFinal');
             container.innerHTML = `<h3 class="text-center font-black text-2xl uppercase text-slate-800 mb-6 underline decoration-blue-500 underline-offset-8">DAFTAR NILAI: ${mapel}</h3>`;
 
+            // 1. Proses hitung semua siswa dan masukkan ke dataSimpan
             koreksiResult.forEach((res, idx) => {
-                
-                // LOGIKA MATEMATIKA SEDERHANA
                 let hitungPG = kalkulasiNilai(res.pg_betul, rumusPG);
                 let hitungES = kalkulasiNilai(res.essay_betul, rumusES);
-
                 let total = hitungPG + hitungES;
                 let final = Math.round(total); 
 
@@ -396,8 +394,11 @@ async function startKoreksi() {
                     </div>
                 `;
             });
-                    // 2. TARUH KODE SIMPAN DI SINI (DI LUAR FOR-EACH)
+
+            // 2. Kirim ke Database (HANYA SEKALI DI SINI)
             try {
+                Swal.fire({ title: 'Menyimpan...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                
                 const resSave = await fetch('/ai/save-history', {
                     method: 'POST',
                     headers: {
@@ -414,7 +415,7 @@ async function startKoreksi() {
                 
                 if(resData.success) {
                     Swal.fire({ 
-                        title: 'Berhasil Diterbitkan!', 
+                        title: 'Berhasil!', 
                         text: 'Laporan sudah masuk ke menu RIWAYAT.', 
                         icon: 'success', 
                         timer: 2000, 
@@ -422,26 +423,14 @@ async function startKoreksi() {
                     });
                     document.getElementById('exportMenu').classList.remove('hidden');
                 } else {
-                    Swal.fire('Gagal Simpan', 'Data gagal masuk database: ' + resData.message, 'warning');
+                    Swal.fire('Gagal Simpan', resData.message, 'warning');
                 }
             } catch (e) { 
                 console.error("Error Simpan:", e);
                 Swal.fire('Koneksi Bermasalah', 'Gagal mengirim data ke server.', 'error'); 
             }
-
-            try {
-                const resSave = await fetch('/ai/save-history', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ data: dataSimpan })
-                });
-                const resData = await resSave.json();
-                if(resData.success) {
-                    Swal.fire({ title: 'Berhasil Diterbitkan!', text: 'Laporan disimpan di Riwayat Anda.', icon: 'success', timer: 2000, showConfirmButton: false });
-                    document.getElementById('exportMenu').classList.remove('hidden');
-                }
-            } catch (e) { Swal.fire('Error', 'Gagal menyimpan ke database.', 'error'); }
         }
+
 
         function hitungOtomatisPreview() {
             if(document.getElementById('laporanFinal').innerHTML !== "") {
