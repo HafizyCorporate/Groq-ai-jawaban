@@ -8,30 +8,11 @@ dotenv.config();
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
+async function prosesKoreksiLengkap(files, settings) {
     const kunciPG = typeof settings.kunci_pg === 'string' ? JSON.parse(settings.kunci_pg) : (settings.kunci_pg || {});
     const kunciES = typeof settings.kunci_essay === 'string' ? JSON.parse(settings.kunci_essay) : (settings.kunci_essay || {});
     
     const results = [];
-
-    // --- PERBAIKAN 1: KARAKTER RUMUS LEBIH FLEKSIBEL ---
-    const hitungNilai = (rumus, betul, total) => {
-        if (!rumus || total === 0) return 0;
-        try {
-            // PERBAIKAN: Cek apakah rumus ada isinya DAN merupakan angka murni
-            if (rumus && !isNaN(rumus)) return parseFloat(rumus) * betul;
-
-            let f = rumus.toLowerCase()
-                .replace(/:/g, '/')   // Mengubah ":" menjadi "/" (pembagian)
-                .replace(/x/g, '*')   // Mengubah "x" menjadi "*" (perkalian)
-                .replace(/betul/g, betul)
-                .replace(/total/g, total);
-
-            // Bersihkan karakter selain angka dan operator matematika dasar
-            f = f.replace(/[^0-9+\-*/().]/g, ''); 
-            return eval(f) || 0;
-        } catch (e) { return 0; }
-    };
 
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
@@ -111,21 +92,18 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
 
             let esBetul = parseInt(aiData.essay_betul_count) || 0;
 
-            // --- REKOMENDASI PERBAIKAN LOG DETAIL (ESSAY INTEGRATION) ---
             if (Object.keys(kunciES).length > 0) {
                 rincian.push(`Essay: ✅ Terdeteksi ${esBetul} poin/benar`);
             }
 
-            // --- OUTPUT HASIL ---
+            // --- OUTPUT HASIL (HANYA DATA MENTAH TANPA HITUNG RUMUS) ---
             results.push({
                 nama: (aiData.nama_siswa && aiData.nama_siswa !== "NAMA") ? aiData.nama_siswa : `Siswa ${index + 1}`,
                 pg_betul: pgBetul,      
                 essay_betul: esBetul,   
                 list_detail_pg: listNoBetul.join(', ') || "TIDAK ADA",
                 list_detail_es: esBetul > 0 ? `${esBetul} Jawaban Terdeteksi Benar` : "TIDAK ADA",
-                log_detail: rincian,
-                // PERBAIKAN 2: LOGIKA PEMBULATAN STANDAR (0.5 ke atas naik ke 1)
-                nilai_akhir: Math.round(hitungNilai(rumusPG, pgBetul, totalKunci) + hitungNilai(rumusES, esBetul, 1))
+                log_detail: rincian
             });
 
         } catch (err) {
@@ -136,8 +114,7 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
                 essay_betul: 0,
                 list_detail_pg: "GAGAL",
                 list_detail_es: "GAGAL",
-                log_detail: ["Gagal baca data: " + err.message], 
-                nilai_akhir: 0 
+                log_detail: ["Gagal baca data: " + err.message]
             });
         }
     }
