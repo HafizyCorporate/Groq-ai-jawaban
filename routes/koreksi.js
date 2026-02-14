@@ -1,7 +1,6 @@
 /**
  * FILE: koreksi.js 
  * MODEL: Gemini 2.5 Flash (RE-FIXED)
- * UPDATE: Sinkronisasi Output tanpa mengubah Logika Deteksi & Prompt Utama
  */
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const dotenv = require('dotenv');
@@ -10,28 +9,37 @@ dotenv.config();
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
-    const kunciPG = settings.kunci_pg || {};
-    const kunciES = settings.kunci_essay || {};
+    const kunciPG = typeof settings.kunci_pg === 'string' ? JSON.parse(settings.kunci_pg) : (settings.kunci_pg || {});
+    const kunciES = typeof settings.kunci_essay === 'string' ? JSON.parse(settings.kunci_essay) : (settings.kunci_essay || {});
+    
     const results = [];
 
-    // --- RUMUS TETAP (TIDAK DIRUBAH) ---
+    // --- PERBAIKAN 1: KARAKTER RUMUS LEBIH FLEKSIBEL ---
     const hitungNilai = (rumus, betul, total) => {
         if (!rumus || total === 0) return 0;
         try {
-            let f = rumus.toLowerCase().replace(/betul/g, betul).replace(/total/g, total).replace(/x/g, '*');
+            // Jika input hanya angka murni (misal: "2.5"), langsung kalikan dengan jumlah betul
+            if (!isNaN(rumus)) return parseFloat(rumus) * betul;
+
+            let f = rumus.toLowerCase()
+                .replace(/:/g, '/')   // Mengubah ":" menjadi "/" (pembagian)
+                .replace(/x/g, '*')   // Mengubah "x" menjadi "*" (perkalian)
+                .replace(/betul/g, betul)
+                .replace(/total/g, total);
+
+            // Bersihkan karakter selain angka dan operator matematika dasar
             f = f.replace(/[^0-9+\-*/().]/g, ''); 
             return eval(f) || 0;
         } catch (e) { return 0; }
     };
 
-    // --- MODEL TETAP 2.5 FLASH ---
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     for (const [index, file] of files.entries()) {
         try {
             const base64Data = file.buffer.toString("base64");
             
-            // --- PROMPT TETAP SAMA (Hanya tambah field di JSON agar presisi) ---
+            // PERINTAH AI TETAP (TIDAK BERUBAH)
             const prompt = `TUGAS: Analisis LJK secara presisi.
             
             1.INSTRUKSI DETEKSI PG (SANGAT KETAT):
@@ -63,32 +71,33 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
             const response = await result.response;
             let text = response.text();
             
-            const jsonStart = text.indexOf('{');
-            const jsonEnd = text.lastIndexOf('}') + 1;
+            let cleanJson = text.replace(/```json/g, "").replace(/```/g, "").trim();
+            const jsonStart = cleanJson.indexOf('{');
+            const jsonEnd = cleanJson.lastIndexOf('}') + 1;
+            
             if (jsonStart === -1) throw new Error("Format JSON tidak ditemukan!");
-            const aiData = JSON.parse(text.substring(jsonStart, jsonEnd));
+            const aiData = JSON.parse(cleanJson.substring(jsonStart, jsonEnd));
 
             let jawabanSiswa = aiData.jawaban_pg || {};
+            
             if (Object.keys(jawabanSiswa).length === 0) {
                 const teksAnalisis = aiData.log_deteksi || text;
-                const matches = teksAnalisis.matchAll(/(\d+)\s*[:=]\s*([A-D])/gi);
+                const matches = teksAnalisis.matchAll(/(\d+)\s*[:=]\s*([A-E])/gi);
                 for (const m of matches) {
                     jawabanSiswa[m[1]] = m[2].toUpperCase();
                 }
             }
 
             let pgBetul = 0;
-            let esBetul = 0; 
             let totalKunci = 0;
             let rincian = [];
             let listNoBetul = [];
 
-            // --- HITUNG PG (LOGIKA TETAP) ---
             Object.keys(kunciPG).forEach(no => {
-                if (kunciPG[no] && kunciPG[no] !== "") {
+                const k = kunciPG[no] ? kunciPG[no].toString().toUpperCase().trim() : "";
+                if (k !== "") {
                     totalKunci++;
                     const s = (jawabanSiswa[no] || "KOSONG").toString().toUpperCase().trim();
-                    const k = kunciPG[no].toString().toUpperCase().trim();
 
                     if (s === k) {
                         pgBetul++;
@@ -100,9 +109,12 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
                 }
             });
 
-            // --- HITUNG ESSAY (LOGIKA DIPERBAIKI) ---
-            // Mengambil angka langsung dari JSON AI agar tidak salah hitung kata "BENAR" di log
-            esBetul = parseInt(aiData.essay_betul_count) || 0;
+            let esBetul = parseInt(aiData.essay_betul_count) || 0;
+
+            // --- REKOMENDASI PERBAIKAN LOG DETAIL (ESSAY INTEGRATION) ---
+            if (Object.keys(kunciES).length > 0) {
+                rincian.push(`Essay: ✅ Terdeteksi ${esBetul} poin/benar`);
+            }
 
             // --- OUTPUT HASIL ---
             results.push({
@@ -112,9 +124,8 @@ async function prosesKoreksiLengkap(files, settings, rumusPG, rumusES) {
                 list_detail_pg: listNoBetul.join(', ') || "TIDAK ADA",
                 list_detail_es: esBetul > 0 ? `${esBetul} Jawaban Terdeteksi Benar` : "TIDAK ADA",
                 log_detail: rincian,
-                nilai_akhir: (function(n) {
-                    return (n - Math.floor(n) <= 0.5) ? Math.floor(n) : Math.ceil(n);
-                })(hitungNilai(rumusPG, pgBetul, totalKunci))
+                // PERBAIKAN 2: LOGIKA PEMBULATAN STANDAR (0.5 ke atas naik ke 1)
+                nilai_akhir: Math.round(hitungNilai(rumusPG, pgBetul, totalKunci) + hitungNilai(rumusES, esBetul, 1))
             });
 
         } catch (err) {
