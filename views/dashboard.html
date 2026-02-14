@@ -372,41 +372,6 @@ async function startKoreksi() {
             container.innerHTML = `<h3 class="text-center font-black text-2xl uppercase text-slate-800 mb-6 underline decoration-blue-500 underline-offset-8">DAFTAR NILAI: ${mapel}</h3>`;
 
             koreksiResult.forEach((res, idx) => {
-
-                        try {
-                // Pastikan data dikirim dengan format yang benar
-                const resSave = await fetch('/ai/save-history', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify({ 
-                        data: dataSimpan,
-                        mapel: mapel // Tambahkan ini agar server tahu mapelnya
-                    })
-                });
-
-                const resData = await resSave.json();
-                
-                if(resData.success) {
-                    Swal.fire({ 
-                        title: 'Berhasil Diterbitkan!', 
-                        text: 'Laporan sudah masuk ke menu RIWAYAT.', 
-                        icon: 'success', 
-                        timer: 2000, 
-                        showConfirmButton: false 
-                    });
-                    document.getElementById('exportMenu').classList.remove('hidden');
-                } else {
-                    // Jika server menolak (misal: session habis)
-                    Swal.fire('Gagal Simpan', 'Data tampil di layar tapi gagal masuk database: ' + resData.message, 'warning');
-                }
-            } catch (e) { 
-                console.error("Error Simpan:", e);
-                Swal.fire('Koneksi Bermasalah', 'Gagal mengirim data ke server. Pastikan internet stabil.', 'error'); 
-            }
-
                 
                 // LOGIKA MATEMATIKA SEDERHANA
                 let hitungPG = kalkulasiNilai(res.pg_betul, rumusPG);
@@ -431,6 +396,38 @@ async function startKoreksi() {
                     </div>
                 `;
             });
+                    // 2. TARUH KODE SIMPAN DI SINI (DI LUAR FOR-EACH)
+            try {
+                const resSave = await fetch('/ai/save-history', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        data: dataSimpan,
+                        mapel: mapel 
+                    })
+                });
+
+                const resData = await resSave.json();
+                
+                if(resData.success) {
+                    Swal.fire({ 
+                        title: 'Berhasil Diterbitkan!', 
+                        text: 'Laporan sudah masuk ke menu RIWAYAT.', 
+                        icon: 'success', 
+                        timer: 2000, 
+                        showConfirmButton: false 
+                    });
+                    document.getElementById('exportMenu').classList.remove('hidden');
+                } else {
+                    Swal.fire('Gagal Simpan', 'Data gagal masuk database: ' + resData.message, 'warning');
+                }
+            } catch (e) { 
+                console.error("Error Simpan:", e);
+                Swal.fire('Koneksi Bermasalah', 'Gagal mengirim data ke server.', 'error'); 
+            }
 
             try {
                 const resSave = await fetch('/ai/save-history', {
@@ -528,12 +525,11 @@ async function startKoreksi() {
                 doc.setFontSize(14); doc.text(`LAPORAN HASIL KOREKSI: ${mapel.toUpperCase()}`, 14, 15);
                 doc.autoTable({ startY: 20, head: [['No', 'Nama Siswa', 'B. PG', 'B. Essay', 'Total']], body: dataExport.map(d => [d.no, d.nama, d.pg, d.essay, d.total]), theme: 'grid' });
                 doc.save(`Nilai_${mapel}.pdf`);
-            } else if (type === 'excel') {
+             } else if (type === 'excel') {
                 const ws = XLSX.utils.json_to_sheet(dataExport);
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, "Daftar Nilai");
                 XLSX.writeFile(wb, `Nilai_${mapel}.xlsx`);
-                        
             }  else if (type === 'word') {
                 const { Document, Packer, Paragraph, Table, TableRow, TableCell, WidthType, TextRun, AlignmentType } = docx;
 
