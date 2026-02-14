@@ -163,7 +163,7 @@ app.get('/ai/get-history', async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ success: false });
     try {
         const result = await query(
-            'SELECT nama_siswa, mapel, nilai_akhir, waktu FROM history WHERE email = $1 ORDER BY id DESC', 
+            'SELECT id,nama_siswa, mapel, nilai_akhir, waktu FROM history WHERE email = $1 ORDER BY id DESC', 
             [req.session.userId]
         );
         res.json({ success: true, data: result.rows });
