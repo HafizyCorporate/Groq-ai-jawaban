@@ -497,7 +497,8 @@ async function startKoreksi() {
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, "Daftar Nilai");
                 XLSX.writeFile(wb, `Nilai_${mapel}.xlsx`);
-                        } else if (type === 'word') {
+                        
+            }  else if (type === 'word') {
                 const { Document, Packer, Paragraph, Table, TableRow, TableCell, WidthType, TextRun, AlignmentType } = docx;
 
                 // Membuat Header Tabel
