@@ -130,6 +130,16 @@
                 <div class="bg-white p-8 md:p-12 rounded-[50px] border-4 border-blue-100 shadow-2xl">
                     <p class="text-[10px] font-black text-blue-600 uppercase mb-8 text-center italic tracking-widest">KONFIGURASI NILAI AKHIR</p>
                     
+                    <div class="mb-8 bg-blue-50 border-l-8 border-blue-500 p-6 rounded-r-[30px]">
+                        <h4 class="font-black text-blue-900 text-sm mb-2 uppercase">📢 PANDUAN PENGISIAN:</h4>
+                        <ul class="text-[11px] font-bold text-blue-800 space-y-2 uppercase leading-tight">
+                            <li>1. Nama & Jumlah Benar Siswa sudah terbaca otomatis di atas.</li>
+                            <li>2. Isi <span class="underline">Mata Pelajaran</span> untuk judul laporan.</li>
+                            <li>3. Masukkan <span class="underline">Angka Bobot</span> (Contoh: 2.5) pada kolom PG & Essay.</li>
+                            <li>4. Tekan <span class="underline">Terbitkan</span> untuk melihat hasil akhir.</li>
+                        </ul>
+                    </div>
+
                     <div class="mb-8">
                         <p class="text-[10px] font-black text-slate-400 uppercase mb-3 ml-4 italic">Mata Pelajaran</p>
                         <input type="text" id="mapel" placeholder="Contoh: Matematika IX" class="w-full p-6 bg-slate-50 rounded-[30px] font-black text-2xl border-2 border-transparent focus:border-blue-500 outline-none">
@@ -386,6 +396,42 @@
         function exportResult(type) { Swal.fire('Proses Export', `Dokumen ${type.toUpperCase()} sedang dibuat secara rapi...`, 'info'); }
         function openHistoryModal() { Swal.fire('Riwayat Database', 'Menarik data riwayat dari PostgreSQL...', 'info'); }
         function logout() { window.location.href = '/auth/logout'; }
+
+        async function revisiMassal(type) {
+            if (koreksiResult.length === 0) return Swal.fire('Oops!', 'Belum ada data yang dikoreksi.', 'warning');
+
+            const { value: formValues } = await Swal.fire({
+                title: `REVISI HASIL ${type}`,
+                html: `
+                <div class="max-h-96 overflow-y-auto custom-scroll px-2">
+                    ${koreksiResult.map((res, i) => `
+                        <div class="flex items-center justify-between mb-4 p-4 bg-slate-50 rounded-2xl border-2 border-slate-100">
+                            <span class="text-[10px] font-black text-slate-600 uppercase truncate w-32 text-left">${res.nama || 'Siswa '+(i+1)}</span>
+                            <div class="flex items-center gap-2">
+                                <span class="text-[10px] font-bold">BENAR:</span>
+                                <input id="rev-${i}" type="number" class="w-20 p-2 border-2 border-blue-500 rounded-xl font-black text-center" value="${type === 'PG' ? res.pg_betul : res.essay_betul}">
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>`,
+                showCancelButton: true,
+                confirmButtonText: 'SIMPAN REVISI',
+                cancelButtonText: 'BATAL',
+                preConfirm: () => {
+                    return koreksiResult.map((_, i) => document.getElementById(`rev-${i}`).value);
+                }
+            });
+
+            if (formValues) {
+                formValues.forEach((val, i) => {
+                    if (type === 'PG') koreksiResult[i].pg_betul = parseInt(val) || 0;
+                    else koreksiResult[i].essay_betul = parseInt(val) || 0;
+                });
+                renderKoreksiView();
+                if(document.getElementById('laporanFinal').innerHTML !== "") terbitkanNilai();
+                Swal.fire({ title: 'Berhasil!', text: 'Data revisi telah diperbarui.', icon: 'success', timer: 1500, showConfirmButton: false });
+            }
+        }
     </script>
 </body>
 </html>
