@@ -35,7 +35,7 @@ const apiKey = defaultClient.authentications['api-key'];
 apiKey.apiKey = process.env.BREVO_API_KEY; 
 const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
 
-// --- 1. PROSES MIGRASI DATA (TETAP) ---
+// --- 1. PROSES MIGRASI DATA (DENGAN AUTO-FIX KOLOM) ---
 async function migrasiData() {
     try {
         await query(`
@@ -49,6 +49,11 @@ async function migrasiData() {
                 role TEXT DEFAULT 'user'
             )
         `);
+
+        // FIX: Tambah kolom jika tabel sudah ada tapi kolomnya belum ada
+        await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS otp TEXT`);
+        await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS otp_expiry TIMESTAMP`);
+
         await query(`
             CREATE TABLE IF NOT EXISTS history (
                 id SERIAL PRIMARY KEY,
