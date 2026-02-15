@@ -284,10 +284,22 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
         const userRes = await query('SELECT quota, is_premium FROM users WHERE email = $1', [req.session.userId]);
         const user = userRes.rows[0];
         
-        // Cek Kuota di awal (opsional, tapi lebih baik biar gak buang resource AI kalau kuota habis)
         if (!user.is_premium && user.quota <= 0) {
             return res.json({ success: false, limitReached: true, message: "Token Habis!" });
         }
+
+        // --- TAMBAHKAN SORTING FILE DI SINI ---
+        // Mengurutkan file berdasarkan nama file asli (originalname) secara Alfanumerik
+        if (req.files && req.files.length > 0) {
+            req.files.sort((a, b) => {
+                return a.originalname.localeCompare(b.originalname, undefined, {
+                    numeric: true,
+                    sensitivity: 'base'
+                });
+            });
+            console.log("✅ File telah diurutkan:", req.files.map(f => f.originalname));
+        }
+        // --------------------------------------
 
         // --- PARSING JSON KUNCI JAWABAN ---
         let kunciPG = {};
@@ -307,33 +319,27 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
         const r_pg = req.body.r_pg;
         const r_essay = req.body.r_essay;
 
-        // 1. Panggil fungsi koreksi AI untuk SEMUA file yang diupload
+        // 1. Panggil fungsi koreksi AI untuk file yang sudah DIURUTKAN
         const rawResults = await prosesKoreksiLengkap(req.files, settings, r_pg, r_essay);
 
-               // 2. LOGIKA PENGGABUNGAN (VERSI TERBAIK)
+        // 2. LOGIKA PENGGABUNGAN (VERSI TERBAIK)
         let mergedResults = [];
         let currentStudent = null;
 
         rawResults.forEach((item) => {
-            // Siswa dianggap baru HANYA jika ada nama (bukan null)
-            // Pastikan koreksi.js mengirim 'nama: null' jika AI tidak ketemu nama
             const isNewStudent = item.nama !== null;
 
             if (!isNewStudent && currentStudent) {
-                // GABUNGKAN KE SISWA SEBELUMNYA
                 currentStudent.pg_betul += (item.pg_betul || 0);
                 currentStudent.essay_betul += (item.essay_betul || 0);
                 
-                // Gabungkan array hasil PG untuk visualisasi kotak-kotak
                 if (item.list_hasil_pg) {
                     currentStudent.list_hasil_pg = [...(currentStudent.list_hasil_pg || []), ...item.list_hasil_pg];
                 }
                 currentStudent.is_merged = true; 
             } else {
-                // SIMPAN SISWA SEBELUMNYA JIKA ADA
                 if (currentStudent) mergedResults.push(currentStudent);
                 
-                // BERI NAMA OTOMATIS JIKA KOSONG (Siswa 1, Siswa 2, dst)
                 item.nama = item.nama || "Siswa " + (mergedResults.length + 1);
                 item.is_merged = false;
                 currentStudent = item;
@@ -342,15 +348,10 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
 
         if (currentStudent) mergedResults.push(currentStudent);
 
-
-        // Jangan lupa masukkan siswa terakhir yang sedang diproses
-        if (currentStudent) mergedResults.push(currentStudent);
-
-        // 3. Hitung Token Berdasarkan Jumlah SISWA (mergedResults), BUKAN jumlah file
+        // 3. Hitung Token Berdasarkan Jumlah SISWA
         const totalSiswa = mergedResults.filter(r => r.nama !== "ERROR SCAN" && r.nama !== "GAGAL SCAN").length;
 
         if (totalSiswa > 0 && !user.is_premium) {
-            // Cek lagi apakah kuota cukup untuk jumlah siswa yang terdeteksi
             if (user.quota < totalSiswa) {
                  return res.json({ success: false, limitReached: true, message: `Token kurang. Butuh ${totalSiswa}, sisa ${user.quota}.` });
             }
@@ -374,4 +375,6 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
     }
 });
 
+
+// 
 app.listen(port, () => console.log(`🚀 Server Jawaban AI aktif di port ${port}`));
