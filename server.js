@@ -1,4 +1,4 @@
-const express = require('express'); 
+lconst express = require('express'); 
 const multer = require('multer');
 const path = require('path');
 const dotenv = require('dotenv');
@@ -79,10 +79,16 @@ app.use(session({
     } 
 }));
 
-// --- 3. ROUTING VIEWS (TETAP) ---
+// --- 3. ROUTING VIEWS (DITAMBAHKAN RUTE REGISTER) ---
 app.get('/', (req, res) => {
     if (req.session.userId) return res.redirect('/dashboard');
     res.sendFile(path.join(__dirname, 'views', 'login.html'));
+});
+
+// Rute untuk menampilkan halaman daftar akun
+app.get('/register', (req, res) => {
+    if (req.session.userId) return res.redirect('/dashboard');
+    res.sendFile(path.join(__dirname, 'views', 'register.html'));
 });
 
 app.get('/dashboard', (req, res) => {
@@ -129,7 +135,6 @@ app.post('/auth/send-otp-register', authLimiter, async (req, res) => {
         sendSmtpEmail.subject = "Kode OTP Registrasi Jawaban AI";
         sendSmtpEmail.htmlContent = `<html><body><h2>Kode OTP Anda: ${otp}</h2><p>Berlaku 5 menit.</p></body></html>`;
         
-        // Sesuai perintah: Menggunakan email Brevo azhardax94@gmail.com
         sendSmtpEmail.sender = { "name": "Admin Jawaban AI", "email": "azhardax94@gmail.com" };
         sendSmtpEmail.to = [{ "email": email }];
 
@@ -175,7 +180,6 @@ app.post('/auth/forgot-password', authLimiter, async (req, res) => {
         sendSmtpEmail.subject = "Kode Reset Password Jawaban AI";
         sendSmtpEmail.htmlContent = `<html><body><h2>Kode Reset: ${otp}</h2></body></html>`;
         
-        // Sesuai perintah: Menggunakan email Brevo azhardax94@gmail.com
         sendSmtpEmail.sender = { "name": "Admin Jawaban AI", "email": "azhardax94@gmail.com" };
         sendSmtpEmail.to = [{ "email": email }];
 
