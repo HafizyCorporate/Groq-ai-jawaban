@@ -14,6 +14,7 @@ const rateLimit = require('express-rate-limit');
 
 dotenv.config();
 const app = express();
+app.set('trust proxy', 1); // <--- PERBAIKAN DI SINI (Trust Proxy diaktifkan)
 const port = process.env.PORT || 8080; 
 
 // --- 0.A CONFIG ANTI-HACKER (HELMET & RATE LIMIT) ---
