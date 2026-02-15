@@ -11,9 +11,25 @@
         /* Animasi loading sederhana */
         .spinner { border: 3px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: #fff; width: 20px; height: 20px; animation: spin 0.8s ease-in-out infinite; display: inline-block; vertical-align: middle; }
         @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* --- NOTIFIKASI STYLE --- */
+        #toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; pointer-events: none; }
+        .toast { 
+            animation: slideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            min-width: 280px;
+        }
+        @keyframes slideIn { 
+            from { transform: translateX(100%); opacity: 0; } 
+            to { transform: translateX(0); opacity: 1; } 
+        }
+        @keyframes fadeOut { 
+            to { opacity: 0; transform: translateY(-20px); } 
+        }
     </style>
 </head>
 <body class="flex items-center justify-center min-h-screen p-4 text-white">
+
+    <div id="toast-container"></div>
 
     <div class="glass w-full max-w-md p-10 rounded-[40px] shadow-2xl relative overflow-hidden text-center">
         <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-500 to-purple-500"></div>
@@ -38,17 +54,17 @@
 
     <div id="forgotModal" class="fixed inset-0 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4 z-50">
         <div class="glass w-full max-w-sm p-8 rounded-[30px] border border-blue-500/30 text-center">
-            <h2 id="modalTitle" class="text-2xl font-black mb-2">LUPA PASSWORD</h2>
-            <p id="modalDesc" class="text-slate-400 text-xs mb-6">Masukkan email untuk menerima kode OTP</p>
+            <h2 id="modalTitle" class="text-2xl font-black mb-2 text-white">LUPA PASSWORD</h2>
+            <p id="modalDesc" class="text-slate-400 text-xs mb-6 uppercase font-bold tracking-widest">Masukkan email untuk menerima kode OTP</p>
 
             <div id="stepEmail" class="space-y-4">
-                <input type="email" id="forgotEmail" placeholder="Email Anda" class="w-full p-4 bg-slate-800/50 rounded-2xl border border-slate-700 outline-none font-bold">
+                <input type="email" id="forgotEmail" placeholder="Email Anda" class="w-full p-4 bg-slate-800/50 rounded-2xl border border-slate-700 outline-none font-bold text-white">
                 <button onclick="sendOTP()" id="btnSendOTP" class="w-full bg-blue-600 py-4 rounded-2xl font-black uppercase tracking-widest">Kirim OTP</button>
             </div>
 
             <div id="stepReset" class="space-y-4 hidden">
-                <input type="text" id="otpCode" placeholder="Masukkan 6 Digit OTP" class="w-full p-4 bg-slate-800/50 rounded-2xl border border-blue-500 outline-none font-bold text-center tracking-widest">
-                <input type="password" id="newPassword" placeholder="Password Baru" class="w-full p-4 bg-slate-800/50 rounded-2xl border border-slate-700 outline-none font-bold">
+                <input type="text" id="otpCode" placeholder="Masukkan 6 Digit OTP" class="w-full p-4 bg-slate-800/50 rounded-2xl border border-blue-500 outline-none font-bold text-center tracking-widest text-white">
+                <input type="password" id="newPassword" placeholder="Password Baru" class="w-full p-4 bg-slate-800/50 rounded-2xl border border-slate-700 outline-none font-bold text-white">
                 <button onclick="resetPassword()" id="btnReset" class="w-full bg-green-600 py-4 rounded-2xl font-black uppercase tracking-widest">Ganti Password</button>
             </div>
 
@@ -57,13 +73,36 @@
     </div>
 
     <script>
+        // --- HELPER NOTIFIKASI ---
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            // Warna berdasarkan tipe
+            let bgColor = "bg-blue-600";
+            let icon = "ℹ️";
+            if (type === 'success') { bgColor = "bg-emerald-600"; icon = "✅"; }
+            if (type === 'error') { bgColor = "bg-red-600"; icon = "❌"; }
+
+            toast.className = `toast ${bgColor} text-white px-6 py-4 rounded-2xl shadow-2xl mb-3 flex items-center gap-3 font-bold border border-white/20 backdrop-blur-lg`;
+            toast.innerHTML = `<span>${icon}</span><span class="text-sm tracking-wide uppercase">${message}</span>`;
+            
+            container.appendChild(toast);
+
+            // Hilang otomatis setelah 3 detik
+            setTimeout(() => {
+                toast.style.animation = "fadeOut 0.5s forwards";
+                setTimeout(() => toast.remove(), 500);
+            }, 3000);
+        }
+
         // --- FUNGSI LOGIN ---
         async function login() {
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             const btn = document.getElementById('btnLogin');
 
-            if(!email || !password) return alert("Isi semua data!");
+            if(!email || !password) return showToast("Harap isi semua data!", "error");
             btn.innerHTML = `<span class="spinner"></span> MEMERIKSA...`;
             btn.disabled = true;
 
@@ -74,9 +113,12 @@
                     body: JSON.stringify({ email, password })
                 });
                 const data = await res.json();
-                if(data.success) { window.location.href = '/dashboard'; } 
-                else { alert("❌ " + (data.message || "Login Gagal")); }
-            } catch(e) { alert("Error Koneksi"); }
+                if(data.success) { 
+                    showToast("Login Berhasil! Mengalihkan...", "success");
+                    setTimeout(() => window.location.href = '/dashboard', 1000);
+                } 
+                else { showToast(data.message || "Email atau Password salah!", "error"); }
+            } catch(e) { showToast("Gagal terhubung ke server", "error"); }
             btn.innerHTML = "MASUK SEKARANG";
             btn.disabled = false;
         }
@@ -95,7 +137,7 @@
         async function sendOTP() {
             const email = document.getElementById('forgotEmail').value;
             const btn = document.getElementById('btnSendOTP');
-            if(!email) return alert("Masukkan email!");
+            if(!email) return showToast("Masukkan email Anda!", "error");
 
             btn.innerHTML = `<span class="spinner"></span> Mengirim...`;
             btn.disabled = true;
@@ -109,15 +151,15 @@
                 const data = await res.json();
 
                 if(data.success) {
-                    alert("✅ OTP telah dikirim ke email Anda!");
+                    showToast("Kode OTP terkirim ke email!", "success");
                     document.getElementById('stepEmail').classList.add('hidden');
                     document.getElementById('stepReset').classList.remove('hidden');
                     document.getElementById('modalTitle').innerText = "VERIFIKASI OTP";
-                    document.getElementById('modalDesc').innerText = "Silakan cek email & masukkan password baru";
+                    document.getElementById('modalDesc').innerText = "Masukkan kode & password baru";
                 } else {
-                    alert("❌ " + data.message);
+                    showToast(data.message || "Gagal mengirim OTP", "error");
                 }
-            } catch(e) { alert("Gagal mengirim OTP"); }
+            } catch(e) { showToast("Gagal mengirim OTP", "error"); }
             btn.innerHTML = "Kirim OTP";
             btn.disabled = false;
         }
@@ -128,7 +170,7 @@
             const newPassword = document.getElementById('newPassword').value;
             const btn = document.getElementById('btnReset');
 
-            if(!otp || !newPassword) return alert("Isi OTP dan Password Baru!");
+            if(!otp || !newPassword) return showToast("Lengkapi OTP dan Password Baru!", "error");
 
             btn.innerHTML = `<span class="spinner"></span> Memproses...`;
             btn.disabled = true;
@@ -142,17 +184,17 @@
                 const data = await res.json();
 
                 if(data.success) {
-                    alert("✅ Password Berhasil Diubah! Silakan login.");
-                    closeForgotModal();
+                    showToast("Password Berhasil Diperbarui!", "success");
+                    setTimeout(closeForgotModal, 1500);
                 } else {
-                    alert("❌ " + (data.message || "Gagal reset password"));
+                    showToast(data.message || "OTP Salah atau Kadaluarsa", "error");
                 }
-            } catch(e) { alert("Error Koneksi"); }
+            } catch(e) { showToast("Gagal reset password", "error"); }
             btn.innerHTML = "Ganti Password";
             btn.disabled = false;
         }
 
-        // --- PROTEKSI SCRIPT (ANTI INSPECT) ---
+        // --- PROTEKSI SCRIPT ---
         document.addEventListener('contextmenu', event => event.preventDefault());
         document.onkeydown = function(e) {
             if (e.keyCode == 123 || (e.ctrlKey && e.shiftKey && [73, 67, 74].includes(e.keyCode)) || (e.ctrlKey && e.keyCode == 85)) return false;
