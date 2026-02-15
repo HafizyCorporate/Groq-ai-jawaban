@@ -1,21 +1,24 @@
 const { Pool } = require('pg');
-require('dotenv').config(); // Memastikan env terbaca
+require('dotenv').config();
 
-// 1. KONEKSI POSTGRESQL (Utama)
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
-    ssl: { 
-        rejectUnauthorized: false // Wajib untuk hosting Cloud (Supabase/Neon/Render/Heroku)
+    ssl: {
+        rejectUnauthorized: false // Wajib false untuk Railway/Heroku/Supabase
     },
-    // Pengamanan Koneksi (Penting agar server tidak hang)
-    max: 20,               // Maksimal user konek bersamaan
-    idleTimeoutMillis: 30000, // Putus koneksi jika nganggur 30 detik
-    connectionTimeoutMillis: 2000, // Batas waktu tunggu
+    max: 20,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 2000,
 });
 
-// Log error jika database putus tiba-tiba
-pool.on('error', (err) => {
-    console.error('❌ Database Error (Unexpected):', err);
+// Cek koneksi saat awal start
+pool.connect((err, client, release) => {
+    if (err) {
+        console.error('❌ Error fatal koneksi Database:', err.message);
+    } else {
+        console.log('✅ Terhubung ke Database PostgreSQL');
+        release();
+    }
 });
 
 module.exports = {
