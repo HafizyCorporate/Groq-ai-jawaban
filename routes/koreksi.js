@@ -106,15 +106,21 @@ async function prosesKoreksiLengkap(files, settings) {
                 rincian.push(`Essay: ✅ Terdeteksi ${esBetul} poin/benar`);
             }
 
-            // --- OUTPUT HASIL (HANYA DATA MENTAH TANPA HITUNG RUMUS) ---
-            results.push({
-                nama: (aiData.nama_siswa && aiData.nama_siswa !== "NAMA") ? aiData.nama_siswa : `Siswa ${index + 1}`,
-                pg_betul: pgBetul,      
-                essay_betul: esBetul,   
-                list_detail_pg: listNoBetul.join(', ') || "TIDAK ADA",
-                list_detail_es: esBetul > 0 ? `${esBetul} Jawaban Terdeteksi Benar` : "TIDAK ADA",
-                log_detail: rincian
-            });
+        // --- OUTPUT HASIL (DIOPTIMALKAN UNTUK PENGGABUNGAN) ---
+results.push({
+    // Jika AI tidak ketemu nama, kirim null. Jangan dipaksa jadi "Siswa X" di sini.
+    nama: (aiData.nama_siswa && aiData.nama_siswa !== "NAMA") ? aiData.nama_siswa : null,
+    
+    pg_betul: pgBetul,      
+    essay_betul: esBetul,
+    
+    // Tambahkan list_hasil_pg agar peta kotak hijau/merah bisa digabung di server
+    list_hasil_pg: listHasilBool, 
+    
+    list_detail_pg: listNoBetul.join(', ') || "TIDAK ADA",
+    list_detail_es: esBetul > 0 ? `${esBetul} Jawaban Terdeteksi Benar` : "TIDAK ADA",
+    log_detail: rincian
+});
 
         } catch (err) {
             console.error("CRITICAL ERROR:", err);
