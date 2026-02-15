@@ -10,9 +10,25 @@
         .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
         .otp-input { letter-spacing: 0.5rem; text-align: center; font-size: 1.5rem !important; }
         .hidden-step { display: none; }
+
+        /* --- STYLE NOTIFIKASI --- */
+        #toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; pointer-events: none; }
+        .toast { 
+            animation: slideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            min-width: 280px;
+        }
+        @keyframes slideIn { 
+            from { transform: translateX(100%); opacity: 0; } 
+            to { transform: translateX(0); opacity: 1; } 
+        }
+        @keyframes fadeOut { 
+            to { opacity: 0; transform: translateY(-20px); } 
+        }
     </style>
 </head>
 <body class="flex items-center justify-center min-h-screen p-4 text-white">
+
+    <div id="toast-container"></div>
 
     <div class="glass w-full max-w-md p-8 rounded-[30px] shadow-2xl relative overflow-hidden">
         <div class="absolute -top-10 -right-10 w-32 h-32 bg-blue-500 rounded-full blur-[80px] opacity-40"></div>
@@ -59,11 +75,32 @@
     </div>
 
     <script>
+        // --- HELPER NOTIFIKASI ---
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            let bgColor = "bg-blue-600";
+            let icon = "ℹ️";
+            if (type === 'success') { bgColor = "bg-emerald-600"; icon = "✅"; }
+            if (type === 'error') { bgColor = "bg-red-600"; icon = "❌"; }
+
+            toast.className = `toast ${bgColor} text-white px-6 py-4 rounded-2xl shadow-2xl mb-3 flex items-center gap-3 font-bold border border-white/20 backdrop-blur-lg`;
+            toast.innerHTML = `<span>${icon}</span><span class="text-sm tracking-wide uppercase">${message}</span>`;
+            
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.animation = "fadeOut 0.5s forwards";
+                setTimeout(() => toast.remove(), 500);
+            }, 3000);
+        }
+
         async function kirimOTP() {
             const email = document.getElementById('regEmail').value;
             const btn = document.getElementById('btnKirim');
             
-            if(!email) return alert("Isi email dulu!");
+            if(!email) return showToast("Isi email dulu!", "error");
             
             btn.innerText = "MENGIRIM...";
             btn.disabled = true;
@@ -77,17 +114,17 @@
                 const data = await res.json();
                 
                 if(data.success) {
+                    showToast("OTP Terkirim! Cek Email Anda.", "success");
                     document.getElementById('step1').classList.add('hidden-step');
                     document.getElementById('step2').classList.remove('hidden-step');
                     document.getElementById('showEmail').innerText = email;
-                    alert("✅ Kode OTP Terkirim! Cek folder Inbox/Spam email Anda.");
                 } else {
-                    alert("❌ " + (data.error || "Gagal kirim OTP"));
+                    showToast(data.error || "Gagal kirim OTP", "error");
                     btn.disabled = false;
                     btn.innerText = "KIRIM KODE OTP";
                 }
             } catch(e) { 
-                alert("Error koneksi"); 
+                showToast("Error koneksi ke server", "error"); 
                 btn.disabled = false;
                 btn.innerText = "KIRIM KODE OTP";
             }
@@ -99,7 +136,7 @@
             const password = document.getElementById('regPass').value;
             const btn = document.getElementById('btnDaftar');
 
-            if(!otp || !password) return alert("Lengkapi data!");
+            if(!otp || !password) return showToast("Lengkapi data!", "error");
 
             btn.innerText = "MEMPROSES...";
             btn.disabled = true;
@@ -113,27 +150,24 @@
                 const data = await res.json();
 
                 if(data.success) {
-                    alert("🎉 PENDAFTARAN BERHASIL! Silakan Login.");
-                    window.location.href = '/';
+                    showToast("Pendaftaran Berhasil! Mengalihkan...", "success");
+                    setTimeout(() => window.location.href = '/', 1500);
                 } else {
-                    alert("❌ " + (data.error || "OTP Salah/Expired"));
+                    showToast(data.error || "OTP Salah atau Kadaluarsa", "error");
                     btn.disabled = false;
                     btn.innerText = "VERIFIKASI & DAFTAR";
                 }
-            } catch(e) { alert("Error koneksi"); }
+            } catch(e) { showToast("Error koneksi server", "error"); }
         }
 
         // --- PROTEKSI SCRIPT (ANTI MALING/INSPECT) ---
-        // 1. Matikan Klik Kanan
         document.addEventListener('contextmenu', event => event.preventDefault());
-
-        // 2. Matikan Shortcut Keyboard (F12, Ctrl+U, Ctrl+Shift+I)
         document.onkeydown = function(e) {
-            if (e.keyCode == 123) return false; // F12
-            if (e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) return false; // Ctrl+Shift+I
-            if (e.ctrlKey && e.shiftKey && e.keyCode == 'C'.charCodeAt(0)) return false; // Ctrl+Shift+C
-            if (e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) return false; // Ctrl+Shift+J
-            if (e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false; // Ctrl+U
+            if (e.keyCode == 123) return false; 
+            if (e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) return false; 
+            if (e.ctrlKey && e.shiftKey && e.keyCode == 'C'.charCodeAt(0)) return false; 
+            if (e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) return false; 
+            if (e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false; 
         }
     </script>
 </body>
