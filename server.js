@@ -310,46 +310,38 @@ app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
         // 1. Panggil fungsi koreksi AI untuk SEMUA file yang diupload
         const rawResults = await prosesKoreksiLengkap(req.files, settings, r_pg, r_essay);
 
-        // 2. LOGIKA PENGGABUNGAN (MULTI-PAGE)
-        // Jika ada hasil scan berturut-turut tanpa nama yang valid, gabungkan ke siswa sebelumnya.
+               // 2. LOGIKA PENGGABUNGAN (VERSI TERBAIK)
         let mergedResults = [];
         let currentStudent = null;
 
         rawResults.forEach((item) => {
-            // Deteksi apakah nama valid (bukan null, bukan "Tanpa Nama", bukan Error)
-            const hasValidName = item.nama && 
-                                 item.nama !== "Tanpa Nama" && 
-                                 item.nama !== "GAGAL SCAN" && 
-                                 item.nama !== "ERROR SCAN";
+            // Siswa dianggap baru HANYA jika ada nama (bukan null)
+            // Pastikan koreksi.js mengirim 'nama: null' jika AI tidak ketemu nama
+            const isNewStudent = item.nama !== null;
 
-            if (!hasValidName && currentStudent) {
-                // KASUS: Lembar Lanjutan (Tidak ada nama, gabung ke siswa sebelumnya)
-                
-                // Gabungkan Skor
+            if (!isNewStudent && currentStudent) {
+                // GABUNGKAN KE SISWA SEBELUMNYA
                 currentStudent.pg_betul += (item.pg_betul || 0);
                 currentStudent.essay_betul += (item.essay_betul || 0);
                 
-                // Gabungkan List Jawaban PG (untuk visualisasi peta jawaban)
-                if (item.list_hasil_pg && Array.isArray(item.list_hasil_pg)) {
-                    // Gabungkan array, atau biarkan array yang lama jika yang baru kosong
-                     if (!currentStudent.list_hasil_pg) currentStudent.list_hasil_pg = [];
-                     currentStudent.list_hasil_pg = [...currentStudent.list_hasil_pg, ...item.list_hasil_pg];
+                // Gabungkan array hasil PG untuk visualisasi kotak-kotak
+                if (item.list_hasil_pg) {
+                    currentStudent.list_hasil_pg = [...(currentStudent.list_hasil_pg || []), ...item.list_hasil_pg];
                 }
-
-                // Tandai bahwa ini hasil gabungan
                 currentStudent.is_merged = true; 
             } else {
-                // KASUS: Siswa Baru (Ada nama, atau siswa pertama tanpa nama)
-                
-                // Simpan siswa sebelumnya ke array hasil
+                // SIMPAN SISWA SEBELUMNYA JIKA ADA
                 if (currentStudent) mergedResults.push(currentStudent);
                 
-                // Set item ini sebagai siswa aktif baru
+                // BERI NAMA OTOMATIS JIKA KOSONG (Siswa 1, Siswa 2, dst)
+                item.nama = item.nama || "Siswa " + (mergedResults.length + 1);
                 item.is_merged = false;
-                if (!item.nama) item.nama = "Tanpa Nama"; // Default name jika benar-benar kosong di awal
                 currentStudent = item;
             }
         });
+
+        if (currentStudent) mergedResults.push(currentStudent);
+
 
         // Jangan lupa masukkan siswa terakhir yang sedang diproses
         if (currentStudent) mergedResults.push(currentStudent);
