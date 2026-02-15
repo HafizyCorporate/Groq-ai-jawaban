@@ -1,6 +1,6 @@
 /**
  * FILE: koreksi.js 
- * MODEL: Gemini 2.5 Flash (FIXED: ListHasilBool & SafetySettings)
+ * MODEL: Gemini 2.5 Flash (FIXED: ListHasilBool & Stronger Essay Prompt)
  */
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const dotenv = require('dotenv');
@@ -23,7 +23,6 @@ async function prosesKoreksiLengkap(files, settings) {
     
     const results = [];
 
-    // --- PERBAIKAN 1: MENAMBAHKAN SAFETY SETTINGS AGAR TIDAK ERROR BLOCK ---
     const model = genAI.getGenerativeModel({ 
         model: "gemini-2.5-flash",
         safetySettings: [
@@ -38,7 +37,7 @@ async function prosesKoreksiLengkap(files, settings) {
         try {
             const base64Data = file.buffer.toString("base64");
             
-            // PERINTAH AI TETAP (TIDAK BERUBAH SAMA SEKALI)
+            // --- PERINTAH AI (HANYA BAGIAN ESSAY YANG DIPERKUAT) ---
             const prompt = `TUGAS: Analisis LJK secara presisi.
             
             1.INSTRUKSI DETEKSI PG (SANGAT KETAT):
@@ -52,10 +51,12 @@ async function prosesKoreksiLengkap(files, settings) {
             - Prioritas: Jika ada bercak tinta yang melintasi huruf (A, B, C, D, atau E), itu adalah jawaban siswa.
             - Kasus Ragu: Jika ada dua coretan, pilih coretan yang paling baru atau paling tegas. Jika sangat tipis, jangan langsung dianggap kosong, perhatikan perubahan tekstur pada area huruf.
 
-            2.DETEKSI ESSAY (SANGAT KETAT):
-            - Baca jawaban tulisan tangan siswa untuk soal essay.
-            - Bandingkan dengan Kunci Essay: ${JSON.stringify(kunciES)}.
-            - Berikan status "BENAR" jika inti jawabannya sama, "SALAH" jika beda jauh.
+            2.DETEKSI ESSAY (WAJIB OCR & SEMANTIC MATCHING):
+            - TUGAS UTAMA: Kamu harus membaca tulisan tangan siswa (OCR) terlebih dahulu.
+            - Langkah 1: Baca teks jawaban siswa seakurat mungkin (meskipun tulisan jelek).
+            - Langkah 2: Bandingkan "Makna/Inti" jawaban siswa dengan Kunci Essay: ${JSON.stringify(kunciES)}.
+            - Langkah 3: Jangan mencocokkan kata per kata persis. Gunakan pencocokan makna (Semantic Meaning). Jika maksudnya sama, anggap BENAR.
+            - Langkah 4: Hitung jumlah nomor essay yang jawabannya dianggap BENAR/RELEVAN.
 
             OUTPUT WAJIB JSON MURNI:
             {
@@ -92,7 +93,7 @@ async function prosesKoreksiLengkap(files, settings) {
             let rincian = [];
             let listNoBetul = [];
             
-            // --- PERBAIKAN 2: DEFINISIKAN VARIABEL INI (SEBELUMNYA HILANG) ---
+            // Variabel ini wajib ada
             let listHasilBool = []; 
 
             Object.keys(kunciPG).forEach(no => {
@@ -105,11 +106,9 @@ async function prosesKoreksiLengkap(files, settings) {
                         pgBetul++;
                         listNoBetul.push(no);
                         rincian.push(`No ${no}: ✅ Benar (${s})`);
-                        // Masukkan status TRUE agar kotak jadi hijau
                         listHasilBool.push(true); 
                     } else {
                         rincian.push(`No ${no}: ❌ Salah (Siswa:${s}, Kunci:${k})`);
-                        // Masukkan status FALSE agar kotak jadi merah
                         listHasilBool.push(false); 
                     }
                 }
@@ -121,17 +120,12 @@ async function prosesKoreksiLengkap(files, settings) {
                 rincian.push(`Essay: ✅ Terdeteksi ${esBetul} poin/benar`);
             }
 
-            // --- OUTPUT HASIL (DIOPTIMALKAN UNTUK PENGGABUNGAN) ---
+            // --- OUTPUT HASIL ---
             results.push({
-                // Jika AI tidak ketemu nama, kirim null.
                 nama: (aiData.nama_siswa && aiData.nama_siswa !== "NAMA") ? aiData.nama_siswa : null,
-                
                 pg_betul: pgBetul,      
                 essay_betul: esBetul,
-                
-                // Variabel ini sekarang sudah aman dan terisi
                 list_hasil_pg: listHasilBool, 
-                
                 list_detail_pg: listNoBetul.join(', ') || "TIDAK ADA",
                 list_detail_es: esBetul > 0 ? `${esBetul} Jawaban Terdeteksi Benar` : "TIDAK ADA",
                 log_detail: rincian
@@ -143,7 +137,7 @@ async function prosesKoreksiLengkap(files, settings) {
                 nama: "ERROR SCAN", 
                 pg_betul: 0,
                 essay_betul: 0,
-                list_hasil_pg: [], // Tambahkan array kosong saat error agar frontend tidak blank
+                list_hasil_pg: [], 
                 list_detail_pg: "GAGAL",
                 list_detail_es: "GAGAL",
                 log_detail: ["Gagal baca data: " + err.message]
