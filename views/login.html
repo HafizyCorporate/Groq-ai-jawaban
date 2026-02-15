@@ -8,6 +8,9 @@
     <style>
         body { background-color: #0f172a; user-select: none; }
         .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        /* Animasi loading sederhana */
+        .spinner { border: 3px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: #fff; width: 20px; height: 20px; animation: spin 0.8s ease-in-out infinite; display: inline-block; vertical-align: middle; }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="flex items-center justify-center min-h-screen p-4 text-white">
@@ -28,20 +31,40 @@
         </div>
 
         <div class="flex justify-between items-center mt-8 text-[10px] font-bold uppercase text-slate-500">
-            <a href="#" onclick="alert('Hubungi Admin untuk reset manual')" class="hover:text-white">Lupa Password?</a>
+            <a href="javascript:void(0)" onclick="openForgotModal()" class="hover:text-white">Lupa Password?</a>
             <a href="/register" class="text-blue-500 hover:text-blue-400">Daftar Akun Baru</a>
         </div>
     </div>
 
+    <div id="forgotModal" class="fixed inset-0 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4 z-50">
+        <div class="glass w-full max-w-sm p-8 rounded-[30px] border border-blue-500/30 text-center">
+            <h2 id="modalTitle" class="text-2xl font-black mb-2">LUPA PASSWORD</h2>
+            <p id="modalDesc" class="text-slate-400 text-xs mb-6">Masukkan email untuk menerima kode OTP</p>
+
+            <div id="stepEmail" class="space-y-4">
+                <input type="email" id="forgotEmail" placeholder="Email Anda" class="w-full p-4 bg-slate-800/50 rounded-2xl border border-slate-700 outline-none font-bold">
+                <button onclick="sendOTP()" id="btnSendOTP" class="w-full bg-blue-600 py-4 rounded-2xl font-black uppercase tracking-widest">Kirim OTP</button>
+            </div>
+
+            <div id="stepReset" class="space-y-4 hidden">
+                <input type="text" id="otpCode" placeholder="Masukkan 6 Digit OTP" class="w-full p-4 bg-slate-800/50 rounded-2xl border border-blue-500 outline-none font-bold text-center tracking-widest">
+                <input type="password" id="newPassword" placeholder="Password Baru" class="w-full p-4 bg-slate-800/50 rounded-2xl border border-slate-700 outline-none font-bold">
+                <button onclick="resetPassword()" id="btnReset" class="w-full bg-green-600 py-4 rounded-2xl font-black uppercase tracking-widest">Ganti Password</button>
+            </div>
+
+            <button onclick="closeForgotModal()" class="mt-6 text-[10px] font-bold text-slate-500 uppercase hover:text-white">Batal</button>
+        </div>
+    </div>
+
     <script>
+        // --- FUNGSI LOGIN ---
         async function login() {
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             const btn = document.getElementById('btnLogin');
 
             if(!email || !password) return alert("Isi semua data!");
-
-            btn.innerText = "MEMERIKSA...";
+            btn.innerHTML = `<span class="spinner"></span> MEMERIKSA...`;
             btn.disabled = true;
 
             try {
@@ -51,32 +74,88 @@
                     body: JSON.stringify({ email, password })
                 });
                 const data = await res.json();
-
-                if(data.success) {
-                    window.location.href = '/dashboard';
-                } else {
-                    alert("❌ " + (data.message || "Login Gagal"));
-                    btn.disabled = false;
-                    btn.innerText = "MASUK SEKARANG";
-                }
-            } catch(e) { 
-                alert("Error Koneksi");
-                btn.disabled = false;
-                btn.innerText = "MASUK SEKARANG";
-            }
+                if(data.success) { window.location.href = '/dashboard'; } 
+                else { alert("❌ " + (data.message || "Login Gagal")); }
+            } catch(e) { alert("Error Koneksi"); }
+            btn.innerHTML = "MASUK SEKARANG";
+            btn.disabled = false;
         }
 
-        // --- PROTEKSI SCRIPT (ANTI MALING/INSPECT) ---
-        // 1. Matikan Klik Kanan
-        document.addEventListener('contextmenu', event => event.preventDefault());
+        // --- ALUR LUPA PASSWORD ---
+        function openForgotModal() {
+            document.getElementById('forgotModal').classList.remove('hidden');
+            document.getElementById('stepEmail').classList.remove('hidden');
+            document.getElementById('stepReset').classList.add('hidden');
+        }
 
-        // 2. Matikan Shortcut Keyboard
+        function closeForgotModal() {
+            document.getElementById('forgotModal').classList.add('hidden');
+        }
+
+        async function sendOTP() {
+            const email = document.getElementById('forgotEmail').value;
+            const btn = document.getElementById('btnSendOTP');
+            if(!email) return alert("Masukkan email!");
+
+            btn.innerHTML = `<span class="spinner"></span> Mengirim...`;
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/auth/forgot-password', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ email })
+                });
+                const data = await res.json();
+
+                if(data.success) {
+                    alert("✅ OTP telah dikirim ke email Anda!");
+                    document.getElementById('stepEmail').classList.add('hidden');
+                    document.getElementById('stepReset').classList.remove('hidden');
+                    document.getElementById('modalTitle').innerText = "VERIFIKASI OTP";
+                    document.getElementById('modalDesc').innerText = "Silakan cek email & masukkan password baru";
+                } else {
+                    alert("❌ " + data.message);
+                }
+            } catch(e) { alert("Gagal mengirim OTP"); }
+            btn.innerHTML = "Kirim OTP";
+            btn.disabled = false;
+        }
+
+        async function resetPassword() {
+            const email = document.getElementById('forgotEmail').value;
+            const otp = document.getElementById('otpCode').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const btn = document.getElementById('btnReset');
+
+            if(!otp || !newPassword) return alert("Isi OTP dan Password Baru!");
+
+            btn.innerHTML = `<span class="spinner"></span> Memproses...`;
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/auth/reset-password', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ email, otp, newPassword })
+                });
+                const data = await res.json();
+
+                if(data.success) {
+                    alert("✅ Password Berhasil Diubah! Silakan login.");
+                    closeForgotModal();
+                } else {
+                    alert("❌ " + (data.message || "Gagal reset password"));
+                }
+            } catch(e) { alert("Error Koneksi"); }
+            btn.innerHTML = "Ganti Password";
+            btn.disabled = false;
+        }
+
+        // --- PROTEKSI SCRIPT (ANTI INSPECT) ---
+        document.addEventListener('contextmenu', event => event.preventDefault());
         document.onkeydown = function(e) {
-            if (e.keyCode == 123) return false; // F12
-            if (e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) return false; 
-            if (e.ctrlKey && e.shiftKey && e.keyCode == 'C'.charCodeAt(0)) return false; 
-            if (e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) return false; 
-            if (e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false; 
+            if (e.keyCode == 123 || (e.ctrlKey && e.shiftKey && [73, 67, 74].includes(e.keyCode)) || (e.ctrlKey && e.keyCode == 85)) return false;
         }
     </script>
 </body>
