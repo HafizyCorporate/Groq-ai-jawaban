@@ -6,148 +6,134 @@
     <title>Daftar Akun - Te Az Ha AI</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background-color: #000; }
-        .glass { background: rgba(17, 24, 39, 0.8); backdrop-filter: blur(10px); border: 1px solid rgba(31, 41, 55, 1); }
-        .otp-input { letter-spacing: 0.5rem; text-align: center; font-size: 2rem !important; }
+        body { background-color: #0f172a; user-select: none; /* Anti blok teks */ }
+        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .otp-input { letter-spacing: 0.5rem; text-align: center; font-size: 1.5rem !important; }
+        .hidden-step { display: none; }
     </style>
 </head>
-<body class="flex items-center justify-center min-h-screen p-4">
+<body class="flex items-center justify-center min-h-screen p-4 text-white">
 
-    <div id="regBox" class="glass w-full max-w-md p-8 rounded-3xl shadow-2xl">
-        <div class="text-center mb-8">
-            <h1 class="text-3xl font-black text-blue-500 tracking-tighter">DAFTAR <span class="text-white">AKUN</span></h1>
-            <p class="text-gray-400 text-sm mt-2">1 HP Maksimal 2 Akun (Sistem OTP)</p>
-        </div>
+    <div class="glass w-full max-w-md p-8 rounded-[30px] shadow-2xl relative overflow-hidden">
+        <div class="absolute -top-10 -right-10 w-32 h-32 bg-blue-500 rounded-full blur-[80px] opacity-40"></div>
+        <div class="absolute -bottom-10 -left-10 w-32 h-32 bg-purple-500 rounded-full blur-[80px] opacity-40"></div>
 
-        <form id="registerForm" class="space-y-5">
-            <div>
-                <label class="block text-xs font-bold text-gray-400 uppercase mb-2">Email Guru</label>
-                <input type="email" id="regEmail" required 
-                    class="w-full p-4 bg-gray-900 border border-gray-800 rounded-2xl text-white focus:border-blue-500 outline-none transition"
-                    placeholder="Contoh: guru@gmail.com">
+        <div class="relative z-10">
+            <h1 class="text-3xl font-black text-center mb-2 tracking-tighter">DAFTAR <span class="text-blue-500">AKUN</span></h1>
+            <p class="text-slate-400 text-center text-xs mb-8">Sistem Keamanan OTP Email</p>
+
+            <div id="step1">
+                <label class="block text-[10px] font-bold text-slate-400 uppercase mb-2">Email Aktif</label>
+                <input type="email" id="regEmail" class="w-full p-4 bg-slate-800/50 rounded-xl border border-slate-700 focus:border-blue-500 outline-none transition text-white" placeholder="nama@email.com">
+                <button onclick="kirimOTP()" id="btnKirim" class="w-full mt-6 bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-xl transition shadow-lg shadow-blue-900/20 uppercase tracking-widest text-sm">
+                    KIRIM KODE OTP
+                </button>
             </div>
 
-            <div>
-                <label class="block text-xs font-bold text-gray-400 uppercase mb-2">Password</label>
-                <input type="password" id="regPass" required 
-                    class="w-full p-4 bg-gray-900 border border-gray-800 rounded-2xl text-white focus:border-blue-500 outline-none transition"
-                    placeholder="Minimal 6 karakter">
+            <div id="step2" class="hidden-step space-y-4">
+                <div class="bg-blue-500/10 p-3 rounded-lg border border-blue-500/20 text-center">
+                    <p class="text-[10px] text-blue-300">Kode OTP telah dikirim ke:</p>
+                    <p id="showEmail" class="font-bold text-white"></p>
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-2">Kode OTP (Cek Email)</label>
+                    <input type="text" id="otpCode" maxlength="6" class="otp-input w-full p-3 bg-slate-800/50 rounded-xl border border-slate-700 focus:border-blue-500 outline-none text-white" placeholder="000000">
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-2">Buat Password</label>
+                    <input type="password" id="regPass" class="w-full p-4 bg-slate-800/50 rounded-xl border border-slate-700 focus:border-blue-500 outline-none text-white" placeholder="******">
+                </div>
+
+                <button onclick="daftarFinal()" id="btnDaftar" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black py-4 rounded-xl transition shadow-lg shadow-emerald-900/20 uppercase tracking-widest text-sm">
+                    VERIFIKASI & DAFTAR
+                </button>
+                <button onclick="location.reload()" class="w-full text-xs font-bold text-slate-500 mt-2 uppercase hover:text-white">Ganti Email</button>
             </div>
 
-            <button type="submit" id="btnRegister" 
-                class="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-2xl transition shadow-lg shadow-blue-900/20 uppercase tracking-widest">
-                KIRIM KODE OTP KE EMAIL
-            </button>
-        </form>
-
-        <div class="mt-8 text-center">
-            <p class="text-gray-500 text-sm">Sudah punya akun? 
-                <a href="/login.html" class="text-blue-500 font-bold hover:underline">Login Disini</a>
-            </p>
-        </div>
-    </div>
-
-    <div id="otpModal" class="fixed inset-0 bg-black/90 backdrop-blur-md hidden flex items-center justify-center p-6 z-50">
-        <div class="glass w-full max-w-sm p-8 rounded-[40px] text-center border border-gray-700">
-            <div class="text-5xl mb-4">📧</div>
-            <h3 class="text-xl font-black text-white uppercase mb-2">Verifikasi Email</h3>
-            <p class="text-gray-400 text-sm mb-6">Masukkan 6 digit kode yang dikirim ke email anda</p>
-            
-            <input type="text" id="otpCode" placeholder="000000" maxlength="6" 
-                class="otp-input w-full p-4 bg-gray-900 text-blue-500 rounded-2xl font-black border border-gray-700 outline-none focus:border-blue-500 mb-4">
-            
-            <button onclick="verifikasiSekarang()" id="btnVerify"
-                class="w-full bg-emerald-600 text-white font-black py-4 rounded-2xl uppercase tracking-widest shadow-lg">
-                KONFIRMASI KODE
-            </button>
-            <button onclick="document.getElementById('otpModal').classList.add('hidden')" class="mt-4 text-gray-500 text-xs font-bold uppercase">Batal</button>
+            <div class="mt-8 text-center pt-6 border-t border-slate-700">
+                <p class="text-slate-500 text-xs">Sudah punya akun? <a href="/" class="text-blue-500 font-bold hover:text-blue-400">Login Disini</a></p>
+            </div>
         </div>
     </div>
 
     <script>
-        // FUNGSI UNTUK MENDAPATKAN ID UNIK HP
-        function getDeviceId() {
-            const info = navigator.userAgent + screen.width + (navigator.hardwareConcurrency || "unknown");
-            return btoa(info); 
-        }
-
-        const regForm = document.getElementById('registerForm');
-        const otpModal = document.getElementById('otpModal');
-
-        // TAHAP 1: KIRIM REQUEST OTP KE EMAIL
-        regForm.onsubmit = async (e) => {
-            e.preventDefault();
-            const btn = document.getElementById('btnRegister');
-            const email = document.getElementById('regEmail').value.toLowerCase().trim();
-
-            btn.innerText = "MENGIRIM OTP...";
+        async function kirimOTP() {
+            const email = document.getElementById('regEmail').value;
+            const btn = document.getElementById('btnKirim');
+            
+            if(!email) return alert("Isi email dulu!");
+            
+            btn.innerText = "MENGIRIM...";
             btn.disabled = true;
 
             try {
-                // Sesuai server.js: Menggunakan /auth/send-otp-register
                 const res = await fetch('/auth/send-otp-register', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        email: email, 
-                        deviceId: getDeviceId() 
-                    })
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ email })
                 });
-
-                const result = await res.json();
-
-                if (res.ok && result.success) {
-                    alert("KODE TERKIRIM! Silakan cek Inbox atau folder SPAM email Anda.");
-                    otpModal.classList.remove('hidden');
+                const data = await res.json();
+                
+                if(data.success) {
+                    document.getElementById('step1').classList.add('hidden-step');
+                    document.getElementById('step2').classList.remove('hidden-step');
+                    document.getElementById('showEmail').innerText = email;
+                    alert("✅ Kode OTP Terkirim! Cek folder Inbox/Spam email Anda.");
                 } else {
-                    alert(result.error || "Gagal mengirim OTP. Email mungkin sudah terdaftar.");
+                    alert("❌ " + (data.error || "Gagal kirim OTP"));
+                    btn.disabled = false;
+                    btn.innerText = "KIRIM KODE OTP";
                 }
-            } catch (err) {
-                alert("Kesalahan Server: Pastikan koneksi internet stabil.");
-            } finally {
-                btn.innerText = "KIRIM KODE OTP KE EMAIL";
+            } catch(e) { 
+                alert("Error koneksi"); 
                 btn.disabled = false;
+                btn.innerText = "KIRIM KODE OTP";
             }
-        };
+        }
 
-        // TAHAP 2: VERIFIKASI KODE & DAFTAR (AKTIVASI PASSWORD)
-        async function verifikasiSekarang() {
-            const email = document.getElementById('regEmail').value.toLowerCase().trim();
+        async function daftarFinal() {
+            const email = document.getElementById('regEmail').value;
+            const otp = document.getElementById('otpCode').value;
             const password = document.getElementById('regPass').value;
-            const otp = document.getElementById('otpCode').value.trim();
-            const btn = document.getElementById('btnVerify');
+            const btn = document.getElementById('btnDaftar');
 
-            if(otp.length < 6) return alert("Masukkan 6 digit kode!");
+            if(!otp || !password) return alert("Lengkapi data!");
 
-            btn.innerText = "SEDANG VERIFIKASI...";
+            btn.innerText = "MEMPROSES...";
             btn.disabled = true;
 
             try {
-                // Sesuai server.js: /auth/register sekarang menerima (email, password, otp)
                 const res = await fetch('/auth/register', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        email: email, 
-                        password: password, 
-                        otp: otp 
-                    })
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ email, otp, password })
                 });
+                const data = await res.json();
 
-                const result = await res.json();
-
-                if (res.ok && result.success) {
-                    alert("PENDAFTARAN BERHASIL! Akun sudah aktif.");
-                    window.location.href = '/login.html';
+                if(data.success) {
+                    alert("🎉 PENDAFTARAN BERHASIL! Silakan Login.");
+                    window.location.href = '/';
                 } else {
-                    alert(result.error || "Kode OTP Salah atau sudah tidak berlaku!");
+                    alert("❌ " + (data.error || "OTP Salah/Expired"));
+                    btn.disabled = false;
+                    btn.innerText = "VERIFIKASI & DAFTAR";
                 }
-            } catch (err) {
-                alert("Gagal koneksi ke server.");
-            } finally {
-                btn.innerText = "KONFIRMASI KODE";
-                btn.disabled = false;
-            }
+            } catch(e) { alert("Error koneksi"); }
+        }
+
+        // --- PROTEKSI SCRIPT (ANTI MALING/INSPECT) ---
+        // 1. Matikan Klik Kanan
+        document.addEventListener('contextmenu', event => event.preventDefault());
+
+        // 2. Matikan Shortcut Keyboard (F12, Ctrl+U, Ctrl+Shift+I)
+        document.onkeydown = function(e) {
+            if (e.keyCode == 123) return false; // F12
+            if (e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) return false; // Ctrl+Shift+I
+            if (e.ctrlKey && e.shiftKey && e.keyCode == 'C'.charCodeAt(0)) return false; // Ctrl+Shift+C
+            if (e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) return false; // Ctrl+Shift+J
+            if (e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false; // Ctrl+U
         }
     </script>
 </body>
