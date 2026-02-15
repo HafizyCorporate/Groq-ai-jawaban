@@ -16,7 +16,6 @@
     <style>
         body { font-family: 'Plus_Jakarta_Sans', sans-serif; background-color: #f1f5f9; }
         
-        /* Dropdown Jawaban Hitam Tebal & Besar - TETAP TERJAGA */
         select.key-dropdown { 
             appearance: none; background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e"); 
             background-repeat: no-repeat; background-position: right 0.4rem center; background-size: 1em; 
@@ -24,14 +23,8 @@
             border: 3px solid #000; border-radius: 12px; background-color: white; padding: 10px 5px;
         }
 
-        #laporanFinal > div {
-    animation: fadeIn 0.5s ease-out forwards;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
+        #laporanFinal > div { animation: fadeIn 0.5s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
         @media (min-width: 1024px) {
             select.key-dropdown { font-size: 28px !important; padding: 15px; } 
@@ -70,7 +63,6 @@
 
         <div class="desktop-layout">
             <div class="sticky-panel space-y-8">
-                
                 <div id="adminPanel" class="hidden p-6 bg-slate-900 rounded-[30px] border-4 border-orange-500 text-white shadow-2xl">
                     <h3 class="text-sm font-black uppercase italic text-orange-400 mb-4">🔑 Jendela Khusus Admin</h3>
                     <div class="space-y-4">
@@ -179,7 +171,6 @@
                     <button id="btnHitung" onclick="terbitkanNilai()" class="w-full bg-blue-600 text-white font-black py-10 rounded-[40px] text-3xl md:text-4xl uppercase shadow-2xl hover:bg-blue-700">TERBITKAN & SIMPAN NILAI</button>
                     
                     <div id="exportMenu" class="grid grid-cols-3 gap-3 mt-8">
-
                         <button onclick="exportResult('pdf')" class="bg-red-500 text-white py-5 rounded-[25px] font-black text-[10px] uppercase shadow-lg hover:bg-red-600 transition">📄 PDF</button>
                         <button onclick="exportResult('excel')" class="bg-emerald-600 text-white py-5 rounded-[25px] font-black text-[10px] uppercase shadow-lg hover:bg-emerald-700 transition">📊 EXCEL</button>
                         <button onclick="exportResult('word')" class="bg-blue-500 text-white py-5 rounded-[25px] font-black text-[10px] uppercase shadow-lg hover:bg-blue-600 transition">📝 WORD</button>
@@ -196,26 +187,43 @@
         let koreksiResult = [];
         let userEmail = "";
 
-        // --- FUNGSI LOGIKA MATEMATIKA TERBARU (MENDUKUNG RUMUS KOMPLEKS) ---
-function kalkulasiNilai(skorAwal, inputRumus) {
-    let s = skorAwal;
-    // Bersihkan input: ubah 'x' jadi '*', ubah ':' jadi '/' agar dipahami sistem
-    let rumus = inputRumus.trim().toLowerCase().replace(/x/g, '*').replace(/:/g, '/');
+        // --- PENGAMANAN 1: ANTI XSS HELPER ---
+        function escapeHTML(str) {
+            if (!str) return "";
+            return str.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m]));
+        }
 
-    // Jika Bapak/Ibu hanya isi angka saja (misal: 2), otomatis dianggap perkalian
-    if (!isNaN(rumus) && rumus !== "") {
-        return s * parseFloat(rumus);
-    }
+        // --- PENGAMANAN 2: CEK SESI OTOMATIS ---
+        async function checkSession() {
+            try {
+                const res = await fetch('/auth/user-session');
+                if (res.status === 401) {
+                    Swal.fire('Sesi Habis', 'Silakan login kembali.', 'warning').then(() => window.location.href = '/auth/logout');
+                    return false;
+                }
+                return true;
+            } catch (e) { return true; }
+        }
 
-    try {
-        // Menggabungkan angka benar siswa dengan seluruh rumus (misal: 5 + *10/13)
-        let ekspresi = s + rumus; 
-        return new Function(`return ${ekspresi}`)();
-    } catch (e) {
-        console.error("Format rumus salah:", e);
-        return s; 
-    }
-}
+        // --- FUNGSI LOGIKA MATEMATIKA DENGAN SANITASI KETAT ---
+        function kalkulasiNilai(skorAwal, inputRumus) {
+            let s = skorAwal;
+            // Bersihkan input dari karakter berbahaya, hanya izinkan operator matematika
+            let rumus = inputRumus.trim().toLowerCase().replace(/x/g, '*').replace(/:/g, '/');
+            rumus = rumus.replace(/[^0-9+\-*/.()]/g, ''); 
+
+            if (!isNaN(rumus) && rumus !== "") {
+                return s * parseFloat(rumus);
+            }
+
+            try {
+                let ekspresi = s + rumus; 
+                return new Function(`return (${ekspresi})`)();
+            } catch (e) {
+                console.error("Format rumus salah:", e);
+                return s; 
+            }
+        }
 
         window.onload = function() {
             initGrids();
@@ -270,8 +278,18 @@ function kalkulasiNilai(skorAwal, inputRumus) {
             document.getElementById(type === 'cam' ? 'camFile' : 'galFile').click();
         }
 
+        // --- PENGAMANAN 3: VALIDASI TIPE FILE ---
         function handleFileSelection(input) {
             const files = Array.from(input.files);
+            const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
+            const invalidFiles = files.filter(f => !validTypes.includes(f.type));
+
+            if(invalidFiles.length > 0) {
+                Swal.fire('Format Salah', 'Harap unggah file foto (JPG/PNG).', 'error');
+                input.value = "";
+                return;
+            }
+
             if(selectedFiles.length + files.length > 10) {
                 Swal.fire('Limit!', 'Hanya bisa tambah ' + (10 - selectedFiles.length) + ' foto lagi.', 'error');
                 return;
@@ -290,7 +308,7 @@ function kalkulasiNilai(skorAwal, inputRumus) {
                 document.getElementById('fileCount').innerText = selectedFiles.length;
                 listDiv.innerHTML = selectedFiles.map((f, i) => `
                     <div class="bg-blue-50 p-4 rounded-xl flex justify-between items-center border border-blue-100">
-                        <span class="truncate font-black text-[11px] text-blue-800 uppercase italic">📄 ${f.name}</span>
+                        <span class="truncate font-black text-[11px] text-blue-800 uppercase italic">📄 ${escapeHTML(f.name)}</span>
                         <button onclick="removeFile(${i})" class="text-red-500 font-black text-[10px] bg-white px-3 py-1 rounded-lg">HAPUS</button>
                     </div>
                 `).join('');
@@ -299,106 +317,73 @@ function kalkulasiNilai(skorAwal, inputRumus) {
 
         function removeFile(i) { selectedFiles.splice(i, 1); renderFileList(); }
         
-async function startKoreksi() {
-    if (selectedFiles.length === 0) return Swal.fire('Foto Kosong', 'Bapak/Ibu belum mengunggah foto lembar jawaban.', 'warning');
-    
-    Swal.fire({ 
-        title: 'PROSES KOREKSI AI', 
-        text: 'Menganalisa jawaban siswa...', 
-        allowOutsideClick: false, 
-        didOpen: () => Swal.showLoading() 
-    });
-
-    let kunci_pg = {};
-    for (let i = 1; i <= 40; i++) {
-        const val = document.getElementById(`p${i}`).value;
-        if (val) kunci_pg[i] = val;
-    }
-    
-    let kunci_essay = {};
-    for (let i = 1; i <= 20; i++) {
-        const val = document.getElementById(`e${i}`).value;
-        if (val) kunci_essay[i] = val;
-    }
-
-    let formData = new FormData();
-    selectedFiles.forEach(f => formData.append('foto', f));
-    
-    formData.append('r_pg', document.getElementById('r_pg').value);
-    formData.append('r_essay', document.getElementById('r_essay').value);
-    formData.append('kunci_pg', JSON.stringify(kunci_pg));
-    formData.append('kunci_essay', JSON.stringify(kunci_essay));
-
-    try {
-        const res = await fetch('/ai/proses-koreksi', { method: 'POST', body: formData });
-        const data = await res.json();
-        
-        Swal.close();
-
-        if (data.success) {
-            koreksiResult = data.data; 
-            renderKoreksiView();
+        async function startKoreksi() {
+            if(!await checkSession()) return;
+            if (selectedFiles.length === 0) return Swal.fire('Foto Kosong', 'Bapak/Ibu belum mengunggah foto lembar jawaban.', 'warning');
             
-            document.getElementById('resWrap').classList.remove('hidden');
-            document.getElementById('exportMenu').classList.remove('hidden'); 
+            Swal.fire({ title: 'PROSES KOREKSI AI', text: 'Menganalisa jawaban siswa...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
-            confetti({
-                particleCount: 150,
-                spread: 70,
-                origin: { y: 0.6 },
-                colors: ['#2563eb', '#10b981', '#f59e0b']
-            });
+            let kunci_pg = {};
+            for (let i = 1; i <= 40; i++) {
+                const val = document.getElementById(`p${i}`).value;
+                if (val) kunci_pg[i] = val;
+            }
+            
+            let kunci_essay = {};
+            for (let i = 1; i <= 20; i++) {
+                const val = document.getElementById(`e${i}`).value;
+                if (val) kunci_essay[i] = val;
+            }
 
-            Swal.fire({
-                title: 'KOREKSI SELESAI!',
-                text: `${koreksiResult.length} lembar siswa berhasil dianalisis.`,
-                icon: 'success',
-                timer: 3000,
-                showConfirmButton: false
-            });
+            let formData = new FormData();
+            selectedFiles.forEach(f => formData.append('foto', f));
+            formData.append('r_pg', document.getElementById('r_pg').value);
+            formData.append('r_essay', document.getElementById('r_essay').value);
+            formData.append('kunci_pg', JSON.stringify(kunci_pg));
+            formData.append('kunci_essay', JSON.stringify(kunci_essay));
 
-            refreshUserStatus(); 
-        } else { 
-            Swal.fire('Gagal', data.message, 'error'); 
+            try {
+                const res = await fetch('/ai/proses-koreksi', { method: 'POST', body: formData });
+                const data = await res.json();
+                Swal.close();
+                if (data.success) {
+                    koreksiResult = data.data; 
+                    renderKoreksiView();
+                    document.getElementById('resWrap').classList.remove('hidden');
+                    document.getElementById('exportMenu').classList.remove('hidden'); 
+                    confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#2563eb', '#10b981', '#f59e0b'] });
+                    Swal.fire({ title: 'KOREKSI SELESAI!', text: `${koreksiResult.length} lembar siswa dianalisis.`, icon: 'success', timer: 3000, showConfirmButton: false });
+                    refreshUserStatus(); 
+                } else { Swal.fire('Gagal', data.message, 'error'); }
+            } catch (e) { 
+                Swal.close();
+                Swal.fire('Error', 'Server sibuk, coba lagi.', 'error'); 
+            }
         }
-    } catch (e) { 
-        Swal.close();
-        Swal.fire('Error', 'Server sibuk, coba lagi.', 'error'); 
-    }
-}
-            function renderKoreksiView() {
+
+        function renderKoreksiView() {
             const container = document.getElementById('scanAwal');
             container.innerHTML = ''; 
-
             if (!koreksiResult || koreksiResult.length === 0) return;
 
             container.innerHTML = koreksiResult.map((res, idx) => {
                 let htmlNomor = '';
-                
-                // Logika Indikator Penggabungan (Multi-Page)
-                const badgeMerged = res.is_merged ? 
-                    `<div class="absolute top-2 right-2 bg-orange-500 text-white text-[7px] font-black px-2 py-1 rounded-full shadow-sm animate-pulse">MULTI-PAGE (GABUNG)</div>` : '';
-
+                const badgeMerged = res.is_merged ? `<div class="absolute top-2 right-2 bg-orange-500 text-white text-[7px] font-black px-2 py-1 rounded-full shadow-sm animate-pulse">MULTI-PAGE (GABUNG)</div>` : '';
                 if (res.list_hasil_pg && Array.isArray(res.list_hasil_pg)) {
                     res.list_hasil_pg.forEach((isCorrect, n) => {
                         const warna = isCorrect ? 'bg-emerald-500' : 'bg-red-500';
                         htmlNomor += `<div class="w-5 h-5 ${warna} text-white flex items-center justify-center rounded-md text-[8px] font-black">${n + 1}</div>`;
                     });
-                } else {
-                    htmlNomor = `<p class="text-[9px] font-bold text-slate-400 italic text-center w-full">Detail nomor tidak tersedia</p>`;
-                }
+                } else { htmlNomor = `<p class="text-[9px] font-bold text-slate-400 italic text-center w-full">Detail nomor tidak tersedia</p>`; }
 
                 return `
                 <div class="bg-white p-5 rounded-[35px] shadow-lg border-2 border-slate-50 relative overflow-hidden transition hover:shadow-2xl">
-                    <div class="bg-blue-600 text-white text-[8px] font-black px-3 py-1 absolute top-0 left-0 uppercase tracking-tighter">${res.filename || 'File'}</div>
-                    
+                    <div class="bg-blue-600 text-white text-[8px] font-black px-3 py-1 absolute top-0 left-0 uppercase tracking-tighter">${escapeHTML(res.filename) || 'File'}</div>
                     ${badgeMerged}
-
                     <div class="mt-4 text-center">
                          <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Siswa ${idx+1}</p>
-                         <h3 class="text-xl font-black text-blue-900 truncate uppercase mb-4">${res.nama || 'Tanpa Nama'}</h3>
+                         <h3 class="text-xl font-black text-blue-900 truncate uppercase mb-4">${escapeHTML(res.nama) || 'Tanpa Nama'}</h3>
                     </div>
-                    
                     <div class="grid grid-cols-2 gap-3 mb-5">
                         <div class="bg-blue-50 p-3 rounded-2xl text-center border border-blue-100">
                             <p class="text-[9px] font-black text-blue-700 uppercase">PG Betul</p>
@@ -409,21 +394,18 @@ async function startKoreksi() {
                             <p class="text-3xl font-black text-emerald-600">${res.essay_betul}</p>
                         </div>
                     </div>
-
                     <div class="bg-slate-50 p-4 rounded-[25px] border border-slate-100">
                         <div class="flex justify-between items-center mb-3">
                             <p class="text-[9px] font-black text-slate-500 uppercase italic">📊 Peta Jawaban PG</p>
                         </div>
-                        <div class="flex flex-wrap gap-1.5 justify-center">
-                            ${htmlNomor}
-                        </div>
+                        <div class="flex flex-wrap gap-1.5 justify-center">${htmlNomor}</div>
                     </div>
                 </div>`;
             }).join('');
         }
 
-
-               async function terbitkanNilai() {
+        async function terbitkanNilai() {
+            if(!await checkSession()) return;
             let rumusPG = document.getElementById('r_pg').value;
             let rumusES = document.getElementById('r_essay').value;
             const mapel = document.getElementById('mapel').value;
@@ -432,81 +414,47 @@ async function startKoreksi() {
 
             let dataSimpan = [];
             const container = document.getElementById('laporanFinal');
-            container.innerHTML = `<h3 class="text-center font-black text-2xl uppercase text-slate-800 mb-6 underline decoration-blue-500 underline-offset-8">DAFTAR NILAI: ${mapel}</h3>`;
+            container.innerHTML = `<h3 class="text-center font-black text-2xl uppercase text-slate-800 mb-6 underline decoration-blue-500 underline-offset-8">DAFTAR NILAI: ${escapeHTML(mapel)}</h3>`;
 
-            // 1. Proses hitung semua siswa dan masukkan ke dataSimpan
             koreksiResult.forEach((res, idx) => {
                 let hitungPG = kalkulasiNilai(res.pg_betul, rumusPG);
                 let hitungES = kalkulasiNilai(res.essay_betul, rumusES);
-                let total = hitungPG + hitungES;
-                let final = Math.round(total); 
+                let final = Math.round(hitungPG + hitungES); 
 
-                dataSimpan.push({ 
-                    nama_siswa: res.nama || 'Siswa '+(idx+1), 
-                    mapel: mapel, 
-                    nilai_akhir: final
-                });
+                dataSimpan.push({ nama_siswa: res.nama || 'Siswa '+(idx+1), mapel: mapel, nilai_akhir: final });
 
                 container.innerHTML += `
                     <div class="bg-white p-6 rounded-[35px] border-4 border-blue-50 shadow-lg flex justify-between items-center transition hover:scale-[1.01] mb-4">
                         <div>
                              <p class="text-[9px] font-black text-slate-400 uppercase italic">Siswa ${idx+1} | Benar: PG ${res.pg_betul}, ES ${res.essay_betul}</p>
-                             <h2 class="text-xl font-black text-blue-900 uppercase">${res.nama || 'Siswa '+(idx+1)}</h2>
+                             <h2 class="text-xl font-black text-blue-900 uppercase">${escapeHTML(res.nama) || 'Siswa '+(idx+1)}</h2>
                         </div>
                         <div class="bg-blue-600 w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl font-black shadow-xl">${final}</div>
                     </div>
                 `;
             });
 
-            // 2. Kirim ke Database (HANYA SEKALI DI SINI)
             try {
                 Swal.fire({ title: 'Menyimpan...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-                
                 const resSave = await fetch('/ai/save-history', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify({ 
-                        data: dataSimpan,
-                        mapel: mapel 
-                    })
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                    body: JSON.stringify({ data: dataSimpan, mapel: mapel })
                 });
-
                 const resData = await resSave.json();
-                
                 if(resData.success) {
-                    Swal.fire({ 
-                        title: 'Berhasil!', 
-                        text: 'Laporan sudah masuk ke menu RIWAYAT.', 
-                        icon: 'success', 
-                        timer: 2000, 
-                        showConfirmButton: false 
-                    });
-                    document.getElementById('exportMenu').classList.remove('hidden');
-                } else {
-                    Swal.fire('Gagal Simpan', resData.message, 'warning');
-                }
-            } catch (e) { 
-                console.error("Error Simpan:", e);
-                Swal.fire('Koneksi Bermasalah', 'Gagal mengirim data ke server.', 'error'); 
-            }
+                    Swal.fire({ title: 'Berhasil!', text: 'Laporan disimpan.', icon: 'success', timer: 2000, showConfirmButton: false });
+                } else { Swal.fire('Gagal Simpan', resData.message, 'warning'); }
+            } catch (e) { Swal.fire('Koneksi Bermasalah', 'Gagal kirim data.', 'error'); }
         }
 
-
-        function hitungOtomatisPreview() {
-            if(document.getElementById('laporanFinal').innerHTML !== "") {
-                terbitkanNilai();
-            }
-        }
+        function hitungOtomatisPreview() { if(document.getElementById('laporanFinal').innerHTML !== "") { terbitkanNilai(); } }
 
         function openSaweria() {
             const email = userEmail || 'Guru_Anonim';
             Swal.fire({
                 title: 'TOP UP TOKEN',
-                html: `
-                <div class="grid grid-cols-1 gap-3 text-left">
+                html: `<div class="grid grid-cols-1 gap-3 text-left">
                     <p class="text-[10px] font-black text-slate-400 uppercase italic">Email: ${email}</p>
                     <button onclick="window.open('https://saweria.co/GuruBantuGuru?msg=5000|${email}')" class="p-4 bg-blue-50 border-2 border-blue-500 rounded-2xl font-black text-xs text-blue-700 hover:bg-blue-100">📦 10 TOKEN - Rp 5.000</button>
                     <button onclick="window.open('https://saweria.co/GuruBantuGuru?msg=10000|${email}')" class="p-4 bg-blue-50 border-2 border-blue-500 rounded-2xl font-black text-xs text-blue-700 hover:bg-blue-100">📦 22 TOKEN - Rp 10.000</button>
@@ -519,14 +467,19 @@ async function startKoreksi() {
             });
         }
 
-            async function openHistoryModal() {
+        async function openHistoryModal() {
             Swal.fire({ title: 'Membuka Riwayat...', didOpen: () => Swal.showLoading() });
             try {
                 const res = await fetch('/ai/get-history');
                 const data = await res.json();
                 if (!data.success || data.data.length === 0) return Swal.fire('Kosong', 'Belum ada riwayat.', 'info');
                 
-                let historyHtml = `<div class="overflow-y-auto max-h-96 custom-scroll text-left">`;
+                let historyHtml = `
+                <div class="mb-4 flex justify-between items-center">
+                    <p class="text-[10px] font-black text-slate-400 uppercase">Total: ${data.data.length} Data</p>
+                    <button onclick="hapusSemuaRiwayat()" class="bg-red-500 text-white px-4 py-2 rounded-full font-black text-[9px] uppercase shadow-lg hover:bg-red-600 transition">🗑️ Hapus Semua</button>
+                </div>
+                <div class="overflow-y-auto max-h-96 custom-scroll text-left">`;
                 const grouped = data.data.reduce((acc, obj) => {
                     const key = obj.mapel;
                     if (!acc[key]) acc[key] = [];
@@ -537,17 +490,15 @@ async function startKoreksi() {
                 for (let mapel in grouped) {
                     historyHtml += `
                         <div class="mb-4 bg-slate-50 p-4 rounded-2xl border-2 border-slate-200">
-                            <h4 class="font-black text-blue-600 uppercase text-[10px] mb-3 italic">📚 ${mapel}</h4>
+                            <h4 class="font-black text-blue-600 uppercase text-[10px] mb-3 italic">📚 ${escapeHTML(mapel)}</h4>
                             <div class="space-y-2">
                                 ${grouped[mapel].map(h => `
                                     <div class="flex justify-between items-center bg-white p-2 rounded-lg border border-slate-100">
                                         <div>
-                                            <p class="font-bold text-[11px] uppercase">${h.nama_siswa}</p>
+                                            <p class="font-bold text-[11px] uppercase">${escapeHTML(h.nama_siswa)}</p>
                                             <p class="text-[9px] font-black text-blue-600">Nilai: ${h.nilai_akhir}</p>
                                         </div>
-                                        <button onclick="hapusSiswa(${h.id}, '${h.nama_siswa}')" class="text-red-500 p-2 hover:bg-red-50 rounded-full transition">
-                                            🗑️
-                                        </button>
+                                        <button onclick="hapusSiswa(${h.id}, '${escapeHTML(h.nama_siswa)}')" class="text-red-500 p-2 hover:bg-red-50 rounded-full transition">🗑️</button>
                                     </div>
                                 `).join('')}
                             </div>
@@ -559,28 +510,28 @@ async function startKoreksi() {
         }
 
         async function hapusSiswa(id, nama) {
-            const confirm = await Swal.fire({
-                title: 'Hapus Nilai?',
-                text: `Nilai milik ${nama} akan dihapus permanen.`,
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#d33',
-                confirmButtonText: 'YA, HAPUS'
-            });
-
+            const confirm = await Swal.fire({ title: 'Hapus Nilai?', text: `Nilai milik ${nama} akan dihapus permanen.`, icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'YA, HAPUS' });
             if (confirm.isConfirmed) {
-                const res = await fetch('/ai/delete-history-siswa', {
-                    method: 'DELETE',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ id: id })
-                });
+                const res = await fetch('/ai/delete-history-siswa', { method: 'DELETE', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ id: id }) });
                 const data = await res.json();
-                if (data.success) {
-                    openHistoryModal(); // Refresh daftar otomatis
-                }
+                if (data.success) openHistoryModal(); 
             }
         }
 
+        // --- FITUR BARU: HAPUS SEMUA ---
+        async function hapusSemuaRiwayat() {
+            const confirm = await Swal.fire({ title: 'Hapus Semua?', text: "Semua riwayat nilai akan dibersihkan permanen!", icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'YA, BERSIHKAN SEMUA' });
+            if (confirm.isConfirmed) {
+                try {
+                    const res = await fetch('/ai/delete-history-all', { method: 'DELETE' });
+                    const data = await res.json();
+                    if(data.success) {
+                        Swal.fire('Terhapus!', 'Semua data riwayat telah dibersihkan.', 'success');
+                        openHistoryModal();
+                    }
+                } catch(e) { Swal.fire('Gagal', 'Terjadi kesalahan server.', 'error'); }
+            }
+        }
 
         function exportResult(type) {
             const mapel = document.getElementById('mapel').value || 'Laporan';
@@ -590,14 +541,7 @@ async function startKoreksi() {
             const dataExport = koreksiResult.map((res, i) => {
                 let hPG = kalkulasiNilai(res.pg_betul, rumusPG);
                 let hES = kalkulasiNilai(res.essay_betul, rumusES);
-                
-                return {
-                    no: i + 1,
-                    nama: res.nama || 'Siswa '+(i+1),
-                    pg: res.pg_betul,
-                    essay: res.essay_betul,
-                    total: Math.round(hPG + hES)
-                };
+                return { no: i + 1, nama: res.nama || 'Siswa '+(i+1), pg: res.pg_betul, essay: res.essay_betul, total: Math.round(hPG + hES) };
             });
 
             if (type === 'pdf') {
@@ -606,68 +550,41 @@ async function startKoreksi() {
                 doc.setFontSize(14); doc.text(`LAPORAN HASIL KOREKSI: ${mapel.toUpperCase()}`, 14, 15);
                 doc.autoTable({ startY: 20, head: [['No', 'Nama Siswa', 'B. PG', 'B. Essay', 'Total']], body: dataExport.map(d => [d.no, d.nama, d.pg, d.essay, d.total]), theme: 'grid' });
                 doc.save(`Nilai_${mapel}.pdf`);
-             } else if (type === 'excel') {
+            } else if (type === 'excel') {
                 const ws = XLSX.utils.json_to_sheet(dataExport);
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, "Daftar Nilai");
                 XLSX.writeFile(wb, `Nilai_${mapel}.xlsx`);
-            }  else if (type === 'word') {
+            } else if (type === 'word') {
                 const { Document, Packer, Paragraph, Table, TableRow, TableCell, WidthType, TextRun, AlignmentType } = docx;
-
-                // Membuat Header Tabel
-                const headerRow = new TableRow({
-                    children: [
-                        new TableCell({ children: [new Paragraph({ text: "No", alignment: AlignmentType.CENTER })], width: { size: 5, type: WidthType.PERCENTAGE } }),
-                        new TableCell({ children: [new Paragraph({ text: "Nama Siswa", alignment: AlignmentType.CENTER })], width: { size: 45, type: WidthType.PERCENTAGE } }),
-                        new TableCell({ children: [new Paragraph({ text: "B. PG", alignment: AlignmentType.CENTER })], width: { size: 15, type: WidthType.PERCENTAGE } }),
-                        new TableCell({ children: [new Paragraph({ text: "B. Essay", alignment: AlignmentType.CENTER })], width: { size: 15, type: WidthType.PERCENTAGE } }),
-                        new TableCell({ children: [new Paragraph({ text: "Total Nilai", alignment: AlignmentType.CENTER })], width: { size: 20, type: WidthType.PERCENTAGE } }),
-                    ],
-                });
-
-                // Mengisi Data Siswa ke Tabel
-                const dataRows = dataExport.map(item => new TableRow({
-                    children: [
-                        new TableCell({ children: [new Paragraph({ text: item.no.toString(), alignment: AlignmentType.CENTER })] }),
-                        new TableCell({ children: [new Paragraph({ text: item.nama.toUpperCase() })] }),
-                        new TableCell({ children: [new Paragraph({ text: item.pg.toString(), alignment: AlignmentType.CENTER })] }),
-                        new TableCell({ children: [new Paragraph({ text: item.essay.toString(), alignment: AlignmentType.CENTER })] }),
-                        new TableCell({ children: [new Paragraph({ text: item.total.toString(), alignment: AlignmentType.CENTER })] }),
-                    ],
-                }));
-
-                const table = new Table({
-                    rows: [headerRow, ...dataRows],
-                    width: { size: 100, type: WidthType.PERCENTAGE },
-                });
-
-                const doc = new Document({
-                    sections: [{
-                        children: [
-                            new Paragraph({
-                                children: [
-                                    new TextRun({ text: `LAPORAN HASIL KOREKSI: ${mapel.toUpperCase()}`, bold: true, size: 28 }),
-                                ],
-                                spacing: { after: 400 },
-                                alignment: AlignmentType.CENTER,
-                            }),
-                            table,
-                        ],
-                    }],
-                });
-
-                Packer.toBlob(doc).then(blob => {
-                    saveAs(blob, `Nilai_${mapel}.docx`);
-                });
+                const headerRow = new TableRow({ children: [
+                    new TableCell({ children: [new Paragraph({ text: "No", alignment: AlignmentType.CENTER })], width: { size: 5, type: WidthType.PERCENTAGE } }),
+                    new TableCell({ children: [new Paragraph({ text: "Nama Siswa", alignment: AlignmentType.CENTER })], width: { size: 45, type: WidthType.PERCENTAGE } }),
+                    new TableCell({ children: [new Paragraph({ text: "B. PG", alignment: AlignmentType.CENTER })], width: { size: 15, type: WidthType.PERCENTAGE } }),
+                    new TableCell({ children: [new Paragraph({ text: "B. Essay", alignment: AlignmentType.CENTER })], width: { size: 15, type: WidthType.PERCENTAGE } }),
+                    new TableCell({ children: [new Paragraph({ text: "Total Nilai", alignment: AlignmentType.CENTER })], width: { size: 20, type: WidthType.PERCENTAGE } }),
+                ]});
+                const dataRows = dataExport.map(item => new TableRow({ children: [
+                    new TableCell({ children: [new Paragraph({ text: item.no.toString(), alignment: AlignmentType.CENTER })] }),
+                    new TableCell({ children: [new Paragraph({ text: item.nama.toUpperCase() })] }),
+                    new TableCell({ children: [new Paragraph({ text: item.pg.toString(), alignment: AlignmentType.CENTER })] }),
+                    new TableCell({ children: [new Paragraph({ text: item.essay.toString(), alignment: AlignmentType.CENTER })] }),
+                    new TableCell({ children: [new Paragraph({ text: item.total.toString(), alignment: AlignmentType.CENTER })] }),
+                ]}));
+                const table = new Table({ rows: [headerRow, ...dataRows], width: { size: 100, type: WidthType.PERCENTAGE } });
+                const doc = new Document({ sections: [{ children: [
+                    new Paragraph({ children: [new TextRun({ text: `LAPORAN HASIL KOREKSI: ${mapel.toUpperCase()}`, bold: true, size: 28 })], spacing: { after: 400 }, alignment: AlignmentType.CENTER }),
+                    table,
+                ]}]});
+                Packer.toBlob(doc).then(blob => saveAs(blob, `Nilai_${mapel}.docx`));
             }
-
         }
 
         async function revisiMassal(type) {
             if (koreksiResult.length === 0) return;
             const { value: formValues } = await Swal.fire({
                 title: `REVISI CEPAT ${type}`,
-                html: `<div class="max-h-80 overflow-y-auto px-2">${koreksiResult.map((res, i) => `<div class="flex items-center justify-between mb-2 p-3 bg-slate-50 rounded-xl border"><span>${res.nama || 'Siswa '+(i+1)}</span><input id="rev-${i}" type="number" class="w-16 p-2 border-2 border-blue-500 rounded-lg text-center font-black" value="${type === 'PG' ? res.pg_betul : res.essay_betul}"></div>`).join('')}</div>`,
+                html: `<div class="max-h-80 overflow-y-auto px-2">${koreksiResult.map((res, i) => `<div class="flex items-center justify-between mb-2 p-3 bg-slate-50 rounded-xl border"><span>${escapeHTML(res.nama) || 'Siswa '+(i+1)}</span><input id="rev-${i}" type="number" class="w-16 p-2 border-2 border-blue-500 rounded-lg text-center font-black" value="${type === 'PG' ? res.pg_betul : res.essay_betul}"></div>`).join('')}</div>`,
                 showCancelButton: true, confirmButtonText: 'UPDATE DATA',
                 preConfirm: () => koreksiResult.map((_, i) => document.getElementById(`rev-${i}`).value)
             });
@@ -682,4 +599,3 @@ async function startKoreksi() {
     </script>
 </body>
 </html>
-
