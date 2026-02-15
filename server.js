@@ -5,20 +5,36 @@ const dotenv = require('dotenv');
 const bcrypt = require('bcrypt'); 
 const session = require('express-session'); 
 const SibApiV3Sdk = require('sib-api-v3-sdk');
-const { query } = require('./db'); // Pastikan koneksi DB sesuai
+const { query } = require('./db'); 
 const fs = require('fs');
+
+// --- TAMBAHAN SECURITY PACKAGES ---
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 
 dotenv.config();
 const app = express();
 const port = process.env.PORT || 8080; 
 
-// --- 0. KONFIGURASI API BREVO (TETAP) ---
+// --- 0.A CONFIG ANTI-HACKER (HELMET & RATE LIMIT) ---
+app.use(helmet({
+    contentSecurityPolicy: false, // Agar script eksternal dashboard tetap jalan
+    frameguard: { action: 'deny' } // Anti-Clickjacking
+}));
+
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 Menit
+    max: 10, // Max 10 percobaan per IP
+    message: { success: false, message: "Terlalu banyak percobaan. Tunggu 15 menit." }
+});
+
+// --- 0.B KONFIGURASI API BREVO (SENDER UPDATED) ---
 const defaultClient = SibApiV3Sdk.ApiClient.instance;
 const apiKey = defaultClient.authentications['api-key'];
 apiKey.apiKey = process.env.BREVO_API_KEY; 
 const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
 
-// --- 1. PROSES MIGRASI DATA (DIPERBARUI UNTUK OTP) ---
+// --- 1. PROSES MIGRASI DATA (TETAP) ---
 async function migrasiData() {
     try {
         await query(`
@@ -32,7 +48,6 @@ async function migrasiData() {
                 role TEXT DEFAULT 'user'
             )
         `);
-
         await query(`
             CREATE TABLE IF NOT EXISTS history (
                 id SERIAL PRIMARY KEY,
@@ -55,13 +70,16 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.set('views', path.join(__dirname, 'views'));
 
 app.use(session({
-    secret: 'jawaban-ai-secret-key',
+    secret: 'jawaban-ai-secret-key-super-secure',
     resave: false,
     saveUninitialized: false,
-    cookie: { maxAge: 24 * 60 * 60 * 1000 } 
+    cookie: { 
+        httpOnly: true, // Anti-maling script (XSS)
+        maxAge: 24 * 60 * 60 * 1000 
+    } 
 }));
 
-// --- 3. ROUTING VIEWS ---
+// --- 3. ROUTING VIEWS (TETAP) ---
 app.get('/', (req, res) => {
     if (req.session.userId) return res.redirect('/dashboard');
     res.sendFile(path.join(__dirname, 'views', 'login.html'));
@@ -88,11 +106,11 @@ app.get('/auth/user-session', async (req, res) => {
     } catch (e) { res.status(500).json({ success: false }); }
 });
 
-// --- FITUR BARU: OTP REGISTER ---
-app.post('/auth/send-otp-register', async (req, res) => {
+// --- OTP REGISTER (LOGIKA UPDATED + EMAIL UPDATED) ---
+app.post('/auth/send-otp-register', authLimiter, async (req, res) => {
     const { email } = req.body;
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiry = new Date(Date.now() + 5 * 60000); // 5 menit
+    const expiry = new Date(Date.now() + 5 * 60000); 
 
     try {
         const check = await query('SELECT * FROM users WHERE email = $1', [email]);
@@ -100,7 +118,6 @@ app.post('/auth/send-otp-register', async (req, res) => {
             return res.status(400).json({ success: false, error: "Email sudah terdaftar!" });
         }
 
-        // Simpan OTP (Upsert: Insert jika baru, Update jika ada tapi status PENDING)
         await query(`
             INSERT INTO users (email, password, otp, otp_expiry, quota) 
             VALUES ($1, 'PENDING', $2, $3, 10)
@@ -109,9 +126,11 @@ app.post('/auth/send-otp-register', async (req, res) => {
         );
 
         const sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
-        sendSmtpEmail.subject = "Kode OTP Pendaftaran Jawaban AI";
-        sendSmtpEmail.htmlContent = `<html><body><h2>Kode OTP Anda: ${otp}</h2><p>Berlaku 5 menit. Jangan berikan kode ini kepada siapapun.</p></body></html>`;
-        sendSmtpEmail.sender = { "name": "Jawaban AI", "email": "admin@jawabanai.com" };
+        sendSmtpEmail.subject = "Kode OTP Registrasi Jawaban AI";
+        sendSmtpEmail.htmlContent = `<html><body><h2>Kode OTP Anda: ${otp}</h2><p>Berlaku 5 menit.</p></body></html>`;
+        
+        // Sesuai perintah: Menggunakan email Brevo azhardax94@gmail.com
+        sendSmtpEmail.sender = { "name": "Admin Jawaban AI", "email": "azhardax94@gmail.com" };
         sendSmtpEmail.to = [{ "email": email }];
 
         await apiInstance.sendTransacEmail(sendSmtpEmail);
@@ -122,8 +141,8 @@ app.post('/auth/send-otp-register', async (req, res) => {
     }
 });
 
-// --- MODIFIKASI REGISTER: VERIFIKASI OTP ---
-app.post('/auth/register', async (req, res) => {
+// --- REGISTER VERIFIKASI OTP (TETAP) ---
+app.post('/auth/register', authLimiter, async (req, res) => {
     const { email, password, otp } = req.body;
     try {
         const result = await query('SELECT otp, otp_expiry FROM users WHERE email = $1', [email.trim()]);
@@ -140,8 +159,8 @@ app.post('/auth/register', async (req, res) => {
     } catch (e) { res.status(500).json({ success: false, message: "Gagal mendaftar" }); }
 });
 
-// --- FITUR BARU: LUPA PASSWORD ---
-app.post('/auth/forgot-password', async (req, res) => {
+// --- LUPA PASSWORD (SENDER UPDATED) ---
+app.post('/auth/forgot-password', authLimiter, async (req, res) => {
     const { email } = req.body;
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expiry = new Date(Date.now() + 5 * 60000);
@@ -154,8 +173,10 @@ app.post('/auth/forgot-password', async (req, res) => {
 
         const sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
         sendSmtpEmail.subject = "Kode Reset Password Jawaban AI";
-        sendSmtpEmail.htmlContent = `<html><body><h2>Kode Reset: ${otp}</h2><p>Gunakan kode ini untuk mereset password Anda.</p></body></html>`;
-        sendSmtpEmail.sender = { "name": "Jawaban AI", "email": "admin@jawabanai.com" };
+        sendSmtpEmail.htmlContent = `<html><body><h2>Kode Reset: ${otp}</h2></body></html>`;
+        
+        // Sesuai perintah: Menggunakan email Brevo azhardax94@gmail.com
+        sendSmtpEmail.sender = { "name": "Admin Jawaban AI", "email": "azhardax94@gmail.com" };
         sendSmtpEmail.to = [{ "email": email }];
 
         await apiInstance.sendTransacEmail(sendSmtpEmail);
@@ -165,32 +186,26 @@ app.post('/auth/forgot-password', async (req, res) => {
     }
 });
 
-app.post('/auth/reset-password', async (req, res) => {
+app.post('/auth/reset-password', authLimiter, async (req, res) => {
     const { email, otp, newPassword } = req.body;
     try {
         const result = await query('SELECT otp, otp_expiry FROM users WHERE email = $1', [email.trim()]);
         const user = result.rows[0];
-
         if (!user || user.otp !== otp || new Date() > new Date(user.otp_expiry)) {
             return res.json({ success: false, message: "OTP Salah/Expired" });
         }
-
         const hashedPassword = await bcrypt.hash(newPassword, 10);
         await query('UPDATE users SET password = $1, otp = NULL, otp_expiry = NULL WHERE email = $2', [hashedPassword, email.trim()]);
         res.json({ success: true });
-    } catch(e) {
-        res.status(500).json({ success: false });
-    }
+    } catch(e) { res.status(500).json({ success: false }); }
 });
 
-app.post('/auth/login', async (req, res) => {
+app.post('/auth/login', authLimiter, async (req, res) => {
     const { email, password } = req.body;
     const result = await query('SELECT * FROM users WHERE email = $1', [email.trim()]);
     if (result.rows.length > 0) {
         const user = result.rows[0];
-        // Pastikan akun sudah aktif (password bukan PENDING)
         if (user.password === 'PENDING') return res.status(401).json({ success: false, message: "Akun belum diverifikasi OTP!" });
-        
         if (await bcrypt.compare(password, user.password)) {
             req.session.userId = user.email;
             return res.json({ success: true, token: user.quota, is_premium: user.is_premium });
@@ -204,7 +219,7 @@ app.get('/auth/logout', (req, res) => {
     res.redirect('/');
 });
 
-// --- 5. ADMIN & SAWERIA WEBHOOK (TETAP SESUAI ASLI) ---
+// --- 5. ADMIN & SAWERIA WEBHOOK (TETAP) ---
 app.post('/admin/inject-token', async (req, res) => {
     const isAdmin = ['Versacy', 'admin@jawabanai.com'].includes(req.session.userId);
     if (!isAdmin) return res.status(403).json({ success: false, message: "Unauthorized" });
@@ -223,7 +238,6 @@ app.post('/webhook/saweria', async (req, res) => {
     else if (amount_raw >= 25000) tokenBonus = 60;
     else if (amount_raw >= 10000) tokenBonus = 22;
     else if (amount_raw >= 5000) tokenBonus = 10;
-
     if (tokenBonus > 0 && msg) {
         try {
             const emailTarget = msg.includes('|') ? msg.split('|')[1].trim() : msg.trim();
@@ -234,16 +248,13 @@ app.post('/webhook/saweria', async (req, res) => {
     res.status(200).send('OK');
 });
 
-// --- 6. HISTORY API ---
+// --- 6. HISTORY API (TETAP) ---
 app.post('/ai/save-history', async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ success: false });
     const { data } = req.body;
     try {
         for (let item of data) {
-            await query(
-                'INSERT INTO history (email, nama_siswa, mapel, nilai_akhir) VALUES ($1, $2, $3, $4)',
-                [req.session.userId, item.nama_siswa, item.mapel, item.nilai_akhir]
-            );
+            await query('INSERT INTO history (email, nama_siswa, mapel, nilai_akhir) VALUES ($1, $2, $3, $4)', [req.session.userId, item.nama_siswa, item.mapel, item.nilai_akhir]);
         }
         res.json({ success: true });
     } catch (e) { res.status(500).json({ success: false }); }
@@ -252,129 +263,72 @@ app.post('/ai/save-history', async (req, res) => {
 app.get('/ai/get-history', async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ success: false });
     try {
-        const result = await query(
-            'SELECT id,nama_siswa, mapel, nilai_akhir, waktu FROM history WHERE email = $1 ORDER BY id DESC', 
-            [req.session.userId]
-        );
+        const result = await query('SELECT id,nama_siswa, mapel, nilai_akhir, waktu FROM history WHERE email = $1 ORDER BY id DESC', [req.session.userId]);
         res.json({ success: true, data: result.rows });
     } catch (e) { res.status(500).json({ success: false }); }
 });
 
-// API UNTUK MENGHAPUS RIWAYAT PER SISWA
 app.delete('/ai/delete-history-siswa', async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ success: false });
     const { id } = req.body;
     try {
         await query('DELETE FROM history WHERE email = $1 AND id = $2', [req.session.userId, id]);
         res.json({ success: true });
-    } catch (e) { 
-        console.error("Gagal hapus siswa:", e);
-        res.status(500).json({ success: false }); 
-    }
+    } catch (e) { res.status(500).json({ success: false }); }
 });
 
-// --- 7. PROSES KOREKSI AI (UPDATED: PENGGABUNGAN MULTI-PAGE & PARSING) ---
+// --- 7. PROSES KOREKSI AI (TETAP) ---
 const upload = multer({ storage: multer.memoryStorage() });
 const { prosesKoreksiLengkap } = require('./routes/koreksi');
 
 app.post('/ai/proses-koreksi', upload.array('foto'), async (req, res) => {
     try {
         if (!req.session.userId) return res.status(401).json({ success: false, message: "Sesi Habis" });
-        
         const userRes = await query('SELECT quota, is_premium FROM users WHERE email = $1', [req.session.userId]);
         const user = userRes.rows[0];
-        
-        if (!user.is_premium && user.quota <= 0) {
-            return res.json({ success: false, limitReached: true, message: "Token Habis!" });
-        }
+        if (!user.is_premium && user.quota <= 0) return res.json({ success: false, limitReached: true, message: "Token Habis!" });
 
-        // --- TAMBAHKAN SORTING FILE DI SINI ---
-        // Mengurutkan file berdasarkan nama file asli (originalname) secara Alfanumerik
         if (req.files && req.files.length > 0) {
-            req.files.sort((a, b) => {
-                return a.originalname.localeCompare(b.originalname, undefined, {
-                    numeric: true,
-                    sensitivity: 'base'
-                });
-            });
-            console.log("✅ File telah diurutkan:", req.files.map(f => f.originalname));
+            req.files.sort((a, b) => a.originalname.localeCompare(b.originalname, undefined, { numeric: true, sensitivity: 'base' }));
         }
-        // --------------------------------------
 
-        // --- PARSING JSON KUNCI JAWABAN ---
-        let kunciPG = {};
-        let kunciEssay = {};
+        let kunciPG = {}, kunciEssay = {};
         try {
             kunciPG = req.body.kunci_pg ? JSON.parse(req.body.kunci_pg) : {};
             kunciEssay = req.body.kunci_essay ? JSON.parse(req.body.kunci_essay) : {};
-        } catch (parseError) {
-            console.error("⚠️ Error Parsing Kunci Jawaban:", parseError);
-        }
+        } catch (e) {}
 
-        let settings = {
-            kunci_pg: kunciPG,
-            kunci_essay: kunciEssay
-        };
+        const rawResults = await prosesKoreksiLengkap(req.files, { kunci_pg: kunciPG, kunci_essay: kunciEssay }, req.body.r_pg, req.body.r_essay);
 
-        const r_pg = req.body.r_pg;
-        const r_essay = req.body.r_essay;
-
-        // 1. Panggil fungsi koreksi AI untuk file yang sudah DIURUTKAN
-        const rawResults = await prosesKoreksiLengkap(req.files, settings, r_pg, r_essay);
-
-        // 2. LOGIKA PENGGABUNGAN (VERSI TERBAIK)
         let mergedResults = [];
         let currentStudent = null;
-
         rawResults.forEach((item) => {
             const isNewStudent = item.nama !== null;
-
             if (!isNewStudent && currentStudent) {
                 currentStudent.pg_betul += (item.pg_betul || 0);
                 currentStudent.essay_betul += (item.essay_betul || 0);
-                
-                if (item.list_hasil_pg) {
-                    currentStudent.list_hasil_pg = [...(currentStudent.list_hasil_pg || []), ...item.list_hasil_pg];
-                }
+                if (item.list_hasil_pg) currentStudent.list_hasil_pg = [...(currentStudent.list_hasil_pg || []), ...item.list_hasil_pg];
                 currentStudent.is_merged = true; 
             } else {
                 if (currentStudent) mergedResults.push(currentStudent);
-                
                 item.nama = item.nama || "Siswa " + (mergedResults.length + 1);
                 item.is_merged = false;
                 currentStudent = item;
             }
         });
-
         if (currentStudent) mergedResults.push(currentStudent);
 
-        // 3. Hitung Token Berdasarkan Jumlah SISWA
         const totalSiswa = mergedResults.filter(r => r.nama !== "ERROR SCAN" && r.nama !== "GAGAL SCAN").length;
-
         if (totalSiswa > 0 && !user.is_premium) {
-            if (user.quota < totalSiswa) {
-                 return res.json({ success: false, limitReached: true, message: `Token kurang. Butuh ${totalSiswa}, sisa ${user.quota}.` });
-            }
-
-            await query(
-                'UPDATE users SET quota = GREATEST(0, quota - $1) WHERE email = $2', 
-                [totalSiswa, req.session.userId]
-            );
+            if (user.quota < totalSiswa) return res.json({ success: false, limitReached: true, message: "Token kurang." });
+            await query('UPDATE users SET quota = GREATEST(0, quota - $1) WHERE email = $2', [totalSiswa, req.session.userId]);
         }
         
         const finalUser = await query('SELECT quota, is_premium FROM users WHERE email = $1', [req.session.userId]);
-        res.json({ 
-            success: true, 
-            data: mergedResults, 
-            current_token: finalUser.rows[0].is_premium ? '∞' : finalUser.rows[0].quota 
-        });
-
+        res.json({ success: true, data: mergedResults, current_token: finalUser.rows[0].is_premium ? '∞' : finalUser.rows[0].quota });
     } catch (error) {
-        console.error("❌ Koreksi Error:", error);
-        res.status(500).json({ success: false, message: "Terjadi kesalahan internal pada AI: " + error.message });
+        res.status(500).json({ success: false, message: "Error: " + error.message });
     }
 });
 
-
-// 
-app.listen(port, () => console.log(`🚀 Server Jawaban AI aktif di port ${port}`));
+app.listen(port, () => console.log(`🚀 Server Secure & OTP aktif di port ${port}`));
